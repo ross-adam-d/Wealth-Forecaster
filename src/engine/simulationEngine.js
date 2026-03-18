@@ -218,22 +218,22 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       superB_result.drawdown +
       bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
 
+    // Salary sacrifice is already excluded from netTakeHome — do not add to outflows again
     const totalOutflows =
       totalExpenses +
-      totalMortgageRepayments +
-      superContribA_pre.salarySacrificeAmount +
-      superContribB_pre.salarySacrificeAmount
+      totalMortgageRepayments
 
     const netCashflow = totalIncome - totalOutflows
     const isDeficit = netCashflow < 0
 
-    // Route surplus / fill deficit
+    // Route surplus / fill deficit — track shares adjustment separately so step 12 can apply it
+    // on top of sharesResult.closingValue (which was computed before cashflow routing)
     let surplus = 0
+    let sharesAdjustment = 0
     if (!isDeficit) {
       surplus = netCashflow
-      // Route surplus by priority order (simplified: to shares first)
       if (surplusRoutingOrder[0] === SURPLUS_DESTINATIONS.SHARES) {
-        currentShares = { ...currentShares, currentValue: currentShares.currentValue + surplus }
+        sharesAdjustment = surplus
       } else {
         cashBuffer += surplus
       }
@@ -245,9 +245,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       } else {
         const remaining = deficit - cashBuffer
         cashBuffer = 0
-        // Draw from shares (if not preserve capital)
         if (!currentShares.preserveCapital) {
-          currentShares = { ...currentShares, currentValue: Math.max(0, currentShares.currentValue - remaining) }
+          sharesAdjustment = -Math.min(remaining, sharesResult.closingValue)
         }
       }
     }
@@ -258,7 +257,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // ── Step 12: Update balances ──────────────────────────────────────────
     superA = { ...superA, currentBalance: superA_result.closingBalance }
     superB = { ...superB, currentBalance: superB_result.closingBalance }
-    currentShares = { ...currentShares, currentValue: sharesResult.closingValue }
+    // Apply shares growth (closingValue) plus any surplus routed to shares or deficit drawn from shares
+    currentShares = { ...currentShares, currentValue: Math.max(0, sharesResult.closingValue + sharesAdjustment) }
     currentBonds = currentBonds.map((bond, i) => ({
       ...bond,
       currentBalance: bondResults[i].closingBalance,
