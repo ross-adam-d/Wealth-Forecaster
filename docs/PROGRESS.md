@@ -38,19 +38,15 @@
 - [x] `hooks/useSimulation.js` — simulation runner, retirement date
 - [x] `CLAUDE.md` — session rules, design system
 - [x] `docs/PROGRESS.md` — this file
+- [x] `views/HouseholdProfile.jsx` — full input forms: super (both people), properties (add/remove, P&I/IO/offset/rental/sale), shares, investment bonds (10yr clock badge), expenses (flat list with amount type, discretionary, time-bounding)
 
 ### In Progress 🔄
 _(nothing currently in progress)_
 
-### Up Next — Household Profile input forms
-The engines are complete but the UI has no way to enter most data yet.
-Priority order:
-
-- [ ] **Super section** — salary sacrifice amount, voluntary contributions, employer scheme selector, current balance, TTR toggle
-- [ ] **Property section** — add/remove properties, per-property form (value, mortgage, offset, loan type, rental, sale event)
-- [ ] **Shares section** — current value, annual contribution, dividend yield, franking %, rate periods UI
-- [ ] **Investment bonds section** — balance, annual contribution, inception date
-- [ ] **Expenses section** — add/remove expense items, amount type selector, fixed/discretionary tag, time-bounding
+### Up Next — Gap Dashboard completion
+- [ ] Inline stress test (expenses slider, return slider, part-time income toggle)
+- [ ] Month-by-month cashflow table for gap period
+- [ ] Partner-specific gap phase labels (solo gap / joint gap)
 
 ### Then — Gap Dashboard completion
 - [ ] Inline stress test (expenses slider, return slider, part-time income toggle)
@@ -83,6 +79,26 @@ Priority order:
 ---
 
 ## Session Log
+
+### Session — 2026-03-18 (2)
+
+**What was done:**
+- Built full `HouseholdProfile.jsx` — all input sections now functional:
+  - **People** — name, DOB, salary, retirement age, employer type, PBI/QLD Health packaging, novated lease (collapsible, ECM/statutory, EV toggle)
+  - **Superannuation** — current balance, employer scheme (SG/match/fixed%), salary sacrifice + concessional cap warning, voluntary concessional & non-concessional + cap warnings, TTR toggle
+  - **Properties** — add/remove up to 4; per-property: P&I/IO loan type, offset account, IO expiry warning, rental income/expenses (investment only), sale event with proceeds routing
+  - **Share portfolio** — value, annual contribution, dividend yield, franking %, preserve capital toggle
+  - **Investment bonds** — add/remove; per-bond: balance, contributions, inception date, 10-year clock badge (tax-free / year X of 10)
+  - **Expenses** — flat list with add/remove; per-item: label, amount, annual/monthly/one-off/time-bounded, discretionary flag, date range
+- All sections collapsible with `▸`/`▾`. Consistent `CurrencyInput` / `PctInput` primitives.
+- Build confirmed clean.
+
+**State at end of session:**
+Users can now enter all core data. Simulation will run with real numbers. Next priority is Gap Dashboard stress test and cashflow table — this is the product's hero feature.
+
+**Next session should start with:** Gap Dashboard — inline stress test sliders + month-by-month cashflow table.
+
+---
 
 ### Session — 2026-03-18
 **What was done:**
