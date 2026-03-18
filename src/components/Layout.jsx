@@ -11,7 +11,7 @@ const NAV = [
 
 export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario }) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       {/* Top nav */}
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
@@ -60,7 +60,7 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
       </header>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </main>
 

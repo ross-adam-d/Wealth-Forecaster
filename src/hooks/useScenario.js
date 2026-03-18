@@ -25,7 +25,18 @@ export function useScenario(userId) {
         .order('updated_at', { ascending: false })
 
       if (!error && data?.length > 0) {
-        const loaded = data.map(row => row.data)
+        const defaults = createDefaultScenario()
+        const loaded = data.map(row => ({
+          ...defaults,
+          ...row.data,
+          super: row.data.super ?? defaults.super,
+          properties: row.data.properties ?? defaults.properties,
+          shares: row.data.shares ?? defaults.shares,
+          investmentBonds: row.data.investmentBonds ?? defaults.investmentBonds,
+          expenses: row.data.expenses ?? defaults.expenses,
+          household: row.data.household ?? defaults.household,
+          assumptions: row.data.assumptions ?? defaults.assumptions,
+        }))
         setScenarios(loaded)
         setActiveId(loaded[0].id)
       }
