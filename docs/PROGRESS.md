@@ -39,6 +39,7 @@
 - [x] `CLAUDE.md` — session rules, design system
 - [x] `docs/PROGRESS.md` — this file
 - [x] `views/HouseholdProfile.jsx` — full input forms: super (both people), properties (add/remove, P&I/IO/offset/rental/sale), shares, investment bonds (10yr clock badge), expenses (flat list with amount type, discretionary, time-bounding)
+- [x] `src/__tests__/` — 188 unit tests across all engines and modules (100% passing)
 
 ### In Progress 🔄
 _(nothing currently in progress)_
@@ -79,6 +80,27 @@ _(nothing currently in progress)_
 ---
 
 ## Session Log
+
+### Session — 2026-03-18 (3)
+
+**What was done:**
+- Wrote 188 unit tests across 9 test files covering all engines and modules:
+  - `taxEngine`: calcIncomeTax (all 5 brackets), Medicare levy, franking credits (refundable in pension phase), calcPersonTax (salary sacrifice, negative gearing, packaging), getMarginalRate, resolvePackagingReductions (PBI/QLD Health caps)
+  - `ratePeriodEngine`: single and multi-period resolution, boundary years, beyond-period fallback, gap validation
+  - `super`: SG rate schedule (FY2025/26 step), all 6 drawdown age brackets, preservation age, contributions cap warnings, growSuperBalance (accumulation vs pension phase, correct rates, drawdowns, locking)
+  - `property`: P&I vs IO repayment formulas, offset interest reduction, negative gearing, IO→P&I step-up, sale CGT with 50% discount, primary residence CGT-exempt
+  - `shares`: growth, dividends, franking credits, drawdown, preserve capital (with age gating), CGT on drawdown
+  - `investmentBonds`: 10-year threshold, 125% rule breach, pre/post threshold withdrawal tax treatment, clock reset, liquidity tagging
+  - `fbt`: statutory and ECM methods, EV exemption, employee contribution offset, days proration, compareMethodsSideBySide
+  - `expenses`: inflation compounding, one-off, time-bounded, monthly→annual, discretionary/fixed lever adjustments, tree rollup, tag cascading
+- All 188 tests pass. No bugs found in engines — calculation logic is correct.
+
+**State at end of session:**
+Engines validated. Safe to build on. Next priority is Gap Dashboard stress test and month-by-month cashflow table — the hero feature.
+
+**Next session should start with:** Gap Dashboard — inline stress test sliders + monthly cashflow table.
+
+---
 
 ### Session — 2026-03-18 (2)
 
