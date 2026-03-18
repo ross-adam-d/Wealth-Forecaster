@@ -81,6 +81,20 @@ _(nothing currently in progress)_
 
 ## Session Log
 
+### Session — 2026-03-18 (4)
+
+**What was done:**
+- Answered question about running Claude Code CLI in PowerShell on Windows.
+- Provided install instructions: `irm https://claude.ai/install.ps1 | iex` (native installer) and `winget install Anthropic.ClaudeCode` (WinGet alternative).
+- No code changes this session.
+
+**State at end of session:**
+Engines validated. Safe to build on. No code changes this session — docs-only update.
+
+**Next session should start with:** Gap Dashboard — inline stress test sliders + month-by-month cashflow table.
+
+---
+
 ### Session — 2026-03-18 (3)
 
 **What was done:**
