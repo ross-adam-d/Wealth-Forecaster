@@ -104,7 +104,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
 
   const chartData = gapSnapshots.map(s => ({
     year: s.year,
-    cash: Math.max(0, s.cashBuffer),
+    cash: Math.max(0, s.cashBuffer + (s.totalOffsetBalance || 0)),
     shares: Math.max(0, s.sharesValue),
     bonds: Math.max(0, s.bondLiquidity + s.bondPreTenYr),
     superA: s.superAUnlocked ? Math.max(0, s.superABalance) : 0,

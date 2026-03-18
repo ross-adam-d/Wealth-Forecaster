@@ -273,6 +273,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     // Liquidity classification
     const propertyEquity = propertyResults.reduce((sum, r) => sum + r.equity, 0)
+    const totalOffsetBalance = currentProperties.reduce((sum, p) => sum + (p.offsetBalance || 0), 0)
     const bondLiquidity = bondResults.reduce((sum, r, i) => {
       return sum + (r.isTaxFree ? currentBonds[i].currentBalance : 0)
     }, 0)
@@ -282,6 +283,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const totalLiquidAssets =
       cashBuffer +
+      totalOffsetBalance +
       currentShares.currentValue +
       bondLiquidity +
       (superA_result.inPensionPhase ? superA.currentBalance : 0) +
@@ -340,6 +342,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       surplus,
       cashBuffer,
       // Net worth
+      totalOffsetBalance,
       totalLiquidAssets,
       totalNetWorth,
       // Warnings

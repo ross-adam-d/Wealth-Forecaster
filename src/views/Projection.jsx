@@ -36,7 +36,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
       property: transform(s.propertyEquity, s.year),
       shares: transform(s.sharesValue, s.year),
       bonds: transform(s.bondLiquidity + s.bondPreTenYr, s.year),
-      cash: transform(s.cashBuffer, s.year),
+      cash: transform(s.cashBuffer + (s.totalOffsetBalance || 0), s.year),
       isIllustrative,
     }
   })
