@@ -213,7 +213,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       taxB.netTakeHome +
       (totalNetRentalIncomeLoss > 0 ? totalNetRentalIncomeLoss : 0) +
       sharesResult.cashDividend +
-      sharesResult.frankingRefund +
+      taxAFinal.frankingRefund +
       superA_result.drawdown +
       superB_result.drawdown +
       bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
