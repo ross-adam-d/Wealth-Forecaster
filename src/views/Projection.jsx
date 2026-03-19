@@ -2,7 +2,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ILLUSTRATIVE_AGE_THRESHOLD } from '../constants/index.js'
 
 function fmt$(n) {
@@ -37,11 +37,16 @@ function GuideBox({ children }) {
 
 export default function Projection({ snapshots, scenario, retirementDate }) {
   const [displayReal, setDisplayReal] = useState(true)
+  const [showAllYears, setShowAllYears] = useState(false)
+  const [cashflowDetailOpen, setCashflowDetailOpen] = useState(false)
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
   const transform = (value, year) =>
     applyRealNominal(value, year, currentYear, inflationRate, displayReal)
+
+  const personAName = scenario.household.personA.name || 'Person A'
+  const personBName = scenario.household.personB.name || 'Person B'
 
   // Net worth chart data
   const netWorthData = snapshots.map(s => {
@@ -68,6 +73,63 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
   }))
 
   const retireYear = retirementDate?.retirementYear
+
+  // ── Cashflow detail table ────────────────────────────────────────────
+  const INCOME_COLS = useMemo(() => [
+    { key: 'salaryA',         label: `${personAName} take-home` },
+    { key: 'salaryB',         label: `${personBName} take-home` },
+    { key: 'rentalIncome',    label: 'Rental income' },
+    { key: 'dividends',       label: 'Dividends & franking' },
+    { key: 'superDrawdownA',  label: `Super drawdown (${personAName})` },
+    { key: 'superDrawdownB',  label: `Super drawdown (${personBName})` },
+    { key: 'bondWithdrawals', label: 'Bond withdrawals' },
+    { key: 'propertySale',    label: 'Property sale' },
+  ], [personAName, personBName])
+
+  const EXPENSE_COLS = [
+    { key: 'livingExpenses', label: 'Living expenses' },
+    { key: 'mortgage',       label: 'Mortgage repayments' },
+  ]
+
+  const detailRows = useMemo(() => snapshots.map(s => {
+    const rentalIncome = s.propertyResults?.reduce(
+      (sum, r) => sum + (r.netRentalIncomeLoss > 0 ? r.netRentalIncomeLoss : 0), 0) ?? 0
+    const mortgage = s.totalOutflows - s.totalExpenses
+    return {
+      year: s.year, ageA: s.ageA, ageB: s.ageB,
+      retiredA: s.retiredA, retiredB: s.retiredB, isDeficit: s.isDeficit,
+      salaryA:         s.taxA?.netTakeHome ?? 0,
+      salaryB:         s.taxB?.netTakeHome ?? 0,
+      rentalIncome,
+      dividends:       (s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0),
+      superDrawdownA:  s.superA?.drawdown ?? 0,
+      superDrawdownB:  s.superB?.drawdown ?? 0,
+      bondWithdrawals: s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0,
+      propertySale:    s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0,
+      totalIncome:     s.totalIncome,
+      livingExpenses:  s.totalExpenses,
+      mortgage:        Math.max(0, mortgage),
+      totalOutflows:   s.totalOutflows,
+      netCashflow:     s.netCashflow,
+      cashBuffer:      s.cashBuffer,
+    }
+  }), [snapshots])
+
+  // Only show columns that have at least one non-trivial value
+  const visibleIncomeCols  = INCOME_COLS.filter(col => detailRows.some(r => r[col.key] > 500))
+  const visibleExpenseCols = EXPENSE_COLS.filter(col => detailRows.some(r => r[col.key] > 500))
+
+  // Filter to 5-yr steps when not showing all (always include current, retirement, and final year)
+  const lastYear = snapshots[snapshots.length - 1]?.year
+  const filteredDetailRows = useMemo(() => {
+    if (showAllYears) return detailRows
+    return detailRows.filter(r =>
+      r.year % 5 === 0 ||
+      r.year === currentYear ||
+      r.year === retireYear ||
+      r.year === lastYear
+    )
+  }, [detailRows, showAllYears, currentYear, retireYear, lastYear])
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -190,6 +252,164 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
           </tbody>
         </table>
       </div>
+
+      {/* Cashflow Detail table */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setCashflowDetailOpen(o => !o)}
+        >
+          <div>
+            <span className="text-sm font-semibold text-gray-300">Cashflow Detail</span>
+            <span className="ml-2 text-xs text-gray-600">every income and expense stream, year by year</span>
+          </div>
+          <span className="text-gray-500 text-xs">{cashflowDetailOpen ? '▾' : '▸'}</span>
+        </button>
+
+        {cashflowDetailOpen && (
+          <div className="mt-5">
+            {/* Controls */}
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-500">
+                Values in {displayReal ? "today's dollars (real)" : 'nominal dollars'}.
+                Deficit years highlighted in red.
+              </p>
+              <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAllYears}
+                  onChange={e => setShowAllYears(e.target.checked)}
+                  className="accent-brand-500"
+                />
+                Show all years
+                <span className="text-gray-600">(default: 5-yr steps)</span>
+              </label>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="text-xs w-full border-collapse">
+                <thead>
+                  {/* Group header row */}
+                  <tr className="border-b border-gray-700">
+                    <th className="sticky left-0 z-10 bg-gray-900 text-left py-2 px-3 text-gray-600 font-medium min-w-[90px]" rowSpan={2}>
+                      Year
+                    </th>
+                    <th
+                      colSpan={visibleIncomeCols.length + 1}
+                      className="py-2 px-3 text-center text-sky-400 font-semibold border-l border-gray-700 tracking-wide"
+                    >
+                      INCOME
+                    </th>
+                    <th
+                      colSpan={visibleExpenseCols.length + 1}
+                      className="py-2 px-3 text-center text-red-400 font-semibold border-l border-gray-700 tracking-wide"
+                    >
+                      EXPENSES
+                    </th>
+                    <th
+                      colSpan={2}
+                      className="py-2 px-3 text-center text-gray-400 font-semibold border-l border-gray-700 tracking-wide"
+                    >
+                      NET
+                    </th>
+                  </tr>
+                  {/* Column header row */}
+                  <tr className="border-b border-gray-700">
+                    {visibleIncomeCols.map((col, i) => (
+                      <th key={col.key} className={`py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''}`}>
+                        {col.label}
+                      </th>
+                    ))}
+                    <th className="py-2 px-3 text-right text-sky-400 font-semibold whitespace-nowrap">
+                      Total income
+                    </th>
+                    {visibleExpenseCols.map((col, i) => (
+                      <th key={col.key} className={`py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''}`}>
+                        {col.label}
+                      </th>
+                    ))}
+                    <th className="py-2 px-3 text-right text-red-400 font-semibold whitespace-nowrap">
+                      Total outflows
+                    </th>
+                    <th className="py-2 px-3 text-right text-gray-400 font-semibold whitespace-nowrap border-l border-gray-700">
+                      Net cashflow
+                    </th>
+                    <th className="py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap">
+                      Cash buffer
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDetailRows.map(r => {
+                    const isRetireYear = r.year === retireYear
+                    const isIllustrative = r.ageA != null && r.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
+                    const rowBg = r.isDeficit ? 'bg-red-900/10' : isRetireYear ? 'bg-blue-900/10' : ''
+                    const stickyBg = r.isDeficit ? 'bg-red-950' : isRetireYear ? 'bg-blue-950' : 'bg-gray-900'
+                    const rowCls = `border-b border-gray-800/40 hover:bg-gray-800/20 ${rowBg} ${isIllustrative ? 'opacity-50' : ''}`
+
+                    return (
+                      <tr key={r.year} className={rowCls}>
+                        {/* Sticky year cell */}
+                        <td className={`sticky left-0 z-10 py-2 px-3 font-medium whitespace-nowrap ${stickyBg}`}>
+                          <span className="text-gray-300">{r.year}</span>
+                          {r.ageA != null && (
+                            <span className="ml-1.5 text-gray-600">
+                              {r.ageA}{r.ageB != null ? `/${r.ageB}` : ''}
+                            </span>
+                          )}
+                          {isRetireYear && <span className="ml-1 text-blue-400">●</span>}
+                          {r.isDeficit && <span className="ml-1 text-red-400">!</span>}
+                        </td>
+
+                        {/* Income cols */}
+                        {visibleIncomeCols.map((col, i) => (
+                          <td
+                            key={col.key}
+                            className={`py-2 px-3 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${r[col.key] > 500 ? 'text-gray-300' : 'text-gray-600'}`}
+                          >
+                            {r[col.key] > 500 ? fmt$(transform(r[col.key], r.year)) : '—'}
+                          </td>
+                        ))}
+                        <td className="py-2 px-3 text-right font-semibold text-sky-400 tabular-nums">
+                          {fmt$(transform(r.totalIncome, r.year))}
+                        </td>
+
+                        {/* Expense cols */}
+                        {visibleExpenseCols.map((col, i) => (
+                          <td
+                            key={col.key}
+                            className={`py-2 px-3 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${r[col.key] > 500 ? 'text-gray-300' : 'text-gray-600'}`}
+                          >
+                            {r[col.key] > 500 ? fmt$(transform(r[col.key], r.year)) : '—'}
+                          </td>
+                        ))}
+                        <td className="py-2 px-3 text-right font-semibold text-red-400 tabular-nums">
+                          {fmt$(transform(r.totalOutflows, r.year))}
+                        </td>
+
+                        {/* Net */}
+                        <td className={`py-2 px-3 text-right font-semibold tabular-nums border-l border-gray-800 ${r.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
+                          {r.isDeficit ? '−' : '+'}{fmt$(Math.abs(transform(r.netCashflow, r.year)))}
+                        </td>
+                        <td className="py-2 px-3 text-right text-gray-400 tabular-nums">
+                          {fmt$(transform(r.cashBuffer, r.year))}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="mt-3 text-xs text-gray-600">
+              ● Estimated retirement year &nbsp;·&nbsp;
+              ! Deficit — liquid assets drawn down to cover shortfall &nbsp;·&nbsp;
+              Ages shown as A / B
+            </p>
+          </div>
+        )}
+      </div>
+
     </div>
   )
 }
