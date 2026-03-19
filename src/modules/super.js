@@ -150,7 +150,7 @@ export function growSuperBalance({
   const inPensionPhase =
     superProfile.pensionPhaseFromAge != null
       ? personAge >= superProfile.pensionPhaseFromAge
-      : (retirementYear != null && year >= retirementYear)
+      : (retirementYear != null && year >= retirementYear && hasReachedPreservationAge(personAge))
 
   const isTTR = superProfile.isTTR && !inPensionPhase && hasReachedPreservationAge(personAge)
 

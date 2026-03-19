@@ -219,4 +219,22 @@ describe('growSuperBalance', () => {
     })
     expect(result.isLocked).toBe(true)
   })
+
+  it('does NOT enter pension phase if retired but below preservation age', () => {
+    // Retired early (e.g. retirementYear 2020) but only age 45 — super must stay locked
+    const result = growSuperBalance({
+      openingBalance: 500_000,
+      contributions: 0,
+      superProfile: { ratePeriods: [], isTTR: false },
+      year: 2026,
+      personAge: 45,
+      retirementYear: 2020, // already retired
+      assumptions: baseAssumptions,
+    })
+    expect(result.inPensionPhase).toBe(false)
+    expect(result.drawdown).toBe(0)
+    expect(result.isLocked).toBe(true)
+    // Must grow at accumulation rate, not pension rate
+    expect(result.rate).toBe(baseAssumptions.superAccumulationRate)
+  })
 })
