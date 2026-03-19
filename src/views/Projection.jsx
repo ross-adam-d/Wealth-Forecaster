@@ -78,8 +78,9 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
   const INCOME_COLS = useMemo(() => [
     { key: 'salaryA',         label: `${personAName} take-home` },
     { key: 'salaryB',         label: `${personBName} take-home` },
-    { key: 'rentalIncome',    label: 'Rental income' },
+    { key: 'rentalNet',       label: 'Net rental', signed: true },
     { key: 'dividends',       label: 'Dividends & franking' },
+    { key: 'sharesDrawdown',  label: 'Shares drawdown' },
     { key: 'superDrawdownA',  label: `Super drawdown (${personAName})` },
     { key: 'superDrawdownB',  label: `Super drawdown (${personBName})` },
     { key: 'bondWithdrawals', label: 'Bond withdrawals' },
@@ -92,16 +93,17 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
   ]
 
   const detailRows = useMemo(() => snapshots.map(s => {
-    const rentalIncome = s.propertyResults?.reduce(
-      (sum, r) => sum + (r.netRentalIncomeLoss > 0 ? r.netRentalIncomeLoss : 0), 0) ?? 0
+    const rentalNet = s.propertyResults?.reduce(
+      (sum, r) => sum + r.netRentalIncomeLoss, 0) ?? 0
     const mortgage = s.totalOutflows - s.totalExpenses
     return {
       year: s.year, ageA: s.ageA, ageB: s.ageB,
       retiredA: s.retiredA, retiredB: s.retiredB, isDeficit: s.isDeficit,
       salaryA:         s.taxA?.netTakeHome ?? 0,
       salaryB:         s.taxB?.netTakeHome ?? 0,
-      rentalIncome,
+      rentalNet,
       dividends:       (s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0),
+      sharesDrawdown:  s.sharesDrawdown ?? 0,
       superDrawdownA:  s.superA?.drawdown ?? 0,
       superDrawdownB:  s.superB?.drawdown ?? 0,
       bondWithdrawals: s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0,
@@ -115,8 +117,10 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
     }
   }), [snapshots])
 
-  // Only show columns that have at least one non-trivial value
-  const visibleIncomeCols  = INCOME_COLS.filter(col => detailRows.some(r => r[col.key] > 500))
+  // Show column if any year has a non-trivial value; signed cols (rentalNet) use Math.abs
+  const visibleIncomeCols  = INCOME_COLS.filter(col =>
+    detailRows.some(r => Math.abs(r[col.key]) > 500)
+  )
   const visibleExpenseCols = EXPENSE_COLS.filter(col => detailRows.some(r => r[col.key] > 500))
 
   // Filter to 5-yr steps when not showing all (always include current, retirement, and final year)
@@ -374,14 +378,20 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
                         </td>
 
                         {/* Income cols */}
-                        {visibleIncomeCols.map((col, i) => (
-                          <td
-                            key={col.key}
-                            className={`py-2 px-3 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${r[col.key] > 500 ? 'text-gray-300' : 'text-gray-600'}`}
-                          >
-                            {r[col.key] > 500 ? fmt$(transform(r[col.key], r.year)) : '—'}
-                          </td>
-                        ))}
+                        {visibleIncomeCols.map((col, i) => {
+                          const val = r[col.key]
+                          const absVal = Math.abs(val)
+                          const isNeg = col.signed && val < 0
+                          const isTrivial = absVal <= 500
+                          return (
+                            <td
+                              key={col.key}
+                              className={`py-2 px-3 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${isTrivial ? 'text-gray-600' : isNeg ? 'text-amber-400' : 'text-gray-300'}`}
+                            >
+                              {isTrivial ? '—' : (isNeg ? `(${fmt$(transform(absVal, r.year))})` : fmt$(transform(val, r.year)))}
+                            </td>
+                          )
+                        })}
                         <td className="py-2 px-3 text-right font-semibold text-sky-400 tabular-nums">
                           {fmt$(transform(r.totalIncome, r.year))}
                         </td>

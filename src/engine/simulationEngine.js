@@ -280,7 +280,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     )
 
     const totalBondWithdrawals = bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
-    const totalIncome = totalIncomePreBond + totalBondWithdrawals
+    // sharesDrawdown is positive when shares are sold to cover a deficit
+    const sharesDrawdown = Math.max(0, -sharesAdjustment)
+    // Include all asset drawdowns in income so netCashflow and isDeficit
+    // reflect the true funded position — isDeficit only fires when ALL
+    // liquid sources (cash + shares + bonds) are exhausted
+    const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown
     const netCashflow = totalIncome - totalOutflows
     const isDeficit = netCashflow < 0
 
@@ -363,6 +368,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Shares
       sharesValue: currentShares.currentValue,
       sharesResult,
+      sharesDrawdown,
       // Bonds
       bondResults,
       bondLiquidity,
