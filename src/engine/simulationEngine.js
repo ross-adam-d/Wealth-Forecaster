@@ -216,7 +216,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       taxAFinal.frankingRefund +
       superA_result.drawdown +
       superB_result.drawdown +
-      bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
+      bondResults.reduce((sum, r) => sum + r.withdrawal, 0) +
+      propertySaleProceeds
 
     // Salary sacrifice is already excluded from netTakeHome — do not add to outflows again
     const totalOutflows =
