@@ -868,6 +868,7 @@ function ExpenseItem({ item, onUpdate, onRemove }) {
 // ── Main view ─────────────────────────────────────────────────────────────
 
 export default function HouseholdProfile({ scenario, updateScenario }) {
+  const [guideOpen, setGuideOpen] = useState(false)
   const { personA, personB } = scenario.household
   const superA = scenario.super.find(s => s.personLabel === 'A') || {}
   const superB = scenario.super.find(s => s.personLabel === 'B') || {}
@@ -977,6 +978,21 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
   return (
     <div className="px-6 py-6 max-w-4xl mx-auto space-y-6">
       <h1 className="text-lg font-semibold text-white">Household Profile</h1>
+
+      <div className="card">
+        <button
+          className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
+          onClick={() => setGuideOpen(o => !o)}
+        >
+          <span className="text-xs">{guideOpen ? '▾' : '▸'}</span>
+          How this page works
+        </button>
+        {guideOpen && (
+          <p className="mt-3 text-sm text-gray-400 leading-relaxed">
+            Enter your household details here — this is the foundation for every projection in the tool. Start with People (dates of birth and planned retirement ages), then work through Super, Property, Shares, Investment Bonds, and Expenses in order. The more accurately you fill in each section, the more meaningful the projections will be. Salary packaging and novated lease details feed directly into the tax calculations.
+          </p>
+        )}
+      </div>
 
       <Section title="People">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

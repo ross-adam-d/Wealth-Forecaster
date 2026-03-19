@@ -2,6 +2,22 @@ import { useState, useMemo } from 'react'
 import { useSimulation } from '../hooks/useSimulation.js'
 import { solveRetirementDate } from '../engine/simulationEngine.js'
 
+function GuideBox({ children }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border-b border-gray-800 px-4 py-3">
+      <button
+        className="w-full flex items-center gap-1.5 text-left text-xs text-gray-500 hover:text-gray-300"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span>{open ? '▾' : '▸'}</span>
+        How this page works
+      </button>
+      {open && <p className="mt-2 text-xs text-gray-400 leading-relaxed">{children}</p>}
+    </div>
+  )
+}
+
 const LEVER_GROUPS = [
   {
     id: 'interest_rates',
@@ -148,6 +164,9 @@ export default function ImpactAnalyser({ scenario, snapshots, retirementDate }) 
           <h2 className="text-sm font-semibold text-white">Levers</h2>
           <button onClick={resetLevers} className="btn-ghost text-xs">Reset</button>
         </div>
+        <GuideBox>
+          Adjust the levers to see how changes affect your retirement date and wealth outcomes. The results panel on the right updates in real time. The headline metric shows how many months earlier or later you could retire. This is a live scratchpad — your base scenario is unchanged.
+        </GuideBox>
 
         <div className="p-4 space-y-6">
           {LEVER_GROUPS.map(group => (

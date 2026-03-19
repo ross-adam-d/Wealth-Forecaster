@@ -19,6 +19,22 @@ function applyRealNominal(value, year, currentYear, inflationRate, isReal) {
   return value / Math.pow(1 + inflationRate, years)
 }
 
+function GuideBox({ children }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="card">
+      <button
+        className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="text-xs">{open ? '▾' : '▸'}</span>
+        How this page works
+      </button>
+      {open && <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>}
+    </div>
+  )
+}
+
 export default function Projection({ snapshots, scenario, retirementDate }) {
   const [displayReal, setDisplayReal] = useState(true)
   const currentYear = new Date().getFullYear()
@@ -55,6 +71,11 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
+
+      {/* Guide */}
+      <GuideBox>
+        Projection shows your full financial picture from today to simulation end age — net worth, cashflow, and a detailed liquidity table. The net worth chart tracks all assets (super, shares, property equity) and liabilities (mortgage) year by year. Toggle "Today's dollars" to strip out inflation and see values in real purchasing power terms. Years beyond age 100 are illustrative. The estimated retirement year is the earliest age at which your plan remains solvent through to the end of the simulation.
+      </GuideBox>
 
       {/* Controls */}
       <div className="flex items-center justify-between">

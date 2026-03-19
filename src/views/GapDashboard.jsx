@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ReferenceLine, ResponsiveContainer, Legend
+  ReferenceLine, ResponsiveContainer, Legend,
+  ComposedChart, Bar, Line, Cell,
 } from 'recharts'
 import { PRESERVATION_AGE } from '../constants/index.js'
 import { runSimulation } from '../engine/simulationEngine.js'
@@ -76,6 +77,22 @@ function ViabilityBadge({ status, buffer, stressed }) {
   return <span className="badge-at-risk">No gap data — enter household details</span>
 }
 
+function GuideBox({ children }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="card">
+      <button
+        className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="text-xs">{open ? '▾' : '▸'}</span>
+        How this page works
+      </button>
+      {open && <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>}
+    </div>
+  )
+}
+
 const AREA_COLORS = {
   cash: '#60a5fa',
   shares: '#34d399',
@@ -129,6 +146,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
   const [stressExpenses, setStressExpenses] = useState(0)   // fractional: -0.20 to +0.30
   const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
   const [showPartTime, setShowPartTime] = useState(false)
+  const [chartView, setChartView] = useState('breakdown')    // 'breakdown' | 'total' | 'cashflow'
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
 
@@ -166,12 +184,19 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
 
   const chartData = activeGapSnapshots.map(s => ({
     year: s.year,
+    // Breakdown view
     cash: Math.max(0, s.cashBuffer),
     shares: Math.max(0, s.sharesValue),
     bonds: Math.max(0, s.bondLiquidity + s.bondPreTenYr),
     superA: s.superAUnlocked ? Math.max(0, s.superABalance) : 0,
     superB: s.superBUnlocked ? Math.max(0, s.superBBalance) : 0,
     mortgage: -(s.totalMortgageBalance || 0),
+    // Total liquidity view
+    totalLiquid: Math.max(0, s.totalLiquidAssets),
+    // Cashflow view
+    income: s.totalIncome,
+    outflows: s.totalOutflows,
+    net: s.netCashflow,
   }))
 
   const baseReturnRate = scenario?.assumptions?.sharesReturnRate ?? 0.08
@@ -193,39 +218,117 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
         <ViabilityBadge status={viability.status} buffer={viability.buffer} stressed={isStressed} />
       </div>
 
+      {/* Guide */}
+      <GuideBox>
+        The Gap is the period between your earliest retirement date and when super becomes accessible at preservation age (60). During this window you rely entirely on non-super liquid assets — cash, shares, and investment bonds — to fund living expenses. The viability badge shows whether your runway lasts the full gap. Use the Stress Test below to see how rising expenses or falling returns affect your position, and adjust retirement ages with the sliders to find the earliest viable date.
+      </GuideBox>
+
       {/* Runway chart */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-gray-300">Liquid Asset Runway</h2>
-          {isStressed && (
-            <span className="text-xs text-amber-400 bg-amber-900/30 border border-amber-800 rounded px-2 py-0.5">
-              Stress active
-            </span>
-          )}
+          <h2 className="text-sm font-semibold text-gray-300">Gap Period Analysis</h2>
+          <div className="flex items-center gap-2">
+            {isStressed && (
+              <span className="text-xs text-amber-400 bg-amber-900/30 border border-amber-800 rounded px-2 py-0.5">
+                Stress active
+              </span>
+            )}
+            {/* Chart view toggles */}
+            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
+              {[
+                { id: 'breakdown', label: 'Breakdown' },
+                { id: 'total', label: 'Liquidity' },
+                { id: 'cashflow', label: 'Cashflow' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setChartView(id)}
+                  className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                    chartView === id
+                      ? 'bg-brand-600 text-white font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip
-                formatter={(v, name) => [fmt$(v), name]}
-                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-                labelStyle={{ color: '#f9fafb' }}
-              />
-              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-
-              <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
-              <Area type="monotone" dataKey="cash"   stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
-              <Area type="monotone" dataKey="shares" stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
-              <Area type="monotone" dataKey="bonds"  stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Bonds" />
-              <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
-              <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
-
-              {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
-              {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
-            </AreaChart>
+            {chartView === 'breakdown' ? (
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <Tooltip
+                  formatter={(v, name) => [fmt$(v), name]}
+                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+                  labelStyle={{ color: '#f9fafb' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
+                <Area type="monotone" dataKey="cash"   stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
+                <Area type="monotone" dataKey="shares" stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
+                <Area type="monotone" dataKey="bonds"  stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Bonds" />
+                <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
+                <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
+                {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
+                {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+              </AreaChart>
+            ) : chartView === 'total' ? (
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <Tooltip
+                  formatter={(v, name) => [fmt$(v), name]}
+                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+                  labelStyle={{ color: '#f9fafb' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                <Area
+                  type="monotone"
+                  dataKey="totalLiquid"
+                  stroke="#4ade80"
+                  fill="#4ade80"
+                  fillOpacity={0.25}
+                  name="Total liquid assets"
+                  strokeWidth={2}
+                />
+                {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
+                {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+              </AreaChart>
+            ) : (
+              /* Cashflow view: grouped bars for income/outflows + line for net */
+              <ComposedChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <Tooltip
+                  formatter={(v, name) => [fmt$(v), name]}
+                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+                  labelStyle={{ color: '#f9fafb' }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+                <Bar dataKey="income" name="Income (after tax)" fill="#0ea5e9" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
+                <Bar dataKey="outflows" name="Outflows (inc. mortgage)" fill="#f87171" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
+                <Line
+                  type="monotone"
+                  dataKey="net"
+                  name="Net cashflow"
+                  strokeWidth={2}
+                  dot={false}
+                  stroke="#4ade80"
+                />
+                {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
+                {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+              </ComposedChart>
+            )}
           </ResponsiveContainer>
         ) : (
           <div className="h-[280px] flex items-center justify-center text-gray-600">
