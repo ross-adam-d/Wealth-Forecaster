@@ -316,8 +316,8 @@ export default function GapDashboard({ snapshots, scenario }) {
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left py-2 px-3 text-gray-500 font-medium">Year</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Income</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Expenses</th>
+                <th className="text-right py-2 px-3 text-gray-500 font-medium">Income (after tax)</th>
+                <th className="text-right py-2 px-3 text-gray-500 font-medium">Outflows (inc. mortgage)</th>
                 <th className="text-right py-2 px-3 text-gray-500 font-medium">Net</th>
                 <th className="text-right py-2 px-3 text-gray-500 font-medium">Liquid Assets</th>
                 {isStressed && <th className="text-right py-2 px-3 text-gray-500 font-medium">Δ vs Base</th>}
@@ -331,7 +331,7 @@ export default function GapDashboard({ snapshots, scenario }) {
                   <tr key={s.year} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                     <td className="py-2 px-3 text-gray-300">{s.year}</td>
                     <td className="py-2 px-3 text-right text-gray-300">{fmt$(s.totalIncome)}</td>
-                    <td className="py-2 px-3 text-right text-gray-300">{fmt$(s.totalExpenses)}</td>
+                    <td className="py-2 px-3 text-right text-gray-300">{fmt$(s.totalOutflows)}</td>
                     <td className={`py-2 px-3 text-right font-medium ${s.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
                       {s.isDeficit ? '−' : '+'}{fmt$(Math.abs(s.netCashflow))}
                     </td>

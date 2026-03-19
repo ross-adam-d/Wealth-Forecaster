@@ -45,7 +45,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
   const cashflowData = snapshots.map(s => ({
     year: s.year,
     income: transform(s.totalIncome, s.year),
-    expenses: transform(s.totalExpenses, s.year),
+    outflows: transform(s.totalOutflows, s.year),
     net: transform(s.netCashflow, s.year),
     isDeficit: s.isDeficit,
   }))
@@ -121,8 +121,9 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
               contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-            <Bar dataKey="income" fill="#34d399" fillOpacity={0.8} name="Income" />
-            <Bar dataKey="expenses" fill="#f87171" fillOpacity={0.8} name="Expenses" />
+            <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income (after tax)" />
+            <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Total Outflows (expenses + mortgage)" />
+            <Bar dataKey="net"      fill="#4ade80" fillOpacity={0.6} name="Net surplus / deficit" />
           </BarChart>
         </ResponsiveContainer>
       </div>
