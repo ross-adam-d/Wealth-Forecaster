@@ -192,8 +192,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
     })
 
-    // ── Step 8: Investment bonds ──────────────────────────────────────────
-    const bondResults = currentBonds.map(bond =>
+    // ── Step 8: Investment bonds — growth phase only (drawdown resolved after cashflow) ──
+    const bondGrowthResults = currentBonds.map(bond =>
       processBondYear({ bond, year, drawdownNeeded: 0, assumptions })
     )
 
@@ -208,7 +208,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalExpenses = expenseTree.total
 
     // ── Step 10: Net cashflow ─────────────────────────────────────────────
-    const totalIncome =
+    // Compute preliminary income without bond withdrawals (bonds are discretionary drawdown)
+    const totalIncomePreBond =
       taxAFinal.netTakeHome +
       taxB.netTakeHome +
       (totalNetRentalIncomeLoss > 0 ? totalNetRentalIncomeLoss : 0) +
@@ -216,7 +217,6 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       taxAFinal.frankingRefund +
       superA_result.drawdown +
       superB_result.drawdown +
-      bondResults.reduce((sum, r) => sum + r.withdrawal, 0) +
       propertySaleProceeds
 
     // Salary sacrifice is already excluded from netTakeHome — do not add to outflows again
@@ -224,33 +224,65 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalExpenses +
       totalMortgageRepayments
 
-    const netCashflow = totalIncome - totalOutflows
-    const isDeficit = netCashflow < 0
+    const prelimNetCashflow = totalIncomePreBond - totalOutflows
 
-    // Route surplus / fill deficit — track shares adjustment separately so step 12 can apply it
-    // on top of sharesResult.closingValue (which was computed before cashflow routing)
+    // Route surplus / fill deficit — waterfall: cash → shares → bonds (tax-free first)
     let surplus = 0
     let sharesAdjustment = 0
-    if (!isDeficit) {
-      surplus = netCashflow
+    const bondDrawdowns = currentBonds.map(() => 0)
+
+    if (prelimNetCashflow >= 0) {
+      surplus = prelimNetCashflow
       if (surplusRoutingOrder[0] === SURPLUS_DESTINATIONS.SHARES) {
         sharesAdjustment = surplus
       } else {
         cashBuffer += surplus
       }
     } else {
-      // Draw from cash buffer first, then shares
-      const deficit = Math.abs(netCashflow)
-      if (cashBuffer >= deficit) {
-        cashBuffer -= deficit
-      } else {
-        const remaining = deficit - cashBuffer
-        cashBuffer = 0
-        if (!currentShares.preserveCapital) {
-          sharesAdjustment = -Math.min(remaining, sharesResult.closingValue)
+      let remaining = Math.abs(prelimNetCashflow)
+
+      // 1. Cash buffer
+      const fromCash = Math.min(remaining, cashBuffer)
+      cashBuffer -= fromCash
+      remaining -= fromCash
+
+      // 2. Shares (if not preserve-capital)
+      if (remaining > 0 && !currentShares.preserveCapital) {
+        const fromShares = Math.min(remaining, sharesResult.closingValue)
+        sharesAdjustment = -fromShares
+        remaining -= fromShares
+      }
+
+      // 3. Bonds — tax-free bonds first, then pre-10yr bonds
+      if (remaining > 0) {
+        for (let i = 0; i < currentBonds.length && remaining > 0; i++) {
+          if (bondGrowthResults[i].isTaxFree) {
+            const available = bondGrowthResults[i].closingBalance
+            const draw = Math.min(remaining, available)
+            bondDrawdowns[i] = draw
+            remaining -= draw
+          }
+        }
+        for (let i = 0; i < currentBonds.length && remaining > 0; i++) {
+          if (!bondGrowthResults[i].isTaxFree) {
+            const available = bondGrowthResults[i].closingBalance
+            const draw = Math.min(remaining, available)
+            bondDrawdowns[i] = draw
+            remaining -= draw
+          }
         }
       }
     }
+
+    // Final bond results with actual drawdowns applied
+    const bondResults = currentBonds.map((bond, i) =>
+      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], assumptions })
+    )
+
+    const totalBondWithdrawals = bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
+    const totalIncome = totalIncomePreBond + totalBondWithdrawals
+    const netCashflow = totalIncome - totalOutflows
+    const isDeficit = netCashflow < 0
 
     // ── Step 11: Sale events ──────────────────────────────────────────────
     // CGT already calculated in property results above

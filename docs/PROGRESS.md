@@ -11,12 +11,6 @@
 
 ## Running Todo List
 
-### ⚠️ CRITICAL — Fix First Next Session
-
-- [ ] **Investment bond drawdown bug** — bonds are called with `drawdownNeeded: 0` always. They never draw down to cover deficits. The deficit waterfall only covers cash → shares. Bonds compound indefinitely regardless of cashflow. This materially overstates liquid assets during the gap period. Fix: restructure the deficit section of `simulationEngine.js` to include bonds in the drawdown waterfall after cash and shares, accounting for the 10-year tax penalty flag.
-
----
-
 ### Done ✓
 - [x] Product spec v2, scoping doc, project scaffold
 - [x] Supabase auth (Google OAuth), auto-save with debounce
@@ -37,8 +31,9 @@
 - [x] Bug fix: property sale proceeds now added to `totalIncome` (was silently dropped)
 - [x] Bug fix: default share capital growth corrected to 4.5% (was 8%, double-counting dividend yield)
 - [x] Git: switched from fine-grained PAT to classic PAT for push access
+- [x] **Investment bond drawdown bug fix** — deficit waterfall now: cash → shares → bonds (tax-free first, then pre-10yr). Bonds now correctly drawn down during deficit years instead of compounding indefinitely. Two-pass approach: growth-only pass at Step 8, then final pass with actual drawdown amounts after cashflow is known. All 188 tests passing.
 
-### Up Next (after bond fix)
+### Up Next (prioritised)
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [ ] Impact Analyser: wire lever values into simulation overrides
@@ -65,6 +60,18 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-20
+
+**What was done:**
+- **Investment bond drawdown bug fixed** — `simulationEngine.js` now uses a two-pass approach for bonds: growth-only pass at Step 8, deficit waterfall (cash → shares → tax-free bonds → pre-10yr bonds) at Step 10, then final bond pass with actual drawdown amounts. Bonds no longer compound indefinitely when the household is running a deficit.
+- 188 unit tests still passing. Build clean.
+
+**State at end of session:** Bond drawdown bug resolved. All previously identified critical issues now fixed.
+
+**Next session should start with:** Partner-specific gap phase labels, then Impact Analyser wiring.
+
+---
 
 ### Session — 2026-03-19
 
