@@ -11,7 +11,7 @@ export const WAGE_GROWTH_RATE = 0.035       // 3.5% p.a.
 // --- Default return rates ---
 export const SUPER_ACCUMULATION_RATE = 0.07  // 7.0% p.a.
 export const SUPER_PENSION_RATE = 0.06       // 6.0% p.a.
-export const SHARES_RETURN_RATE = 0.08       // 8.0% p.a.
+export const SHARES_RETURN_RATE = 0.045      // 4.5% p.a. capital growth (total return ~8% incl. 3.5% dividend yield)
 export const PROPERTY_GROWTH_RATE = 0.04    // 4.0% p.a.
 export const DIVIDEND_YIELD = 0.035         // 3.5% p.a.
 export const DEFAULT_FRANKING_PCT = 0.70    // 70% franked
