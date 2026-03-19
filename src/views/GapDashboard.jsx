@@ -125,7 +125,7 @@ function buildStressedScenario(scenario, stressReturn) {
   }
 }
 
-export default function GapDashboard({ snapshots, scenario }) {
+export default function GapDashboard({ snapshots, scenario, updateScenario }) {
   const [stressExpenses, setStressExpenses] = useState(0)   // fractional: -0.20 to +0.30
   const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
   const [showPartTime, setShowPartTime] = useState(false)
@@ -232,6 +232,41 @@ export default function GapDashboard({ snapshots, scenario }) {
             Enter household details to see gap runway
           </div>
         )}
+      </div>
+
+      {/* Retirement age sliders */}
+      <div className="card">
+        <h2 className="text-sm font-semibold text-gray-300 mb-4">Retirement Age</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {['personA', 'personB'].map(key => {
+            const person = scenario.household[key]
+            const label = person.name || (key === 'personA' ? 'Person A' : 'Person B')
+            const age = person.retirementAge ?? 60
+            return (
+              <div key={key}>
+                <div className="flex justify-between mb-1">
+                  <label className="label mb-0">{label}</label>
+                  <span className="text-sm font-semibold text-white">Age {age}</span>
+                </div>
+                <input
+                  type="range" min={35} max={70} step={1}
+                  value={age}
+                  onChange={e => updateScenario({
+                    household: {
+                      ...scenario.household,
+                      [key]: { ...person, retirementAge: Number(e.target.value) },
+                    }
+                  })}
+                  className="w-full accent-brand-500"
+                />
+                <div className="flex justify-between text-xs text-gray-600 mt-0.5">
+                  <span>35</span>
+                  <span>70</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Stress test panel */}
