@@ -33,10 +33,11 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
     return {
       year: s.year,
       super: transform(s.superABalance + s.superBBalance, s.year),
-      property: transform(s.propertyEquity, s.year),
+      property: transform(s.totalPropertyValue, s.year),
       shares: transform(s.sharesValue, s.year),
       bonds: transform(s.bondLiquidity + s.bondPreTenYr, s.year),
       cash: transform(s.cashBuffer, s.year),
+      mortgage: transform(-s.totalMortgageBalance, s.year),
       isIllustrative,
     }
   })
@@ -99,10 +100,11 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
+            <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
             <Area type="monotone" dataKey="cash"     stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
             <Area type="monotone" dataKey="bonds"    stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds" />
             <Area type="monotone" dataKey="shares"   stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
-            <Area type="monotone" dataKey="property" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property equity" />
+            <Area type="monotone" dataKey="property" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (gross)" />
             <Area type="monotone" dataKey="super"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
           </AreaChart>
         </ResponsiveContainer>

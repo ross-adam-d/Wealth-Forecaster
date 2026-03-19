@@ -171,6 +171,7 @@ export default function GapDashboard({ snapshots, scenario }) {
     bonds: Math.max(0, s.bondLiquidity + s.bondPreTenYr),
     superA: s.superAUnlocked ? Math.max(0, s.superABalance) : 0,
     superB: s.superBUnlocked ? Math.max(0, s.superBBalance) : 0,
+    mortgage: -(s.totalMortgageBalance || 0),
   }))
 
   const baseReturnRate = scenario?.assumptions?.sharesReturnRate ?? 0.08
@@ -215,6 +216,7 @@ export default function GapDashboard({ snapshots, scenario }) {
               />
               <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
 
+              <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
               <Area type="monotone" dataKey="cash"   stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
               <Area type="monotone" dataKey="shares" stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
               <Area type="monotone" dataKey="bonds"  stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Bonds" />

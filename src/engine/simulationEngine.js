@@ -274,6 +274,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     // Liquidity classification
     const propertyEquity = propertyResults.reduce((sum, r) => sum + r.equity, 0)
+    const totalPropertyValue = propertyResults.reduce((sum, r) => sum + r.closingValue, 0)
+    const totalMortgageBalance = propertyResults.reduce((sum, r) => sum + (r.mortgageBalance || 0), 0)
     const bondLiquidity = bondResults.reduce((sum, r, i) => {
       return sum + (r.isTaxFree ? currentBonds[i].currentBalance : 0)
     }, 0)
@@ -324,6 +326,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Property
       propertyResults,
       propertyEquity,
+      totalPropertyValue,
+      totalMortgageBalance,
       // Shares
       sharesValue: currentShares.currentValue,
       sharesResult,
