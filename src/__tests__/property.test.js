@@ -187,5 +187,20 @@ describe('processPropertyYear', () => {
       const result = processPropertyYear(lossProperty, 2026)
       expect(result.cgtAmount).toBeNull()
     })
+
+    it('returns all zeros in years after the sale year', () => {
+      const withSale = {
+        ...investmentProperty,
+        saleEvent: { year: 2026, destination: 'shares' },
+      }
+      // Year after sale — property is gone, nothing should flow through
+      const result = processPropertyYear(withSale, 2027)
+      expect(result.closingValue).toBe(0)
+      expect(result.mortgageBalance).toBe(0)
+      expect(result.netRentalIncomeLoss).toBe(0)
+      expect(result.annualRepayment).toBe(0)
+      expect(result.annualInterest).toBe(0)
+      expect(result.saleProceeds).toBeNull()
+    })
   })
 })

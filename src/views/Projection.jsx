@@ -286,55 +286,67 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
               </label>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* overflow-auto (both axes) + max-h so thead can stick vertically */}
+            <div className="overflow-auto max-h-[480px]">
               <table className="text-xs w-full border-collapse">
                 <thead>
-                  {/* Group header row */}
+                  {/* Group header row — sticky at top:0 */}
                   <tr className="border-b border-gray-700">
-                    <th className="sticky left-0 z-10 bg-gray-900 text-left py-2 px-3 text-gray-600 font-medium min-w-[90px]" rowSpan={2}>
+                    <th
+                      rowSpan={2}
+                      className="sticky left-0 top-0 z-30 bg-gray-900 text-left py-2 px-3 text-gray-600 font-medium min-w-[90px] shadow-[2px_0_0_#1f2937]"
+                    >
                       Year
                     </th>
                     <th
                       colSpan={visibleIncomeCols.length + 1}
-                      className="py-2 px-3 text-center text-sky-400 font-semibold border-l border-gray-700 tracking-wide"
+                      className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-sky-400 font-semibold border-l border-gray-700 tracking-wide"
                     >
                       INCOME
                     </th>
                     <th
                       colSpan={visibleExpenseCols.length + 1}
-                      className="py-2 px-3 text-center text-red-400 font-semibold border-l border-gray-700 tracking-wide"
+                      className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-red-400 font-semibold border-l border-gray-700 tracking-wide"
                     >
                       EXPENSES
                     </th>
                     <th
                       colSpan={2}
-                      className="py-2 px-3 text-center text-gray-400 font-semibold border-l border-gray-700 tracking-wide"
+                      className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-gray-400 font-semibold border-l border-gray-700 tracking-wide"
                     >
                       NET
                     </th>
                   </tr>
-                  {/* Column header row */}
+                  {/* Column header row — sticky at top:33px (below first row) */}
                   <tr className="border-b border-gray-700">
                     {visibleIncomeCols.map((col, i) => (
-                      <th key={col.key} className={`py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''}`}>
+                      <th
+                        key={col.key}
+                        style={{ top: '33px' }}
+                        className={`sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''}`}
+                      >
                         {col.label}
                       </th>
                     ))}
-                    <th className="py-2 px-3 text-right text-sky-400 font-semibold whitespace-nowrap">
+                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-sky-400 font-semibold whitespace-nowrap">
                       Total income
                     </th>
                     {visibleExpenseCols.map((col, i) => (
-                      <th key={col.key} className={`py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''}`}>
+                      <th
+                        key={col.key}
+                        style={{ top: '33px' }}
+                        className={`sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''}`}
+                      >
                         {col.label}
                       </th>
                     ))}
-                    <th className="py-2 px-3 text-right text-red-400 font-semibold whitespace-nowrap">
+                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-red-400 font-semibold whitespace-nowrap">
                       Total outflows
                     </th>
-                    <th className="py-2 px-3 text-right text-gray-400 font-semibold whitespace-nowrap border-l border-gray-700">
+                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-400 font-semibold whitespace-nowrap border-l border-gray-700">
                       Net cashflow
                     </th>
-                    <th className="py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap">
+                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap">
                       Cash buffer
                     </th>
                   </tr>

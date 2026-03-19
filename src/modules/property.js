@@ -65,6 +65,16 @@ export function processPropertyYear(property, year) {
     saleEvent,
   } = property
 
+  // Property already sold in a prior year — nothing left to calculate
+  if (saleEvent && saleEvent.year < year) {
+    return {
+      openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
+      annualInterest: 0, annualRepayment: 0, principalRepayment: 0,
+      netRentalIncomeLoss: 0, ioStepUpThisYear: false,
+      saleProceeds: null, capitalGain: null, cgtAmount: null, equity: 0,
+    }
+  }
+
   // Determine effective loan type this year
   const effectiveLoanType = (loanType === 'io' && ioEndYear && year > ioEndYear) ? 'pi' : loanType
   const ioStepUpThisYear = loanType === 'io' && ioEndYear && year === ioEndYear + 1
