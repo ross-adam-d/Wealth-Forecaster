@@ -145,7 +145,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
             </tr>
           </thead>
           <tbody>
-            {snapshots.filter((_, i) => i % 5 === 0 || i === snapshots.length - 1).map(s => {
+            {snapshots.map(s => {
               const isIllustrative = s.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
               return (
                 <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${isIllustrative ? 'opacity-50' : ''}`}>
