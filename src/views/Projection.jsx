@@ -308,10 +308,12 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
               scenario={scenario}
             />
 
-            <p className="mt-3 text-xs text-gray-600">
-              Gross salaries flow through the tax node — other income sources are already net of tax.
-              Band widths are proportional to dollar amounts.
-              {displayReal ? ' Values shown in nominal dollars (chart is not affected by real/nominal toggle).' : ''}
+            <p className="mt-3 text-xs text-gray-600 leading-relaxed">
+              <span className="text-gray-500 font-medium">Gross salary</span> is shown before income tax — tax appears as an expense on the right so the full burden is visible.
+              {' '}Ribbon widths are proportional to dollar amounts; each income stream proportionally funds all expenses.
+              <br />
+              <span className="text-gray-500 font-medium">Employer super (SG)</span> is <span className="text-gray-400">not</span> included — it is paid by your employer on top of your salary and goes directly to the fund without flowing through your household cashflow.
+              Salary sacrifice reduces your taxable income (lower tax, lower take-home) and appears in the super balance, not here.
             </p>
           </div>
         )}
