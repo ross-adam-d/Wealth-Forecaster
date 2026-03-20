@@ -97,4 +97,5 @@ export const SURPLUS_DESTINATIONS = {
   CASH: 'cash',
   SUPER: 'super',
   BONDS: 'bonds',
+  OTHER_ASSETS: 'otherAssets',
 }

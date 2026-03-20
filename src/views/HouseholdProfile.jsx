@@ -639,6 +639,7 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
 
 function SharesForm({ shares, onUpdate }) {
   const s = shares || {}
+  const mode = s.contributionMode || 'surplus'
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -648,9 +649,50 @@ function SharesForm({ shares, onUpdate }) {
           onChange={v => onUpdate({ currentValue: v })}
         />
         <CurrencyInput
-          label="Annual contribution"
+          label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
           value={s.annualContribution}
           onChange={v => onUpdate({ annualContribution: v })}
+        />
+      </div>
+      <div>
+        <label className="label">Contribution mode</label>
+        <div className="flex gap-2 mt-1">
+          <button
+            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+              mode === 'fixed'
+                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => onUpdate({ contributionMode: 'fixed' })}
+          >
+            Fixed expense
+          </button>
+          <button
+            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+              mode === 'surplus'
+                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => onUpdate({ contributionMode: 'surplus' })}
+          >
+            From surplus
+          </button>
+        </div>
+        <p className="text-xs text-gray-600 mt-1.5">
+          {mode === 'fixed'
+            ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
+            : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <PctInput
+          label="Annual increase"
+          value={s.annualIncreaseRate || 0}
+          onChange={v => onUpdate({ annualIncreaseRate: v })}
+          min={0}
+          max={50}
+          step={1}
+          hint="Contribution grows by this % each year"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -792,21 +834,20 @@ function BondForm({ bond, onUpdate, onRemove }) {
                 : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`maximise-${b.id}`}
-              checked={b.maximiseContribution || false}
-              onChange={e => onUpdate({ maximiseContribution: e.target.checked })}
-              className="rounded border-gray-700"
+          <div className="grid grid-cols-2 gap-4">
+            <PctInput
+              label="Annual increase"
+              value={b.annualIncreaseRate || 0}
+              onChange={v => onUpdate({ annualIncreaseRate: v })}
+              min={0}
+              max={25}
+              step={1}
+              hint="Capped at 25% (125% rule)"
             />
-            <label htmlFor={`maximise-${b.id}`} className="text-sm text-gray-400">
-              Maximise contribution (auto-ratchet 125% each year)
-            </label>
           </div>
-          {b.maximiseContribution && (
+          {(b.annualIncreaseRate || 0) > 0 && (
             <p className="text-xs text-amber-400">
-              Contribution will increase by 25% each year from the base amount. This can significantly erode cashflow over time.
+              Contribution will increase by {Math.round((b.annualIncreaseRate || 0) * 100)}% each year (capped at 25% for bonds). This can significantly erode cashflow over time.
             </p>
           )}
           <div>
@@ -1226,7 +1267,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   }}
                 />
                 <CurrencyInput
-                  label="Annual contribution"
+                  label={(asset.contributionMode || 'fixed') === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
                   value={asset.annualContribution}
                   onChange={v => {
                     const updated = [...scenario.otherAssets]
@@ -1246,6 +1287,59 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   max={30}
                   step={0.5}
                   hint="Gross annual return"
+                />
+              </div>
+              <div>
+                <label className="label">Contribution mode</label>
+                <div className="flex gap-2 mt-1">
+                  <button
+                    className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+                      (asset.contributionMode || 'fixed') === 'fixed'
+                        ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                    }`}
+                    onClick={() => {
+                      const updated = [...scenario.otherAssets]
+                      updated[i] = { ...asset, contributionMode: 'fixed' }
+                      updateScenario({ otherAssets: updated })
+                    }}
+                  >
+                    Fixed expense
+                  </button>
+                  <button
+                    className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+                      asset.contributionMode === 'surplus'
+                        ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                    }`}
+                    onClick={() => {
+                      const updated = [...scenario.otherAssets]
+                      updated[i] = { ...asset, contributionMode: 'surplus' }
+                      updateScenario({ otherAssets: updated })
+                    }}
+                  >
+                    From surplus
+                  </button>
+                </div>
+                <p className="text-xs text-gray-600 mt-1.5">
+                  {(asset.contributionMode || 'fixed') === 'fixed'
+                    ? 'Deducted from cashflow each year like an expense.'
+                    : 'Funded from surplus only — set priority in Surplus Strategy below.'}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <PctInput
+                  label="Annual increase"
+                  value={asset.annualIncreaseRate || 0}
+                  onChange={v => {
+                    const updated = [...scenario.otherAssets]
+                    updated[i] = { ...asset, annualIncreaseRate: v }
+                    updateScenario({ otherAssets: updated })
+                  }}
+                  min={0}
+                  max={50}
+                  step={1}
+                  hint="Contribution grows by this % each year"
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -1290,17 +1384,35 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
       <Section title="Surplus Strategy" defaultOpen={false}>
         <p className="text-sm text-gray-500 mb-4">
           When income exceeds expenses, where should the surplus go? Funds flow through in priority order.
+          Only assets set to "From surplus" mode appear here.
         </p>
         {(() => {
+          const hasSurplusShares = (scenario.shares?.contributionMode || 'surplus') === 'surplus' && (scenario.shares?.annualContribution || 0) > 0
           const hasSurplusBonds = (scenario.investmentBonds || []).some(b => b.contributionMode === 'surplus')
+          const hasSurplusOtherAssets = (scenario.otherAssets || []).some(a => a.contributionMode === 'surplus')
+
           const defaultOrder = ['offset', 'shares', 'cash']
-          const currentOrder = scenario.surplusRoutingOrder || defaultOrder
-          // Ensure bonds is in the order if there are surplus-mode bonds
-          const order = hasSurplusBonds && !currentOrder.includes('bonds')
-            ? [...currentOrder.filter(d => d !== 'cash'), 'bonds', 'cash']
-            : !hasSurplusBonds
-              ? currentOrder.filter(d => d !== 'bonds')
-              : currentOrder
+          let order = [...(scenario.surplusRoutingOrder || defaultOrder)]
+
+          // Auto-add/remove surplus destinations based on which assets are in surplus mode
+          if (hasSurplusShares && !order.includes('shares')) order.splice(order.indexOf('cash'), 0, 'shares')
+          if (!hasSurplusShares && (scenario.shares?.annualContribution || 0) === 0) order = order.filter(d => d !== 'shares')
+          if (hasSurplusBonds && !order.includes('bonds')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'bonds')
+          if (!hasSurplusBonds) order = order.filter(d => d !== 'bonds')
+          if (hasSurplusOtherAssets && !order.includes('otherAssets')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'otherAssets')
+          if (!hasSurplusOtherAssets) order = order.filter(d => d !== 'otherAssets')
+          // Always keep offset and cash
+          if (!order.includes('offset')) order.unshift('offset')
+          if (!order.includes('cash')) order.push('cash')
+
+          const destLabels = {
+            offset: 'Mortgage offset accounts',
+            shares: 'Share portfolio',
+            bonds: 'Investment bonds',
+            otherAssets: 'Other assets',
+            cash: 'Cash buffer',
+          }
+
           return (
             <div className="space-y-3">
               {order.map((dest, i) => (
@@ -1320,10 +1432,11 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                       updateScenario({ surplusRoutingOrder: newOrder })
                     }}
                   >
-                    <option value="offset">Mortgage offset accounts</option>
-                    <option value="shares">Share portfolio</option>
-                    {hasSurplusBonds && <option value="bonds">Investment bonds</option>}
-                    <option value="cash">Cash buffer</option>
+                    <option value="offset">{destLabels.offset}</option>
+                    {(hasSurplusShares || dest === 'shares') && <option value="shares">{destLabels.shares}</option>}
+                    {(hasSurplusBonds || dest === 'bonds') && <option value="bonds">{destLabels.bonds}</option>}
+                    {(hasSurplusOtherAssets || dest === 'otherAssets') && <option value="otherAssets">{destLabels.otherAssets}</option>}
+                    <option value="cash">{destLabels.cash}</option>
                   </select>
                   {i > 0 && (
                     <button
@@ -1343,12 +1456,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           )
         })()}
         <p className="text-xs text-gray-600 mt-3">
-          Offset: surplus fills offset accounts (reduces mortgage interest). Shares: surplus invested in share portfolio.
-          {(scenario.investmentBonds || []).some(b => b.contributionMode === 'surplus')
-            ? ' Bonds: surplus funds investment bond contributions (capped at 125% of prior year).'
-            : ''
-          }
-          {' '}Cash: surplus held in cash buffer.
+          Each surplus-mode investment gets up to its target contribution. Remaining surplus flows to the next priority. Cash absorbs anything left over.
         </p>
       </Section>
     </div>

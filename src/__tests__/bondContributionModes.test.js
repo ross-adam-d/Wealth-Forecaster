@@ -131,10 +131,10 @@ describe('Bond contribution modes — engine integration', () => {
     })
   })
 
-  describe('maximise contribution (125% ratchet)', () => {
-    it('ratchets contribution up 125% each year in fixed mode', () => {
+  describe('annual increase ratchet', () => {
+    it('ratchets contribution up by increase rate each year in fixed mode', () => {
       const scenario = makeScenario({
-        bond: { contributionMode: 'fixed', maximiseContribution: true, annualContribution: 10_000 },
+        bond: { contributionMode: 'fixed', annualIncreaseRate: 0.25, annualContribution: 10_000 },
       })
       const snapshots = runSimulation(scenario)
       // Year 0: 10,000 (first year, no prior)
@@ -147,7 +147,7 @@ describe('Bond contribution modes — engine integration', () => {
 
     it('ratchets contribution in surplus mode when surplus available', () => {
       const scenario = makeScenario({
-        bond: { contributionMode: 'surplus', maximiseContribution: true, annualContribution: 10_000 },
+        bond: { contributionMode: 'surplus', annualIncreaseRate: 0.25, annualContribution: 10_000 },
         surplusRoutingOrder: ['bonds', 'cash'],
       })
       const snapshots = runSimulation(scenario)
@@ -157,9 +157,9 @@ describe('Bond contribution modes — engine integration', () => {
       expect(snapshots[1].totalBondContributions).toBeGreaterThan(snapshots[0].totalBondContributions)
     })
 
-    it('does not ratchet without maximise flag', () => {
+    it('does not ratchet without increase rate', () => {
       const scenario = makeScenario({
-        bond: { contributionMode: 'fixed', maximiseContribution: false, annualContribution: 10_000 },
+        bond: { contributionMode: 'fixed', annualIncreaseRate: 0, annualContribution: 10_000 },
       })
       const snapshots = runSimulation(scenario)
       expect(snapshots[0].totalBondContributions).toBeCloseTo(10_000, 0)

@@ -10,13 +10,15 @@
  * @param {object} asset - from data model
  * @param {number} year
  * @param {number} drawdownNeeded - deficit fill amount
+ * @param {number} resolvedContribution - actual contribution (resolved by engine based on mode)
  * @returns {object}
  */
-export function processOtherAssetYear({ asset, year, drawdownNeeded = 0 }) {
+export function processOtherAssetYear({ asset, year, drawdownNeeded = 0, resolvedContribution }) {
   const { currentValue, annualContribution = 0, returnRate = 0.07 } = asset
 
+  const effectiveContribution = resolvedContribution != null ? resolvedContribution : annualContribution
   const growth = currentValue * returnRate
-  const valueAfterGrowth = currentValue + growth + annualContribution
+  const valueAfterGrowth = currentValue + growth + effectiveContribution
 
   let withdrawal = 0
   if (asset.canDrawdown && drawdownNeeded > 0) {
@@ -29,6 +31,7 @@ export function processOtherAssetYear({ asset, year, drawdownNeeded = 0 }) {
     openingValue: currentValue,
     closingValue,
     growth,
+    effectiveContribution,
     withdrawal,
     returnRate,
   }

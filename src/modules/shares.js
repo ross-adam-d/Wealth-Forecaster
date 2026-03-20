@@ -14,7 +14,7 @@ import { calcFrankingCredit } from '../engine/taxEngine.js'
  * @param {number} year
  * @param {number} personAge    - used for preserve capital gating
  * @param {number} drawdownNeeded  - amount needed from portfolio (deficit fill)
- * @param {number} surplusToAdd    - surplus cashflow to invest
+ * @param {number} resolvedContribution - actual contribution (resolved by engine based on mode)
  * @param {object} assumptions
  * @returns {object}
  */
@@ -23,7 +23,7 @@ export function processSharesYear({
   year,
   personAge,
   drawdownNeeded = 0,
-  surplusToAdd = 0,
+  resolvedContribution,
   assumptions,
 }) {
   const {
@@ -50,9 +50,9 @@ export function processSharesYear({
   const isPreservingCapital = preserveCapital &&
     (preserveCapitalFromAge == null || personAge >= preserveCapitalFromAge)
 
-  // Add contributions and surplus
-  const totalInflow = annualContribution + surplusToAdd
-  let valueAfterInflows = valuePreDividend + totalInflow
+  // Use resolved contribution if provided (engine-managed), otherwise fall back to config
+  const effectiveContribution = resolvedContribution != null ? resolvedContribution : annualContribution
+  let valueAfterInflows = valuePreDividend + effectiveContribution
 
   // Drawdown
   let actualDrawdown = 0
@@ -75,7 +75,7 @@ export function processSharesYear({
     cashDividend,
     frankingGrossUp,
     frankingCredit,
-    totalInflow,
+    effectiveContribution,
     actualDrawdown,
     cgtOnDrawdown,
     isPreservingCapital,

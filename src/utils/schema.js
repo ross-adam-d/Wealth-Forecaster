@@ -95,6 +95,8 @@ export function createDefaultShares() {
   return {
     currentValue: 0,
     annualContribution: 0,
+    contributionMode: BOND_CONTRIBUTION_MODES.SURPLUS,  // 'fixed' | 'surplus' — default surplus (legacy compat)
+    annualIncreaseRate: 0,           // % annual increase in contribution (e.g. 0.05 = 5%/yr)
     dividendYield: DIVIDEND_YIELD,
     frankingPct: DEFAULT_FRANKING_PCT,
     preserveCapital: false,
@@ -112,7 +114,7 @@ export function createDefaultInvestmentBond() {
     currentBalance: 0,
     annualContribution: 0,
     contributionMode: BOND_CONTRIBUTION_MODES.FIXED,  // 'fixed' | 'surplus'
-    maximiseContribution: false,  // Auto-ratchet at 125% each year
+    annualIncreaseRate: 0,        // % annual increase (capped at 25% by 125% rule)
     inceptionDate: null,      // ISO date string — for 10-year clock
     ratePeriods: [
       { fromYear: new Date().getFullYear(), toYear: 2090, rate: 0.07 },
@@ -160,6 +162,8 @@ export function createDefaultOtherAsset() {
     name: '',
     currentValue: 0,
     annualContribution: 0,
+    contributionMode: BOND_CONTRIBUTION_MODES.FIXED,  // 'fixed' | 'surplus'
+    annualIncreaseRate: 0,     // % annual increase in contribution
     returnRate: 0.07,          // gross annual return
     canDrawdown: true,         // available in deficit waterfall
     drawdownOrder: 5,          // after bonds (lower = drawn earlier)

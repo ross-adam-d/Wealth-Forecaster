@@ -44,7 +44,7 @@ describe('processSharesYear', () => {
     const result = processSharesYear({ shares: withContrib, year: 2026, personAge: 50, assumptions })
     // 108,000 + 10,000 = 118,000
     expect(result.closingValue).toBeCloseTo(118_000, 0)
-    expect(result.totalInflow).toBe(10_000)
+    expect(result.effectiveContribution).toBe(10_000)
   })
 
   it('draws down from portfolio when needed', () => {

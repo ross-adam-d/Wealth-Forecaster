@@ -186,13 +186,13 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       return sum + (r.cgtAmount || 0) * (1 - pct)
     }, 0)
 
-    // ── Step 7: Shares ────────────────────────────────────────────────────
+    // ── Step 7: Shares — growth phase only (contribution resolved after cashflow) ──
     const sharesResult = processSharesYear({
       shares: currentShares,
       year,
       personAge: Math.max(ageA || 0, ageB || 0),
-      drawdownNeeded: 0, // resolved after net cashflow calc
-      surplusToAdd: 0,
+      drawdownNeeded: 0,
+      resolvedContribution: 0,  // no contribution in growth pass — resolved after cashflow
       assumptions,
     })
 
@@ -218,39 +218,67 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
     }) : taxB
 
-    // ── Step 8: Investment bonds — resolve contributions per mode, growth phase only ──
-    // Resolve the target contribution for each bond based on mode + maximise setting
+    // ── Step 8: Resolve target contributions for ALL non-property investments ──
+    // Generic helper: resolve target contribution based on mode + annual increase rate
+    function resolveTargetContribution(annualContribution, annualIncreaseRate, priorActual, isBond) {
+      const base = annualContribution || 0
+      const prior = priorActual || 0
+      let target = base
+      if (annualIncreaseRate > 0 && prior > 0) {
+        // For bonds, increase rate is capped at 25% (125% rule)
+        const effectiveRate = isBond ? Math.min(annualIncreaseRate, 0.25) : annualIncreaseRate
+        target = Math.max(base, prior * (1 + effectiveRate))
+      }
+      return target
+    }
+
+    // --- Shares ---
+    const sharesMode = currentShares.contributionMode || BOND_CONTRIBUTION_MODES.SURPLUS  // legacy default: surplus
+    const sharesTarget = resolveTargetContribution(
+      currentShares.annualContribution, currentShares.annualIncreaseRate || 0,
+      currentShares.priorYearContribution || 0, false
+    )
+    const fixedSharesContribution = sharesMode === BOND_CONTRIBUTION_MODES.FIXED ? sharesTarget : 0
+
+    // --- Bonds ---
     const bondTargetContributions = currentBonds.map(bond => {
       const mode = bond.contributionMode || BOND_CONTRIBUTION_MODES.FIXED
-      const base = bond.annualContribution || 0
-      const prior = bond.priorYearContribution || 0
-
-      // Maximise: ratchet at 125% of prior year's actual contribution
-      let target = base
-      if (bond.maximiseContribution && prior > 0) {
-        target = Math.max(base, prior * INVESTMENT_BOND_125_PCT_RULE)
-      }
-
+      const target = resolveTargetContribution(
+        bond.annualContribution, bond.annualIncreaseRate || 0,
+        bond.priorYearContribution || 0, true
+      )
       return { mode, target }
     })
-
-    // Fixed-mode bonds: contribution is a guaranteed outflow (resolved now, before cashflow calc)
-    const fixedBondContributions = currentBonds.map((bond, i) => {
-      if (bondTargetContributions[i].mode === BOND_CONTRIBUTION_MODES.FIXED) {
-        return bondTargetContributions[i].target
-      }
-      return 0  // surplus-mode bonds resolved later
-    })
+    const fixedBondContributions = currentBonds.map((_, i) =>
+      bondTargetContributions[i].mode === BOND_CONTRIBUTION_MODES.FIXED ? bondTargetContributions[i].target : 0
+    )
     const totalFixedBondContributions = fixedBondContributions.reduce((sum, c) => sum + c, 0)
 
-    // Growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0 (resolved after cashflow)
+    // --- Other assets ---
+    const otherAssetTargetContributions = currentOtherAssets.map(asset => {
+      const mode = asset.contributionMode || BOND_CONTRIBUTION_MODES.FIXED
+      const target = resolveTargetContribution(
+        asset.annualContribution, asset.annualIncreaseRate || 0,
+        asset.priorYearContribution || 0, false
+      )
+      return { mode, target }
+    })
+    const fixedOtherAssetContributions = currentOtherAssets.map((_, i) =>
+      otherAssetTargetContributions[i].mode === BOND_CONTRIBUTION_MODES.FIXED ? otherAssetTargetContributions[i].target : 0
+    )
+    const totalFixedOtherAssetContributions = fixedOtherAssetContributions.reduce((sum, c) => sum + c, 0)
+
+    // Total fixed contributions across all asset types
+    const totalFixedContributions = fixedSharesContribution + totalFixedBondContributions + totalFixedOtherAssetContributions
+
+    // Bond growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0
     const bondGrowthResults = currentBonds.map((bond, i) =>
       processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions })
     )
 
-    // ── Step 8b: Other assets — growth phase only (drawdown resolved after cashflow) ──
-    const otherAssetGrowthResults = currentOtherAssets.map(asset =>
-      processOtherAssetYear({ asset, year, drawdownNeeded: 0 })
+    // Other asset growth phase: fixed-mode assets get their contribution now; surplus-mode get 0
+    const otherAssetGrowthResults = currentOtherAssets.map((asset, i) =>
+      processOtherAssetYear({ asset, year, drawdownNeeded: 0, resolvedContribution: fixedOtherAssetContributions[i] })
     )
 
     // ── Step 9: Expenses ──────────────────────────────────────────────────
@@ -264,7 +292,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalExpenses = expenseTree.total
 
     // ── Step 10: Net cashflow ─────────────────────────────────────────────
-    // Compute preliminary income without bond withdrawals (bonds are discretionary drawdown)
+    // Compute preliminary income without asset withdrawals
     const totalIncomePreBond =
       taxAFinal.netTakeHome +
       taxBFinal.netTakeHome +
@@ -275,24 +303,25 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       superB_result.drawdown +
       propertySaleProceeds
 
-    // Salary sacrifice is already excluded from netTakeHome — do not add to outflows again
-    // Fixed-mode bond contributions are guaranteed outflows (like expenses)
+    // Fixed contributions are guaranteed outflows (like expenses)
     const totalOutflows =
       totalExpenses +
       totalMortgageRepayments +
-      totalFixedBondContributions
+      totalFixedContributions
 
     const prelimNetCashflow = totalIncomePreBond - totalOutflows
 
-    // Route surplus / fill deficit — waterfall: cash → shares → bonds → other assets → extra super
+    // Route surplus / fill deficit
     let surplus = 0
     let sharesAdjustment = 0
+    let surplusSharesContribution = 0
     let cashDrawdown = 0
     let superAExtra = 0
     let superBExtra = 0
     const bondDrawdowns = currentBonds.map(() => 0)
     const surplusBondContributions = currentBonds.map(() => 0)
     const otherAssetDrawdowns = currentOtherAssets.map(() => 0)
+    const surplusOtherAssetContributions = currentOtherAssets.map(() => 0)
 
     // Track mortgage payoff events this year
     const mortgagePayoffs = []
@@ -310,7 +339,6 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             if (remaining <= 0) break
             const p = currentProperties[i]
             if (p.mortgageBalance > 0) {
-              // Route to offset up to the mortgage balance (no point exceeding it)
               const headroom = Math.max(0, p.mortgageBalance - (propertyResults[i].offsetBalance || 0))
               const toOffset = Math.min(remaining, headroom)
               if (toOffset > 0) {
@@ -320,8 +348,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             }
           }
         } else if (dest === SURPLUS_DESTINATIONS.SHARES) {
-          sharesAdjustment = remaining
-          remaining = 0
+          // Allocate surplus to shares: up to target contribution if surplus-mode, otherwise skip
+          if (sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS && sharesTarget > 0) {
+            const allocated = Math.min(remaining, sharesTarget)
+            surplusSharesContribution = allocated
+            remaining -= allocated
+          }
         } else if (dest === SURPLUS_DESTINATIONS.BONDS) {
           // Allocate surplus to surplus-mode bonds (capped at 125% of prior year)
           for (let i = 0; i < currentBonds.length; i++) {
@@ -333,6 +365,16 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             const capped = Math.min(target, max125)
             const allocated = Math.min(remaining, capped)
             surplusBondContributions[i] = allocated
+            remaining -= allocated
+          }
+        } else if (dest === SURPLUS_DESTINATIONS.OTHER_ASSETS) {
+          // Allocate surplus to surplus-mode other assets
+          for (let i = 0; i < currentOtherAssets.length; i++) {
+            if (remaining <= 0) break
+            if (otherAssetTargetContributions[i].mode !== BOND_CONTRIBUTION_MODES.SURPLUS) continue
+            const target = otherAssetTargetContributions[i].target
+            const allocated = Math.min(remaining, target)
+            surplusOtherAssetContributions[i] = allocated
             remaining -= allocated
           }
         } else if (dest === SURPLUS_DESTINATIONS.CASH) {
@@ -352,9 +394,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         if (!p.payOffWhenAble || p.mortgageBalance <= 0) continue
         const netMortgage = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
         if (netMortgage <= 0) continue
-        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment)
+        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution)
         if (availableLiquidity >= netMortgage) {
-          // Pay from cash first, then shares
           let toPay = netMortgage
           const fromCashPay = Math.min(toPay, Math.max(0, cashBuffer))
           cashBuffer -= fromCashPay
@@ -419,8 +460,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         }
       }
 
-      // 5. Extra super drawdown — pension-phase super is liquid; draw as much as needed
-      //    beyond the minimum already included in totalIncomePreBond
+      // 5. Extra super drawdown — pension-phase super is liquid
       if (remaining > 0 && superA_result.inPensionPhase) {
         superAExtra = Math.min(remaining, superA_result.closingBalance)
         remaining -= superAExtra
@@ -431,8 +471,15 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       }
     }
 
-    // Final bond results with actual drawdowns + resolved contributions applied
-    // Each bond gets: fixed contribution (already applied in growth pass) OR surplus contribution (resolved now)
+    // ── Final results with resolved contributions + drawdowns ──
+
+    // Shares: total contribution = fixed + surplus
+    const finalSharesContribution = fixedSharesContribution + surplusSharesContribution
+    // sharesAdjustment tracks drawdowns (negative) from deficit path; contributions are separate
+    // Combine: positive contribution adds to value, negative adjustment subtracts
+    const sharesNetAdjustment = finalSharesContribution + sharesAdjustment
+
+    // Bonds: total contribution = fixed + surplus
     const finalBondContributions = currentBonds.map((_, i) =>
       fixedBondContributions[i] + surplusBondContributions[i]
     )
@@ -442,10 +489,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalBondContributions = finalBondContributions.reduce((sum, c) => sum + c, 0)
     const totalSurplusBondContributions = surplusBondContributions.reduce((sum, c) => sum + c, 0)
 
-    // Final other asset results with actual drawdowns applied
-    const otherAssetResults = currentOtherAssets.map((asset, i) =>
-      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i] })
+    // Other assets: total contribution = fixed + surplus
+    const finalOtherAssetContributions = currentOtherAssets.map((_, i) =>
+      fixedOtherAssetContributions[i] + surplusOtherAssetContributions[i]
     )
+    const otherAssetResults = currentOtherAssets.map((asset, i) =>
+      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i], resolvedContribution: finalOtherAssetContributions[i] })
+    )
+    const totalOtherAssetContributions = finalOtherAssetContributions.reduce((sum, c) => sum + c, 0)
+
+    // Aggregate contributions for snapshot
+    const totalInvestmentContributions = finalSharesContribution + totalBondContributions + totalOtherAssetContributions
 
     const totalBondWithdrawals = bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
     const totalOtherAssetWithdrawals = otherAssetResults.reduce((sum, r) => sum + r.withdrawal, 0)
@@ -474,17 +528,22 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // ── Step 12: Update balances ──────────────────────────────────────────
     superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra) }
     superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra) }
-    // Apply shares growth (closingValue) plus any surplus routed to shares or deficit drawn from shares
-    currentShares = { ...currentShares, currentValue: Math.max(0, sharesResult.closingValue + sharesAdjustment) }
+    // Apply shares growth + resolved contributions + deficit drawdowns
+    currentShares = {
+      ...currentShares,
+      currentValue: Math.max(0, sharesResult.closingValue + sharesNetAdjustment),
+      priorYearContribution: finalSharesContribution,  // Track actual for annual increase ratchet
+    }
     currentBonds = currentBonds.map((bond, i) => ({
       ...bond,
       currentBalance: bondResults[i].closingBalance,
-      // Track actual contribution (not configured) for 125% rule and maximise ratchet
+      // Track actual contribution for 125% rule and annual increase ratchet
       priorYearContribution: bondResults[i].effectiveContribution,
     }))
     currentOtherAssets = currentOtherAssets.map((asset, i) => ({
       ...asset,
       currentValue: otherAssetResults[i].closingValue,
+      priorYearContribution: otherAssetResults[i].effectiveContribution,  // Track actual for annual increase ratchet
     }))
     currentProperties = currentProperties.map((p, i) => ({
       ...p,
@@ -562,6 +621,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Shares
       sharesValue: currentShares.currentValue,
       sharesResult,
+      sharesContribution: finalSharesContribution,
       sharesDrawdown,
       cashDrawdown,
       superAExtra,
@@ -575,6 +635,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Other assets
       otherAssetResults,
       totalOtherAssetsValue,
+      totalOtherAssetContributions,
+      // Investment contributions (all non-property assets)
+      totalInvestmentContributions,
       // Expenses
       expenseTree,
       totalExpenses,
