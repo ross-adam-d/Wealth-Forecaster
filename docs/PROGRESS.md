@@ -46,9 +46,9 @@
 - [x] **Super initialisation guard** — `superAccounts.find()` guarded against returning `undefined`.
 - [x] 195 unit tests passing (5 new mortgage tests).
 - [x] **Investment bond contribution modes** — bonds now properly deducted from cashflow. Two modes: Fixed (guaranteed expense-like outflow) and Surplus (funded from surplus waterfall at user-set priority). Maximise toggle auto-ratchets at 125%/yr. Bond contributions column in cashflow detail table. Surplus Strategy UI includes bonds when surplus-mode bonds exist. 211 tests passing (16 new).
+- [x] **Unified contribution model** — all non-property investments (shares, bonds, other assets) now support fixed/surplus contribution modes + annual increase rate. Shares no longer absorb all surplus — gets up to target contribution only. Surplus routing handles all asset types. Cashflow table shows per-asset contribution columns. 225 tests passing.
 
 ### Up Next (prioritised)
-- [ ] **Shares annualContribution phantom inflow bug** — same issue as bonds: shares `annualContribution` adds to portfolio without deducting from cashflow. Needs same treatment (fixed expense vs surplus routing). Lower priority since surplus already routes into shares.
 - [ ] **Validate model end-to-end with Ross's base plan** — confirm mortgage offset works correctly, deficit warnings fire when expected, and projection runs to end-of-life
 - [ ] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
 - [ ] **Investment breakdown view** — year-by-year table or chart showing each investment asset growing/depleting over time
@@ -91,11 +91,12 @@
 - **UI**: BondForm has Fixed/Surplus toggle + Maximise checkbox. Surplus Strategy section auto-includes bonds when surplus-mode bonds exist.
 - **Cashflow detail table**: new "Bond contrib" expense column.
 - **211 tests passing** (16 new: 4 unit, 12 integration).
-- **Known issue flagged**: shares `annualContribution` has same phantom-inflow bug.
+- **Unified contribution model** — generalized fixed/surplus + annual increase to ALL non-property investments (shares, bonds, other assets). Bond `maximiseContribution` replaced with generic `annualIncreaseRate` (capped at 25% for bonds). Shares surplus routing changed from "absorb all" to "up to target contribution". `OTHER_ASSETS` added to surplus destinations. Cashflow detail table shows shares/bonds/other contributions separately. Surplus Strategy UI auto-shows destinations for assets in surplus mode.
+- **225 tests passing** (14 new unified contribution integration tests).
 
-**State at end of session:** Bond contributions now properly accounted for in cashflow. Both contribution modes working with 125% cap enforcement and maximise ratchet. UI reflects mode choice with contextual hints.
+**State at end of session:** All non-property investment contributions properly accounted for in cashflow. Consistent model: user picks fixed (expense) or surplus (waterfall) per asset, sets an annual increase rate, and arranges surplus priority.
 
-**Next session should start with:** Test bond contribution modes in the live app with Ross's base plan. Consider fixing shares annualContribution phantom inflow.
+**Next session should start with:** Test unified contribution model in the live app. Verify shares/bonds/other assets all show correctly in cashflow table and surplus routing.
 
 ---
 
