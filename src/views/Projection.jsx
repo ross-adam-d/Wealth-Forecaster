@@ -4,6 +4,7 @@ import {
 } from 'recharts'
 import { useState, useMemo } from 'react'
 import { ILLUSTRATIVE_AGE_THRESHOLD } from '../constants/index.js'
+import CashflowSankey from '../components/CashflowSankey.jsx'
 
 function fmt$(n) {
   if (n == null) return '—'
@@ -39,6 +40,8 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
   const [displayReal, setDisplayReal] = useState(true)
   const [showAllYears, setShowAllYears] = useState(false)
   const [cashflowDetailOpen, setCashflowDetailOpen] = useState(false)
+  const [sankeyOpen, setSankeyOpen] = useState(false)
+  const [sankeyYearIdx, setSankeyYearIdx] = useState(0)
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
@@ -255,6 +258,63 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Cashflow Flow diagram */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setSankeyOpen(o => !o)}
+        >
+          <div>
+            <span className="text-sm font-semibold text-gray-300">Cashflow Flow</span>
+            <span className="ml-2 text-xs text-gray-600">income → tax → expenses for any year</span>
+          </div>
+          <span className="text-gray-500 text-xs">{sankeyOpen ? '▾' : '▸'}</span>
+        </button>
+
+        {sankeyOpen && (
+          <div className="mt-5">
+            {/* Year selector */}
+            <div className="flex items-center gap-4 mb-5">
+              <label className="text-xs text-gray-500 whitespace-nowrap">Year</label>
+              <input
+                type="range"
+                min={0}
+                max={snapshots.length - 1}
+                step={1}
+                value={sankeyYearIdx}
+                onChange={e => setSankeyYearIdx(Number(e.target.value))}
+                className="flex-1 accent-brand-500"
+              />
+              <div className="text-right min-w-[80px]">
+                <span className="text-sm font-semibold text-white">
+                  {snapshots[sankeyYearIdx]?.year}
+                </span>
+                {snapshots[sankeyYearIdx]?.ageA != null && (
+                  <span className="ml-1.5 text-xs text-gray-500">
+                    age {snapshots[sankeyYearIdx].ageA}
+                    {snapshots[sankeyYearIdx].ageB != null ? `/${snapshots[sankeyYearIdx].ageB}` : ''}
+                  </span>
+                )}
+                {snapshots[sankeyYearIdx]?.retiredA && (
+                  <span className="ml-1.5 text-xs text-blue-400">retired</span>
+                )}
+              </div>
+            </div>
+
+            <CashflowSankey
+              snapshot={snapshots[sankeyYearIdx]}
+              scenario={scenario}
+            />
+
+            <p className="mt-3 text-xs text-gray-600">
+              Gross salaries flow through the tax node — other income sources are already net of tax.
+              Band widths are proportional to dollar amounts.
+              {displayReal ? ' Values shown in nominal dollars (chart is not affected by real/nominal toggle).' : ''}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Cashflow Detail table */}
