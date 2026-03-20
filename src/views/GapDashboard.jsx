@@ -147,6 +147,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
   const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
   const [showPartTime, setShowPartTime] = useState(false)
   const [chartView, setChartView] = useState('breakdown')    // 'breakdown' | 'total' | 'cashflow'
+  const [gapChartRange, setGapChartRange] = useState('full')
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
 
@@ -182,7 +183,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
     return map
   }, [gapSnapshots])
 
-  const chartData = activeGapSnapshots.map(s => ({
+  const gapCurrentYear = new Date().getFullYear()
+  const rangedGapSnapshots = gapChartRange === 'full'
+    ? activeGapSnapshots
+    : activeGapSnapshots.filter(s => s.year <= gapCurrentYear + Number(gapChartRange))
+  const chartData = rangedGapSnapshots.map(s => ({
     year: s.year,
     // Breakdown view
     cash: Math.max(0, s.cashBuffer),
@@ -233,7 +238,18 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
                 Stress active
               </span>
             )}
-            {/* Chart view toggles */}
+          {/* Range selector */}
+            <select
+              value={gapChartRange}
+              onChange={e => setGapChartRange(e.target.value)}
+              className="input text-xs py-1 px-2 h-7 mr-2"
+            >
+              <option value="10">Next 10 yrs</option>
+              <option value="20">Next 20 yrs</option>
+              <option value="40">Next 40 yrs</option>
+              <option value="full">Full gap</option>
+            </select>
+          {/* Chart view toggles */}
             <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
               {[
                 { id: 'breakdown', label: 'Breakdown' },

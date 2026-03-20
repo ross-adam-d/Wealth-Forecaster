@@ -140,6 +140,7 @@ export default function CashflowSankey({ snapshot, scenario }) {
     const superB    = s.superB?.drawdown || 0
     const bondW     = s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) || 0
     const sharesD   = s.sharesDrawdown || 0
+    const cashD     = s.cashDrawdown || 0
     const propSale  = s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) || 0
     const livingExp = s.totalExpenses || 0
     const mortgage  = Math.max(0, (s.totalOutflows || 0) - (s.totalExpenses || 0))
@@ -157,8 +158,9 @@ export default function CashflowSankey({ snapshot, scenario }) {
     if (superA    > 100)  rawLeft.push({ id: 'superA',    label: `Super pension (${personAName})`,       value: superA,    color: C.superA    })
     if (superB    > 100)  rawLeft.push({ id: 'superB',    label: `Super pension (${personBName})`,       value: superB,    color: C.superB    })
     if (bondW     > 100)  rawLeft.push({ id: 'bonds',     label: 'Bond withdrawals',                     value: bondW,     color: C.bonds     })
-    if (sharesD   > 100)  rawLeft.push({ id: 'shares',    label: 'Shares sold to fund gap',              value: sharesD,   color: C.shares    })
-    if (propSale  > 100)  rawLeft.push({ id: 'propSale',  label: 'Property sale proceeds',               value: propSale,  color: C.propSale  })
+    if (sharesD   > 100)  rawLeft.push({ id: 'shares',    label: 'Shares sold (gap funding)',   value: sharesD,   color: C.shares    })
+    if (cashD     > 100)  rawLeft.push({ id: 'cashD',     label: 'Cash reserves drawn',         value: cashD,     color: '#94a3b8'   })
+    if (propSale  > 100)  rawLeft.push({ id: 'propSale',  label: 'Property sale proceeds',      value: propSale,  color: C.propSale  })
 
     // ── RIGHT: uses of income ─────────────────────────────────────────────────
     const rawRight = []

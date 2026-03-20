@@ -42,6 +42,8 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
   const [cashflowDetailOpen, setCashflowDetailOpen] = useState(false)
   const [sankeyOpen, setSankeyOpen] = useState(false)
   const [sankeyYearIdx, setSankeyYearIdx] = useState(0)
+  const [netWorthRange, setNetWorthRange] = useState('full')
+  const [cashflowRange, setCashflowRange] = useState('full')
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
@@ -77,6 +79,11 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
 
   const retireYear = retirementDate?.retirementYear
 
+  function rangeFilter(snaps, range) {
+    if (range === 'full') return snaps
+    return snaps.filter(s => s.year <= currentYear + Number(range))
+  }
+
   // ── Cashflow detail table ────────────────────────────────────────────
   const INCOME_COLS = useMemo(() => [
     { key: 'salaryA',         label: `${personAName} take-home` },
@@ -84,6 +91,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
     { key: 'rentalNet',       label: 'Net rental', signed: true },
     { key: 'dividends',       label: 'Dividends & franking' },
     { key: 'sharesDrawdown',  label: 'Shares drawdown' },
+    { key: 'cashDrawdown',    label: 'Cash reserves drawn' },
     { key: 'superDrawdownA',  label: `Super drawdown (${personAName})` },
     { key: 'superDrawdownB',  label: `Super drawdown (${personBName})` },
     { key: 'bondWithdrawals', label: 'Bond withdrawals' },
@@ -107,6 +115,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
       rentalNet,
       dividends:       (s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0),
       sharesDrawdown:  s.sharesDrawdown ?? 0,
+      cashDrawdown:    s.cashDrawdown ?? 0,
       superDrawdownA:  s.superA?.drawdown ?? 0,
       superDrawdownB:  s.superB?.drawdown ?? 0,
       bondWithdrawals: s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0,
@@ -117,6 +126,8 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
       totalOutflows:   s.totalOutflows,
       netCashflow:     s.netCashflow,
       cashBuffer:      s.cashBuffer,
+      liquidAssets:    s.totalLiquidAssets,
+      assetDrawdowns:  (s.sharesDrawdown ?? 0) + (s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0) + (s.cashDrawdown ?? 0),
     }
   }), [snapshots])
 
@@ -174,12 +185,24 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
 
       {/* Net worth over time */}
       <div className="card">
-        <h2 className="text-sm font-semibold text-gray-300 mb-1">Net Worth Over Time</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-sm font-semibold text-gray-300">Net Worth Over Time</h2>
+          <select
+            value={netWorthRange}
+            onChange={e => setNetWorthRange(e.target.value)}
+            className="input text-xs py-1 px-2 h-7"
+          >
+            <option value="10">Next 10 years</option>
+            <option value="20">Next 20 years</option>
+            <option value="40">Next 40 years</option>
+            <option value="full">Full plan</option>
+          </select>
+        </div>
         <p className="text-xs text-gray-600 mb-4">
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
         </p>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={netWorthData}>
+          <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
             <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -202,9 +225,21 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
 
       {/* Annual cashflow */}
       <div className="card">
-        <h2 className="text-sm font-semibold text-gray-300 mb-4">Annual Cashflow</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-300">Annual Cashflow</h2>
+          <select
+            value={cashflowRange}
+            onChange={e => setCashflowRange(e.target.value)}
+            className="input text-xs py-1 px-2 h-7"
+          >
+            <option value="10">Next 10 years</option>
+            <option value="20">Next 20 years</option>
+            <option value="40">Next 40 years</option>
+            <option value="full">Full plan</option>
+          </select>
+        </div>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={cashflowData}>
+          <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
             <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -377,7 +412,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
                       EXPENSES
                     </th>
                     <th
-                      colSpan={2}
+                      colSpan={3}
                       className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-gray-400 font-semibold border-l border-gray-700 tracking-wide"
                     >
                       NET
@@ -412,8 +447,11 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
                     <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-400 font-semibold whitespace-nowrap border-l border-gray-700">
                       Net cashflow
                     </th>
-                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-500 font-medium whitespace-nowrap">
-                      Cash buffer
+                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-amber-400 font-semibold whitespace-nowrap">
+                      Asset drawdowns
+                    </th>
+                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-400 font-semibold whitespace-nowrap">
+                      Liquid assets
                     </th>
                   </tr>
                 </thead>
@@ -475,8 +513,12 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
                         <td className={`py-2 px-3 text-right font-semibold tabular-nums border-l border-gray-800 ${r.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
                           {r.isDeficit ? '−' : '+'}{fmt$(Math.abs(transform(r.netCashflow, r.year)))}
                         </td>
-                        <td className="py-2 px-3 text-right text-gray-400 tabular-nums">
-                          {fmt$(transform(r.cashBuffer, r.year))}
+                        <td className={`py-2 px-3 text-right tabular-nums font-medium ${r.assetDrawdowns > 500 ? 'text-amber-400' : 'text-gray-600'}`}>
+                          {r.assetDrawdowns > 500 ? fmt$(transform(r.assetDrawdowns, r.year)) : '—'}
+                        </td>
+                        <td className={`py-2 px-3 text-right tabular-nums font-medium ${r.liquidAssets < 0 ? 'text-red-400 font-bold' : r.liquidAssets < 20000 ? 'text-amber-400' : 'text-gray-300'}`}>
+                          {fmt$(transform(r.liquidAssets, r.year))}
+                          {r.liquidAssets < 0 && <span className="ml-1">⚠</span>}
                         </td>
                       </tr>
                     )
@@ -487,7 +529,9 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
 
             <p className="mt-3 text-xs text-gray-600">
               ● Estimated retirement year &nbsp;·&nbsp;
-              ! Deficit — liquid assets drawn down to cover shortfall &nbsp;·&nbsp;
+              ! Deficit — all sources exhausted &nbsp;·&nbsp;
+              Asset drawdowns shown in amber when portfolio is being liquidated &nbsp;·&nbsp;
+              Liquid assets shown in amber below $20k, red if negative &nbsp;·&nbsp;
               Ages shown as A / B
             </p>
           </div>

@@ -542,7 +542,25 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
           )}
 
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">CGT ownership — Person A</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range" min={0} max={100} step={5}
+                  value={p.ownershipPctA ?? 100}
+                  onChange={e => onUpdate({ ownershipPctA: Number(e.target.value) })}
+                  className="flex-1 accent-brand-500"
+                />
+                <span className="text-sm font-medium text-white w-12 text-right">
+                  {p.ownershipPctA ?? 100}% / {100 - (p.ownershipPctA ?? 100)}%
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">How CGT is split between A and B on sale</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-400">Sale event</span>
               {!p.saleEvent ? (
                 <button
@@ -906,6 +924,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           annualPropertyExpenses: 0,
           growthRate: 0.04,
           saleEvent: null,
+          ownershipPctA: 100,
         },
       ],
     })

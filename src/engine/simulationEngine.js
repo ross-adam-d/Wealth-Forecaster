@@ -167,7 +167,15 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalNetRentalIncomeLoss = propertyResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
     const totalMortgageRepayments = propertyResults.reduce((sum, r) => sum + r.annualRepayment, 0)
     const propertySaleProceeds = propertyResults.reduce((sum, r) => sum + (r.saleProceeds || 0), 0)
-    const propertyCGT = propertyResults.reduce((sum, r) => sum + (r.cgtAmount || 0), 0)
+    // Split CGT between A and B based on property ownership percentage
+    const propertyCGT_A = propertyResults.reduce((sum, r, i) => {
+      const pct = (currentProperties[i].ownershipPctA ?? 100) / 100
+      return sum + (r.cgtAmount || 0) * pct
+    }, 0)
+    const propertyCGT_B = propertyResults.reduce((sum, r, i) => {
+      const pct = (currentProperties[i].ownershipPctA ?? 100) / 100
+      return sum + (r.cgtAmount || 0) * (1 - pct)
+    }, 0)
 
     // ── Step 7: Shares ────────────────────────────────────────────────────
     const sharesResult = processSharesYear({
@@ -179,18 +187,27 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       assumptions,
     })
 
-    // Recalculate tax with dividends + property
+    // Recalculate tax with dividends + property (CGT split by ownership %)
     const taxAFinal = calcPersonTax({
       grossSalary: salaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
       packagingReduction: packReductionA,
       novatedLeaseReduction: leaseReductionA,
       rentalIncomeLoss: totalNetRentalIncomeLoss,
-      dividendIncome: sharesResult.cashDividend * 0.5, // split between partners
+      dividendIncome: sharesResult.cashDividend * 0.5,
       frankingCredit: sharesResult.frankingCredit * 0.5,
-      capitalGain: propertyCGT,
+      capitalGain: propertyCGT_A,
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
     })
+
+    const taxBFinal = propertyCGT_B > 0 ? calcPersonTax({
+      grossSalary: salaryB,
+      salarySacrifice: superContribB_pre.salarySacrificeAmount,
+      packagingReduction: packReductionB,
+      novatedLeaseReduction: leaseReductionB,
+      capitalGain: propertyCGT_B,
+      inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
+    }) : taxB
 
     // ── Step 8: Investment bonds — growth phase only (drawdown resolved after cashflow) ──
     const bondGrowthResults = currentBonds.map(bond =>
@@ -211,7 +228,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Compute preliminary income without bond withdrawals (bonds are discretionary drawdown)
     const totalIncomePreBond =
       taxAFinal.netTakeHome +
-      taxB.netTakeHome +
+      taxBFinal.netTakeHome +
       (totalNetRentalIncomeLoss > 0 ? totalNetRentalIncomeLoss : 0) +
       sharesResult.cashDividend +
       taxAFinal.frankingRefund +
@@ -229,6 +246,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Route surplus / fill deficit — waterfall: cash → shares → bonds (tax-free first)
     let surplus = 0
     let sharesAdjustment = 0
+    let cashDrawdown = 0
     const bondDrawdowns = currentBonds.map(() => 0)
 
     if (prelimNetCashflow >= 0) {
@@ -245,6 +263,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       const fromCash = Math.min(remaining, cashBuffer)
       cashBuffer -= fromCash
       remaining -= fromCash
+      cashDrawdown += fromCash
 
       // 2. Shares (if not preserve-capital)
       if (remaining > 0 && !currentShares.preserveCapital) {
@@ -285,7 +304,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Include all asset drawdowns in income so netCashflow and isDeficit
     // reflect the true funded position — isDeficit only fires when ALL
     // liquid sources (cash + shares + bonds) are exhausted
-    const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown
+    const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown + cashDrawdown
     const netCashflow = totalIncome - totalOutflows
     const isDeficit = netCashflow < 0
 
@@ -354,7 +373,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalIncome,
       // Tax
       taxA: taxAFinal,
-      taxB,
+      taxB: taxBFinal,
       // Super
       superA: superA_result,
       superB: superB_result,
@@ -369,6 +388,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       sharesValue: currentShares.currentValue,
       sharesResult,
       sharesDrawdown,
+      cashDrawdown,
       // Bonds
       bondResults,
       bondLiquidity,
