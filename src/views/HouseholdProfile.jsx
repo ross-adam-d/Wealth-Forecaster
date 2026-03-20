@@ -756,12 +756,59 @@ function BondForm({ bond, onUpdate, onRemove }) {
               onChange={v => onUpdate({ currentBalance: v })}
             />
             <CurrencyInput
-              label="Annual contribution"
+              label={b.contributionMode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
               value={b.annualContribution}
               onChange={v => onUpdate({ annualContribution: v })}
               hint="Max 125% of prior year contribution"
             />
           </div>
+          <div>
+            <label className="label">Contribution mode</label>
+            <div className="flex gap-2 mt-1">
+              <button
+                className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+                  (b.contributionMode || 'fixed') === 'fixed'
+                    ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={() => onUpdate({ contributionMode: 'fixed' })}
+              >
+                Fixed expense
+              </button>
+              <button
+                className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+                  b.contributionMode === 'surplus'
+                    ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={() => onUpdate({ contributionMode: 'surplus' })}
+              >
+                From surplus
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 mt-1.5">
+              {(b.contributionMode || 'fixed') === 'fixed'
+                ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
+                : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={`maximise-${b.id}`}
+              checked={b.maximiseContribution || false}
+              onChange={e => onUpdate({ maximiseContribution: e.target.checked })}
+              className="rounded border-gray-700"
+            />
+            <label htmlFor={`maximise-${b.id}`} className="text-sm text-gray-400">
+              Maximise contribution (auto-ratchet 125% each year)
+            </label>
+          </div>
+          {b.maximiseContribution && (
+            <p className="text-xs text-amber-400">
+              Contribution will increase by 25% each year from the base amount. This can significantly erode cashflow over time.
+            </p>
+          )}
           <div>
             <label className="label">Bond inception date</label>
             <input
@@ -1244,46 +1291,64 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-4">
           When income exceeds expenses, where should the surplus go? Funds flow through in priority order.
         </p>
-        <div className="space-y-3">
-          {(scenario.surplusRoutingOrder || ['offset', 'shares', 'cash']).map((dest, i) => (
-            <div key={dest} className="flex items-center gap-3">
-              <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
-              <select
-                className="input flex-1 text-sm py-1.5"
-                value={dest}
-                onChange={e => {
-                  const order = [...(scenario.surplusRoutingOrder || ['offset', 'shares', 'cash'])]
-                  const newDest = e.target.value
-                  // Swap positions if the new destination is already in the list
-                  const existingIdx = order.indexOf(newDest)
-                  if (existingIdx !== -1) {
-                    order[existingIdx] = order[i]
-                  }
-                  order[i] = newDest
-                  updateScenario({ surplusRoutingOrder: order })
-                }}
-              >
-                <option value="offset">Mortgage offset accounts</option>
-                <option value="shares">Share portfolio</option>
-                <option value="cash">Cash buffer</option>
-              </select>
-              {i > 0 && (
-                <button
-                  className="text-gray-600 hover:text-gray-300 text-xs"
-                  onClick={() => {
-                    const order = [...(scenario.surplusRoutingOrder || ['offset', 'shares', 'cash'])]
-                    ;[order[i - 1], order[i]] = [order[i], order[i - 1]]
-                    updateScenario({ surplusRoutingOrder: order })
-                  }}
-                >
-                  ▲
-                </button>
-              )}
+        {(() => {
+          const hasSurplusBonds = (scenario.investmentBonds || []).some(b => b.contributionMode === 'surplus')
+          const defaultOrder = ['offset', 'shares', 'cash']
+          const currentOrder = scenario.surplusRoutingOrder || defaultOrder
+          // Ensure bonds is in the order if there are surplus-mode bonds
+          const order = hasSurplusBonds && !currentOrder.includes('bonds')
+            ? [...currentOrder.filter(d => d !== 'cash'), 'bonds', 'cash']
+            : !hasSurplusBonds
+              ? currentOrder.filter(d => d !== 'bonds')
+              : currentOrder
+          return (
+            <div className="space-y-3">
+              {order.map((dest, i) => (
+                <div key={dest} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
+                  <select
+                    className="input flex-1 text-sm py-1.5"
+                    value={dest}
+                    onChange={e => {
+                      const newOrder = [...order]
+                      const newDest = e.target.value
+                      const existingIdx = newOrder.indexOf(newDest)
+                      if (existingIdx !== -1) {
+                        newOrder[existingIdx] = newOrder[i]
+                      }
+                      newOrder[i] = newDest
+                      updateScenario({ surplusRoutingOrder: newOrder })
+                    }}
+                  >
+                    <option value="offset">Mortgage offset accounts</option>
+                    <option value="shares">Share portfolio</option>
+                    {hasSurplusBonds && <option value="bonds">Investment bonds</option>}
+                    <option value="cash">Cash buffer</option>
+                  </select>
+                  {i > 0 && (
+                    <button
+                      className="text-gray-600 hover:text-gray-300 text-xs"
+                      onClick={() => {
+                        const newOrder = [...order]
+                        ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]
+                        updateScenario({ surplusRoutingOrder: newOrder })
+                      }}
+                    >
+                      ▲
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )
+        })()}
         <p className="text-xs text-gray-600 mt-3">
-          Offset: surplus fills offset accounts (reduces mortgage interest). Shares: surplus invested in share portfolio. Cash: surplus held in cash buffer.
+          Offset: surplus fills offset accounts (reduces mortgage interest). Shares: surplus invested in share portfolio.
+          {(scenario.investmentBonds || []).some(b => b.contributionMode === 'surplus')
+            ? ' Bonds: surplus funds investment bond contributions (capped at 125% of prior year).'
+            : ''
+          }
+          {' '}Cash: surplus held in cash buffer.
         </p>
       </Section>
     </div>

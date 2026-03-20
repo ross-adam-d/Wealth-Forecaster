@@ -14,7 +14,7 @@ import { processSharesYear } from '../modules/shares.js'
 import { processBondYear } from '../modules/investmentBonds.js'
 import { resolveExpenseTree } from '../modules/expenses.js'
 import { processOtherAssetYear } from '../modules/otherAssets.js'
-import { SURPLUS_DESTINATIONS } from '../constants/index.js'
+import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE } from '../constants/index.js'
 
 /**
  * Get the age of a person in a given simulation year.
@@ -218,9 +218,34 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
     }) : taxB
 
-    // ── Step 8: Investment bonds — growth phase only (drawdown resolved after cashflow) ──
-    const bondGrowthResults = currentBonds.map(bond =>
-      processBondYear({ bond, year, drawdownNeeded: 0, assumptions })
+    // ── Step 8: Investment bonds — resolve contributions per mode, growth phase only ──
+    // Resolve the target contribution for each bond based on mode + maximise setting
+    const bondTargetContributions = currentBonds.map(bond => {
+      const mode = bond.contributionMode || BOND_CONTRIBUTION_MODES.FIXED
+      const base = bond.annualContribution || 0
+      const prior = bond.priorYearContribution || 0
+
+      // Maximise: ratchet at 125% of prior year's actual contribution
+      let target = base
+      if (bond.maximiseContribution && prior > 0) {
+        target = Math.max(base, prior * INVESTMENT_BOND_125_PCT_RULE)
+      }
+
+      return { mode, target }
+    })
+
+    // Fixed-mode bonds: contribution is a guaranteed outflow (resolved now, before cashflow calc)
+    const fixedBondContributions = currentBonds.map((bond, i) => {
+      if (bondTargetContributions[i].mode === BOND_CONTRIBUTION_MODES.FIXED) {
+        return bondTargetContributions[i].target
+      }
+      return 0  // surplus-mode bonds resolved later
+    })
+    const totalFixedBondContributions = fixedBondContributions.reduce((sum, c) => sum + c, 0)
+
+    // Growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0 (resolved after cashflow)
+    const bondGrowthResults = currentBonds.map((bond, i) =>
+      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions })
     )
 
     // ── Step 8b: Other assets — growth phase only (drawdown resolved after cashflow) ──
@@ -251,9 +276,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       propertySaleProceeds
 
     // Salary sacrifice is already excluded from netTakeHome — do not add to outflows again
+    // Fixed-mode bond contributions are guaranteed outflows (like expenses)
     const totalOutflows =
       totalExpenses +
-      totalMortgageRepayments
+      totalMortgageRepayments +
+      totalFixedBondContributions
 
     const prelimNetCashflow = totalIncomePreBond - totalOutflows
 
@@ -264,6 +291,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     let superAExtra = 0
     let superBExtra = 0
     const bondDrawdowns = currentBonds.map(() => 0)
+    const surplusBondContributions = currentBonds.map(() => 0)
     const otherAssetDrawdowns = currentOtherAssets.map(() => 0)
 
     // Track mortgage payoff events this year
@@ -294,6 +322,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         } else if (dest === SURPLUS_DESTINATIONS.SHARES) {
           sharesAdjustment = remaining
           remaining = 0
+        } else if (dest === SURPLUS_DESTINATIONS.BONDS) {
+          // Allocate surplus to surplus-mode bonds (capped at 125% of prior year)
+          for (let i = 0; i < currentBonds.length; i++) {
+            if (remaining <= 0) break
+            if (bondTargetContributions[i].mode !== BOND_CONTRIBUTION_MODES.SURPLUS) continue
+            const target = bondTargetContributions[i].target
+            const prior = currentBonds[i].priorYearContribution || 0
+            const max125 = prior > 0 ? prior * INVESTMENT_BOND_125_PCT_RULE : Infinity
+            const capped = Math.min(target, max125)
+            const allocated = Math.min(remaining, capped)
+            surplusBondContributions[i] = allocated
+            remaining -= allocated
+          }
         } else if (dest === SURPLUS_DESTINATIONS.CASH) {
           cashBuffer += remaining
           remaining = 0
@@ -390,10 +431,16 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       }
     }
 
-    // Final bond results with actual drawdowns applied
-    const bondResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], assumptions })
+    // Final bond results with actual drawdowns + resolved contributions applied
+    // Each bond gets: fixed contribution (already applied in growth pass) OR surplus contribution (resolved now)
+    const finalBondContributions = currentBonds.map((_, i) =>
+      fixedBondContributions[i] + surplusBondContributions[i]
     )
+    const bondResults = currentBonds.map((bond, i) =>
+      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions })
+    )
+    const totalBondContributions = finalBondContributions.reduce((sum, c) => sum + c, 0)
+    const totalSurplusBondContributions = surplusBondContributions.reduce((sum, c) => sum + c, 0)
 
     // Final other asset results with actual drawdowns applied
     const otherAssetResults = currentOtherAssets.map((asset, i) =>
@@ -432,7 +479,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     currentBonds = currentBonds.map((bond, i) => ({
       ...bond,
       currentBalance: bondResults[i].closingBalance,
-      priorYearContribution: bond.annualContribution,
+      // Track actual contribution (not configured) for 125% rule and maximise ratchet
+      priorYearContribution: bondResults[i].effectiveContribution,
     }))
     currentOtherAssets = currentOtherAssets.map((asset, i) => ({
       ...asset,
@@ -522,6 +570,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       bondResults,
       bondLiquidity,
       bondPreTenYr,
+      totalBondContributions,
+      totalSurplusBondContributions,
       // Other assets
       otherAssetResults,
       totalOtherAssetsValue,

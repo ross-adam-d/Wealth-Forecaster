@@ -45,9 +45,15 @@
 - [x] **Birth year calculation fix** — only persons with valid DOB considered for sim end year; graceful fallback when one/both persons have no DOB.
 - [x] **Super initialisation guard** — `superAccounts.find()` guarded against returning `undefined`.
 - [x] 195 unit tests passing (5 new mortgage tests).
+- [x] **Investment bond contribution modes** — bonds now properly deducted from cashflow. Two modes: Fixed (guaranteed expense-like outflow) and Surplus (funded from surplus waterfall at user-set priority). Maximise toggle auto-ratchets at 125%/yr. Bond contributions column in cashflow detail table. Surplus Strategy UI includes bonds when surplus-mode bonds exist. 211 tests passing (16 new).
 
 ### Up Next (prioritised)
+- [ ] **Shares annualContribution phantom inflow bug** — same issue as bonds: shares `annualContribution` adds to portfolio without deducting from cashflow. Needs same treatment (fixed expense vs surplus routing). Lower priority since surplus already routes into shares.
 - [ ] **Validate model end-to-end with Ross's base plan** — confirm mortgage offset works correctly, deficit warnings fire when expected, and projection runs to end-of-life
+- [ ] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
+- [ ] **Investment breakdown view** — year-by-year table or chart showing each investment asset growing/depleting over time
+- [ ] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: income, income breakdown, expenses, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
+- [ ] **Cashflow chart real/nominal fix** — cashflow chart doesn't respond to today's vs real dollars toggle
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [ ] Impact Analyser: wire lever values into simulation overrides
@@ -59,7 +65,6 @@
 - [ ] Side-by-side comparison view
 
 ### Then — Output Views
-- [ ] Expense breakdown stacked area chart
 - [ ] One-off events timeline
 - [ ] Rate period visualisation per asset
 
@@ -74,6 +79,25 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-21
+
+**What was done:**
+- **Investment bond contribution modes** — critical bug fix + feature. Bond annual contributions were previously applied internally without deducting from cashflow (free money). Now two modes:
+  - **Fixed expense**: contribution deducted from cashflow as outflow each year, guaranteed regardless of surplus. Can create deficit if income insufficient.
+  - **From surplus**: contribution funded from surplus waterfall; user sets priority alongside offset/shares/cash. No surplus = no contribution. Capped at 125% of prior year.
+- **Maximise contribution toggle**: auto-ratchets at 125% of prior year's actual contribution each year. Warning shown in UI about cashflow erosion.
+- **Engine changes**: `processBondYear` accepts `resolvedContribution` parameter; `simulationEngine.js` resolves contributions per mode before cashflow calc; fixed contributions in `totalOutflows`; surplus contributions in waterfall; `priorYearContribution` now tracks actual effective contribution (not configured amount).
+- **UI**: BondForm has Fixed/Surplus toggle + Maximise checkbox. Surplus Strategy section auto-includes bonds when surplus-mode bonds exist.
+- **Cashflow detail table**: new "Bond contrib" expense column.
+- **211 tests passing** (16 new: 4 unit, 12 integration).
+- **Known issue flagged**: shares `annualContribution` has same phantom-inflow bug.
+
+**State at end of session:** Bond contributions now properly accounted for in cashflow. Both contribution modes working with 125% cap enforcement and maximise ratchet. UI reflects mode choice with contextual hints.
+
+**Next session should start with:** Test bond contribution modes in the live app with Ross's base plan. Consider fixing shares annualContribution phantom inflow.
+
+---
 
 ### Session — 2026-03-20 (3)
 

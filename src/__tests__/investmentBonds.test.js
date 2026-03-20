@@ -128,6 +128,35 @@ describe('processBondYear', () => {
     })
   })
 
+  describe('resolvedContribution parameter', () => {
+    it('uses resolvedContribution instead of annualContribution when provided', () => {
+      const result = processBondYear({ bond: baseBond, year: 2026, resolvedContribution: 10_000, assumptions })
+      // Growth = (50,000 + 10,000) * 0.07 = 4,200
+      expect(result.grossEarnings).toBeCloseTo(4_200, 0)
+      expect(result.effectiveContribution).toBe(10_000)
+    })
+
+    it('falls back to annualContribution when resolvedContribution is null', () => {
+      const result = processBondYear({ bond: baseBond, year: 2026, resolvedContribution: null, assumptions })
+      expect(result.effectiveContribution).toBe(5_000)
+    })
+
+    it('allows zero resolvedContribution (surplus mode with no surplus)', () => {
+      const result = processBondYear({ bond: baseBond, year: 2026, resolvedContribution: 0, assumptions })
+      expect(result.effectiveContribution).toBe(0)
+      // Growth = 50,000 * 0.07 = 3,500
+      expect(result.grossEarnings).toBeCloseTo(3_500, 0)
+    })
+
+    it('applies 125% cap to resolvedContribution', () => {
+      const bond = { ...baseBond, priorYearContribution: 5_000 }
+      const result = processBondYear({ bond, year: 2027, resolvedContribution: 8_000, assumptions })
+      // Max = 5,000 * 1.25 = 6,250
+      expect(result.effectiveContribution).toBeCloseTo(6_250, 0)
+      expect(result.excessContribution).toBeCloseTo(1_750, 0)
+    })
+  })
+
   describe('liquidity tagging', () => {
     it('tags pre-10yr bond as accessible with tax penalty', () => {
       const result = processBondYear({ bond: baseBond, year: 2026, assumptions })

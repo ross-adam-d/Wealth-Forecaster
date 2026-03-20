@@ -14,6 +14,7 @@ import {
   DIVIDEND_YIELD,
   DEFAULT_FRANKING_PCT,
   INVESTMENT_BOND_RETURN_RATE,
+  BOND_CONTRIBUTION_MODES,
 } from '../constants/index.js'
 
 export function createDefaultPerson(label = 'A') {
@@ -110,6 +111,8 @@ export function createDefaultInvestmentBond() {
     name: '',
     currentBalance: 0,
     annualContribution: 0,
+    contributionMode: BOND_CONTRIBUTION_MODES.FIXED,  // 'fixed' | 'surplus'
+    maximiseContribution: false,  // Auto-ratchet at 125% each year
     inceptionDate: null,      // ISO date string — for 10-year clock
     ratePeriods: [
       { fromYear: new Date().getFullYear(), toYear: 2090, rate: 0.07 },

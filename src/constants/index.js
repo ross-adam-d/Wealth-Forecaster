@@ -84,10 +84,17 @@ export const ILLUSTRATIVE_AGE_THRESHOLD = 100  // Projections labelled illustrat
 // --- Auto-save ---
 export const AUTOSAVE_DEBOUNCE_MS = 2000
 
+// --- Investment bond contribution modes ---
+export const BOND_CONTRIBUTION_MODES = {
+  FIXED: 'fixed',     // Deducted as expense — guaranteed each year
+  SURPLUS: 'surplus',  // Funded from surplus waterfall — only when surplus exists
+}
+
 // --- Surplus routing destination types ---
 export const SURPLUS_DESTINATIONS = {
   OFFSET: 'offset',
   SHARES: 'shares',
   CASH: 'cash',
   SUPER: 'super',
+  BONDS: 'bonds',
 }

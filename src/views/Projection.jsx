@@ -104,6 +104,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'taxB',           label: `Tax B` },
     { key: 'superAccumA',    label: `Super A` },
     { key: 'superAccumB',    label: `Super B` },
+    { key: 'bondContributions', label: 'Bond contrib' },
     { key: 'livingExpenses', label: 'Expenses' },
     { key: 'mortgage',       label: 'Mortgage' },
   ], [])
@@ -134,6 +135,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       taxB:            s.taxB?.totalTaxPayable ?? 0,
       superAccumA:     s.superA?.inPensionPhase ? 0 : (s.superA?.contributions ?? 0),
       superAccumB:     s.superB?.inPensionPhase ? 0 : (s.superB?.contributions ?? 0),
+      bondContributions: s.totalBondContributions ?? 0,
       livingExpenses:  s.totalExpenses,
       mortgage:        Math.max(0, mortgage),
       // Net

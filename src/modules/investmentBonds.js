@@ -21,10 +21,11 @@ import { resolveRatePeriodRate } from '../engine/ratePeriodEngine.js'
  * @param {object} bond
  * @param {number} year
  * @param {number} drawdownNeeded
+ * @param {number} resolvedContribution - actual contribution amount (already resolved by engine based on mode)
  * @param {object} assumptions
  * @returns {object}
  */
-export function processBondYear({ bond, year, drawdownNeeded = 0, assumptions }) {
+export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContribution, assumptions }) {
   const {
     currentBalance,
     annualContribution,
@@ -33,16 +34,19 @@ export function processBondYear({ bond, year, drawdownNeeded = 0, assumptions })
     priorYearContribution = 0,
   } = bond
 
+  // Use resolved contribution if provided (engine-managed), otherwise fall back to bond config
+  const requestedContribution = resolvedContribution != null ? resolvedContribution : annualContribution
+
   // Validate 125% rule
   const maxContribution = priorYearContribution > 0
     ? priorYearContribution * INVESTMENT_BOND_125_PCT_RULE
     : Infinity  // first year — no cap
-  const contribution125RuleBreach = annualContribution > maxContribution && priorYearContribution > 0
+  const contribution125RuleBreach = requestedContribution > maxContribution && priorYearContribution > 0
   const effectiveContribution = contribution125RuleBreach
     ? maxContribution
-    : annualContribution
+    : requestedContribution
   const excessContribution = contribution125RuleBreach
-    ? annualContribution - maxContribution
+    ? requestedContribution - maxContribution
     : 0
 
   // Years elapsed since inception
