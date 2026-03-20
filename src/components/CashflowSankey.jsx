@@ -136,8 +136,8 @@ export default function CashflowSankey({ snapshot, scenario }) {
     const totalTax  = (s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0)
     const rentalNet = s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) || 0
     const dividends = (s.sharesResult?.cashDividend || 0) + (s.taxA?.frankingRefund || 0)
-    const superA    = s.superA?.drawdown || 0
-    const superB    = s.superB?.drawdown || 0
+    const superA    = (s.superA?.drawdown || 0) + (s.superAExtra || 0)
+    const superB    = (s.superB?.drawdown || 0) + (s.superBExtra || 0)
     const bondW     = s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) || 0
     const sharesD   = s.sharesDrawdown || 0
     const cashD     = s.cashDrawdown || 0

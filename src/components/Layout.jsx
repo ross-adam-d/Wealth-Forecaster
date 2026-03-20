@@ -9,7 +9,7 @@ const NAV = [
   { to: '/assumptions',label: 'Assumptions' },
 ]
 
-export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario }) {
+export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, displayReal, setDisplayReal }) {
   return (
     <div className="h-screen flex flex-col">
       {/* Top nav */}
@@ -32,6 +32,19 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
             ))}
           </nav>
         </div>
+
+        {/* Real/nominal toggle */}
+        {setDisplayReal && (
+          <label className="flex items-center gap-1.5 cursor-pointer mr-2">
+            <span className="text-xs text-gray-500">Today's $</span>
+            <button
+              onClick={() => setDisplayReal(r => !r)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${displayReal ? 'bg-brand-600' : 'bg-gray-700'}`}
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${displayReal ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </label>
+        )}
 
         {/* Scenario switcher */}
         <div className="flex items-center gap-2">

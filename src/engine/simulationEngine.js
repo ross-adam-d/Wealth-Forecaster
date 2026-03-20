@@ -243,10 +243,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const prelimNetCashflow = totalIncomePreBond - totalOutflows
 
-    // Route surplus / fill deficit — waterfall: cash → shares → bonds (tax-free first)
+    // Route surplus / fill deficit — waterfall: cash → shares → bonds → extra super
     let surplus = 0
     let sharesAdjustment = 0
     let cashDrawdown = 0
+    let superAExtra = 0
+    let superBExtra = 0
     const bondDrawdowns = currentBonds.map(() => 0)
 
     if (prelimNetCashflow >= 0) {
@@ -291,6 +293,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
           }
         }
       }
+
+      // 4. Extra super drawdown — pension-phase super is liquid; draw as much as needed
+      //    beyond the minimum already included in totalIncomePreBond
+      if (remaining > 0 && superA_result.inPensionPhase) {
+        superAExtra = Math.min(remaining, superA_result.closingBalance)
+        remaining -= superAExtra
+      }
+      if (remaining > 0 && superB_result.inPensionPhase) {
+        superBExtra = Math.min(remaining, superB_result.closingBalance)
+        remaining -= superBExtra
+      }
     }
 
     // Final bond results with actual drawdowns applied
@@ -304,7 +317,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Include all asset drawdowns in income so netCashflow and isDeficit
     // reflect the true funded position — isDeficit only fires when ALL
     // liquid sources (cash + shares + bonds) are exhausted
-    const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown + cashDrawdown
+    const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown + cashDrawdown + superAExtra + superBExtra
     const netCashflow = totalIncome - totalOutflows
     const isDeficit = netCashflow < 0
 
@@ -312,8 +325,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // CGT already calculated in property results above
 
     // ── Step 12: Update balances ──────────────────────────────────────────
-    superA = { ...superA, currentBalance: superA_result.closingBalance }
-    superB = { ...superB, currentBalance: superB_result.closingBalance }
+    superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra) }
+    superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra) }
     // Apply shares growth (closingValue) plus any surplus routed to shares or deficit drawn from shares
     currentShares = { ...currentShares, currentValue: Math.max(0, sharesResult.closingValue + sharesAdjustment) }
     currentBonds = currentBonds.map((bond, i) => ({
@@ -389,6 +402,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       sharesResult,
       sharesDrawdown,
       cashDrawdown,
+      superAExtra,
+      superBExtra,
       // Bonds
       bondResults,
       bondLiquidity,
@@ -411,6 +426,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       superAUnlocked: ageA != null && ageA >= 60 && !superA_result.isLocked,
       superBUnlocked: ageB != null && ageB >= 60 && !superB_result.isLocked,
     })
+
+    // Plan exhausted — all income sources and liquid assets are depleted
+    if (isDeficit) break
   }
 
   return yearSnapshots

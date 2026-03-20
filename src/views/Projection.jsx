@@ -36,8 +36,7 @@ function GuideBox({ children }) {
   )
 }
 
-export default function Projection({ snapshots, scenario, retirementDate }) {
-  const [displayReal, setDisplayReal] = useState(true)
+export default function Projection({ snapshots, scenario, retirementDate, displayReal = true }) {
   const [showAllYears, setShowAllYears] = useState(false)
   const [cashflowDetailOpen, setCashflowDetailOpen] = useState(false)
   const [sankeyOpen, setSankeyOpen] = useState(false)
@@ -127,7 +126,7 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
       netCashflow:     s.netCashflow,
       cashBuffer:      s.cashBuffer,
       liquidAssets:    s.totalLiquidAssets,
-      assetDrawdowns:  (s.sharesDrawdown ?? 0) + (s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0) + (s.cashDrawdown ?? 0),
+      assetDrawdowns:  (s.sharesDrawdown ?? 0) + (s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0) + (s.cashDrawdown ?? 0) + (s.superAExtra ?? 0) + (s.superBExtra ?? 0),
     }
   }), [snapshots])
 
@@ -169,18 +168,9 @@ export default function Projection({ snapshots, scenario, retirementDate }) {
           )}
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
-          <span className="text-sm text-gray-400">Today's dollars</span>
-          <button
-            onClick={() => setDisplayReal(r => !r)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${displayReal ? 'bg-brand-600' : 'bg-gray-700'}`}
-          >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${displayReal ? 'translate-x-6' : 'translate-x-1'}`} />
-          </button>
-          <span className="text-sm text-gray-400">
-            {displayReal ? '(real)' : '(nominal)'}
-          </span>
-        </label>
+        <span className="text-xs text-gray-500">
+          {displayReal ? "Today's dollars (real)" : 'Nominal dollars'}
+        </span>
       </div>
 
       {/* Net worth over time */}

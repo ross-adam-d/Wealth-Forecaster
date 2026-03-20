@@ -37,6 +37,7 @@ export default function App() {
   } = useScenario(user?.id)
 
   const { snapshots, retirementDate } = useSimulation(activeScenario)
+  const [displayReal, setDisplayReal] = useState(true)
 
   if (authLoading) {
     return (
@@ -60,6 +61,8 @@ export default function App() {
     setActiveId,
     addScenario,
     duplicateScenario,
+    displayReal,
+    setDisplayReal,
   }
 
   return (
