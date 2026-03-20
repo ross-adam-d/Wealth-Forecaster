@@ -72,6 +72,8 @@ export function createDefaultProperty(isPrimary = false) {
     purchasePrice: 0,
     purchaseDate: null,
     mortgageBalance: 0,
+    originalLoanAmount: 0,
+    originalLoanTermYears: 0,
     interestRate: 0.065,
     loanTermYearsRemaining: 0,
     loanType: 'pi',           // 'pi' | 'io'

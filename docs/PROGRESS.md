@@ -39,9 +39,15 @@
 - [x] Bug fix: default share capital growth corrected to 4.5% (was 8%, double-counting dividend yield)
 - [x] Git: switched from fine-grained PAT to classic PAT for push access
 - [x] **Investment bond drawdown bug fix** — deficit waterfall now: cash → shares → bonds (tax-free first, then pre-10yr). Bonds now correctly drawn down during deficit years instead of compounding indefinitely. Two-pass approach: growth-only pass at Step 8, then final pass with actual drawdown amounts after cashflow is known. All 188 tests passing.
+- [x] **Mortgage re-amortisation fix** — repayment now calculated from original loan amount and term (fixed annuity), not recalculated each year. Offset accounts now correctly accelerate payoff (reduced interest → more to principal → early payoff). `originalLoanAmount` and `originalLoanTermYears` added to schema; auto-populated on first entry. Falls back to current-balance calc for legacy data.
+- [x] **Deficit break removed** — simulation no longer stops on first deficit year. Runs to end-of-life with cumulative deficit tracking (`cumulativeDeficit`, `firstDeficitYear`, `deficitYears`). Cash buffer goes negative to represent unfunded shortfall.
+- [x] **Liquidity exhaustion warnings** — prominent red UI warnings when plan has deficit years: (1) persistent global banner in Layout on every page, (2) large red warning card at top of Gap Dashboard and Projection, (3) deficit rows highlighted red with "!!" markers, (4) viability badge shows deficit year count, (5) liquidity table shows "!!!" next to negative values.
+- [x] **Birth year calculation fix** — only persons with valid DOB considered for sim end year; graceful fallback when one/both persons have no DOB.
+- [x] **Super initialisation guard** — `superAccounts.find()` guarded against returning `undefined`.
+- [x] 195 unit tests passing (5 new mortgage tests).
 
 ### Up Next (prioritised)
-- [ ] **Validate model end-to-end with Ross's base plan** — now that core bugs are fixed (super lock, post-sale rental, shares drawdown), confirm Gap viability badge, cashflow detail table, and net worth chart all tell a coherent story
+- [ ] **Validate model end-to-end with Ross's base plan** — confirm mortgage offset works correctly, deficit warnings fire when expected, and projection runs to end-of-life
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [ ] Impact Analyser: wire lever values into simulation overrides
@@ -68,6 +74,23 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-20 (3)
+
+**What was done:**
+- **Full codebase review** — identified critical bugs, code quality issues, and improvement opportunities across all engine, module, view, and utility files
+- **Mortgage re-amortisation fix** — P&I repayment now uses fixed annuity from original loan terms instead of recalculating each year. Offset accounts now correctly accelerate mortgage payoff. Added `originalLoanAmount` and `originalLoanTermYears` to property schema with auto-population in HouseholdProfile. 5 new property tests.
+- **Deficit break removed** — `if (isDeficit) break` removed from simulation engine. Simulation now runs to end-of-life through deficit years. Tracks `cumulativeDeficit`, `firstDeficitYear`, and `deficitYears` array. Cash buffer goes negative to represent unfunded shortfall.
+- **Liquidity exhaustion warnings** — 3-tier alert system: (1) persistent red banner in Layout header on every page ("PLAN NOT VIABLE"), (2) large red warning card at top of Gap Dashboard and Projection with deficit details, (3) deficit rows red-highlighted with "!!" markers in all tables.
+- **Birth year calculation fix** — sim end year now only considers persons with valid DOBs; graceful fallback when one/both are missing.
+- **Super initialisation guard** — `superAccounts.find()` guarded against `undefined` to prevent silent crash.
+- 195 unit tests passing (was 190). Build clean.
+
+**State at end of session:** Four critical engine bugs fixed, prominent deficit UI warnings added. Model now runs full lifespan even through deficit years, mortgage offset works correctly, and users cannot miss a non-viable plan.
+
+**Next session should start with:** End-to-end validation of Ross's base plan — confirm mortgage offset accelerates payoff, deficit warnings fire when expected, and charts tell a coherent story through to end-of-life.
+
+---
 
 ### Session — 2026-03-20 (2)
 

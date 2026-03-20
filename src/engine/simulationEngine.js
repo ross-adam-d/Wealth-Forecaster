@@ -88,20 +88,26 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   const personA = household.personA
   const personB = household.personB
 
-  // Determine simulation end year
-  const olderBirthYear = Math.min(
-    personA.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() : currentYear,
-    personB.dateOfBirth ? new Date(personB.dateOfBirth).getFullYear() : currentYear,
-  )
+  // Determine simulation end year — based on the older person (earlier birth year)
+  // Only consider persons with a valid date of birth
+  const birthYearA = personA.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() : null
+  const birthYearB = personB.dateOfBirth ? new Date(personB.dateOfBirth).getFullYear() : null
+  const olderBirthYear = birthYearA && birthYearB
+    ? Math.min(birthYearA, birthYearB)
+    : birthYearA || birthYearB || currentYear
   const simEndYear = olderBirthYear + simulationEndAge
 
-  // Mutable state
-  let superA = { ...superAccounts.find(s => s.personLabel === 'A'), currentBalance: superAccounts.find(s => s.personLabel === 'A')?.currentBalance || 0 }
-  let superB = { ...superAccounts.find(s => s.personLabel === 'B'), currentBalance: superAccounts.find(s => s.personLabel === 'B')?.currentBalance || 0 }
+  // Mutable state — guard against missing super accounts
+  const superProfileA = superAccounts.find(s => s.personLabel === 'A') || {}
+  const superProfileB = superAccounts.find(s => s.personLabel === 'B') || {}
+  let superA = { ...superProfileA, currentBalance: superProfileA.currentBalance || 0 }
+  let superB = { ...superProfileB, currentBalance: superProfileB.currentBalance || 0 }
   let currentShares = { ...shares }
   let currentBonds = investmentBonds.map(b => ({ ...b }))
   let currentProperties = properties.map(p => ({ ...p }))
   let cashBuffer = 0
+  let firstDeficitYear = null
+  let cumulativeDeficit = 0
 
   const yearSnapshots = []
 
@@ -316,10 +322,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const sharesDrawdown = Math.max(0, -sharesAdjustment)
     // Include all asset drawdowns in income so netCashflow and isDeficit
     // reflect the true funded position — isDeficit only fires when ALL
-    // liquid sources (cash + shares + bonds) are exhausted
+    // liquid sources (cash + shares + bonds + pension-phase super) are exhausted
     const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown + cashDrawdown + superAExtra + superBExtra
     const netCashflow = totalIncome - totalOutflows
     const isDeficit = netCashflow < 0
+
+    // Track cumulative deficit — the simulation continues but flags the shortfall
+    if (isDeficit) {
+      const shortfall = Math.abs(netCashflow)
+      cumulativeDeficit += shortfall
+      if (!firstDeficitYear) firstDeficitYear = year
+      // Allow cashBuffer to go negative to represent unfunded shortfall
+      cashBuffer -= shortfall
+    }
 
     // ── Step 11: Sale events ──────────────────────────────────────────────
     // CGT already calculated in property results above
@@ -339,7 +354,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       currentValue: propertyResults[i].closingValue,
       mortgageBalance: propertyResults[i].mortgageBalance,
       offsetBalance: propertyResults[i].offsetBalance,
-      loanTermYearsRemaining: propertyResults[i].loanTermYearsRemaining ?? p.loanTermYearsRemaining,
+      loanTermYearsRemaining: propertyResults[i].loanTermYearsRemaining || p.loanTermYearsRemaining || 0,
     }))
 
     // Liquidity classification
@@ -428,11 +443,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Markers for Gap dashboard
       superAUnlocked: ageA != null && ageA >= 60 && !superA_result.isLocked,
       superBUnlocked: ageB != null && ageB >= 60 && !superB_result.isLocked,
+      // Deficit tracking
+      cumulativeDeficit,
+      firstDeficitYear,
     })
-
-    // Plan exhausted — all income sources and liquid assets are depleted
-    if (isDeficit) break
   }
+
+  // Summary flags for UI warnings
+  const deficitYears = yearSnapshots.filter(s => s.isDeficit).map(s => s.year)
+  yearSnapshots.deficitYears = deficitYears
+  yearSnapshots.firstDeficitYear = firstDeficitYear
+  yearSnapshots.cumulativeDeficit = cumulativeDeficit
 
   return yearSnapshots
 }

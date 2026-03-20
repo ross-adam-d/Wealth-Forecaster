@@ -164,6 +164,33 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   return (
     <div className="px-4 py-4 space-y-4">
 
+      {/* Liquidity exhaustion warning */}
+      {(() => {
+        const deficitSnaps = snapshots.filter(s => s.isDeficit)
+        if (!deficitSnaps.length) return null
+        const first = deficitSnaps[0]
+        const cumulative = deficitSnaps[deficitSnaps.length - 1]?.cumulativeDeficit || 0
+        return (
+          <div className="bg-red-950 border-2 border-red-600 rounded-xl p-5">
+            <div className="flex items-start gap-4">
+              <div className="text-red-400 text-4xl font-black leading-none mt-0.5">!</div>
+              <div>
+                <h2 className="text-red-300 font-bold text-lg">Liquidity Exhausted — Plan Not Viable</h2>
+                <p className="text-red-400 text-sm mt-2 leading-relaxed">
+                  All liquid assets are depleted by <span className="text-red-200 font-bold">{first.year}</span>
+                  {first.ageA != null && <> (age {first.ageA}{first.ageB != null ? `/${first.ageB}` : ''})</>}.
+                  {deficitSnaps.length > 1 && <> The plan runs {deficitSnaps.length} years in deficit.</>}
+                  {cumulative > 0 && <> Cumulative shortfall: <span className="text-red-200 font-bold">${Math.round(cumulative / 1000)}k</span>.</>}
+                </p>
+                <p className="text-red-500 text-xs mt-3">
+                  Deficit years are highlighted in red in the charts and tables below.
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Guide */}
       <GuideBox>
         Projection shows your full financial picture from today to simulation end age — net worth, cashflow, and a detailed liquidity table. The net worth chart tracks all assets (super, shares, property equity) and liabilities (mortgage) year by year. Toggle "Today's dollars" to strip out inflation and see values in real purchasing power terms. Years beyond age 100 are illustrative. The estimated retirement year is the earliest age at which your plan remains solvent through to the end of the simulation.
@@ -276,12 +303,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             {snapshots.map(s => {
               const isIllustrative = s.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
               return (
-                <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${isIllustrative ? 'opacity-50' : ''}`}>
-                  <td className="py-2 px-3 text-gray-300">
-                    {s.year}
+                <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${isIllustrative ? 'opacity-50' : ''} ${s.isDeficit ? 'bg-red-950/40' : ''}`}>
+                  <td className={`py-2 px-3 ${s.isDeficit ? 'text-red-300 font-bold' : 'text-gray-300'}`}>
+                    {s.year}{s.isDeficit && ' !!'}
                     {isIllustrative && <span className="ml-1 text-xs text-gray-600">illus.</span>}
                   </td>
-                  <td className="py-2 px-3 text-right text-gray-200">{fmt$(transform(s.totalLiquidAssets, s.year))}</td>
+                  <td className={`py-2 px-3 text-right ${s.isDeficit ? 'text-red-400 font-bold' : 'text-gray-200'}`}>
+                    {fmt$(transform(s.totalLiquidAssets, s.year))}
+                    {s.isDeficit && <span className="ml-1">!!!</span>}
+                  </td>
                   <td className="py-2 px-3 text-right text-amber-400">{fmt$(transform(s.bondPreTenYr, s.year))}</td>
                   <td className="py-2 px-3 text-right text-gray-400">{fmt$(transform(s.propertyEquity, s.year))}</td>
                   <td className="py-2 px-3 text-right text-gray-500">

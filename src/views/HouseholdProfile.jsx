@@ -457,7 +457,12 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
             <CurrencyInput
               label="Outstanding mortgage"
               value={p.mortgageBalance}
-              onChange={v => onUpdate({ mortgageBalance: v })}
+              onChange={v => {
+                const patch = { mortgageBalance: v }
+                // Auto-set original loan amount if not yet stored (first time entering mortgage)
+                if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
+                onUpdate(patch)
+              }}
             />
           </div>
 
@@ -476,7 +481,13 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                 min={0}
                 max={30}
                 value={p.loanTermYearsRemaining || ''}
-                onChange={e => onUpdate({ loanTermYearsRemaining: Number(e.target.value) })}
+                onChange={e => {
+                  const yrs = Number(e.target.value)
+                  const patch = { loanTermYearsRemaining: yrs }
+                  // Auto-set original loan term if not yet stored
+                  if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
+                  onUpdate(patch)
+                }}
                 placeholder="0"
               />
             </div>

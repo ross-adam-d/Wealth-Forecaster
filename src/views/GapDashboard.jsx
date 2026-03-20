@@ -35,11 +35,17 @@ function getGapYears(snapshots, scenario) {
 function calcGapViability(gapSnapshots) {
   if (!gapSnapshots.length) return { status: 'unknown', buffer: 0 }
 
+  const deficitSnaps = gapSnapshots.filter(s => s.isDeficit)
   const minLiquidity = Math.min(...gapSnapshots.map(s => s.totalLiquidAssets))
   const finalLiquidity = gapSnapshots[gapSnapshots.length - 1]?.totalLiquidAssets || 0
 
-  if (minLiquidity < 0) {
-    return { status: 'critical', buffer: minLiquidity, worstYear: gapSnapshots.find(s => s.totalLiquidAssets === minLiquidity)?.year }
+  if (deficitSnaps.length > 0 || minLiquidity < 0) {
+    return {
+      status: 'critical',
+      buffer: minLiquidity,
+      worstYear: gapSnapshots.find(s => s.totalLiquidAssets === minLiquidity)?.year,
+      deficitCount: deficitSnaps.length,
+    }
   }
   if (minLiquidity < 50_000) {
     return { status: 'at_risk', buffer: minLiquidity }
@@ -47,7 +53,7 @@ function calcGapViability(gapSnapshots) {
   return { status: 'viable', buffer: finalLiquidity }
 }
 
-function ViabilityBadge({ status, buffer, stressed }) {
+function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
   const fmt = (n) => `$${Math.abs(Math.round(n / 1000))}k`
   const stressLabel = stressed ? ' (stressed)' : ''
 
@@ -71,7 +77,7 @@ function ViabilityBadge({ status, buffer, stressed }) {
     return (
       <span className="badge-critical">
         <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
-        GAP CRITICAL — liquid assets exhausted{stressLabel}
+        GAP CRITICAL — liquid assets exhausted{deficitCount ? ` (${deficitCount}yr shortfall)` : ''}{stressLabel}
       </span>
     )
   }
@@ -224,8 +230,36 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
               : 'Enter retirement ages and dates of birth to see the gap period'}
           </p>
         </div>
-        <ViabilityBadge status={viability.status} buffer={viability.buffer} stressed={isStressed} />
+        <ViabilityBadge status={viability.status} buffer={viability.buffer} stressed={isStressed} deficitCount={viability.deficitCount} />
       </div>
+
+      {/* Liquidity exhaustion warning */}
+      {(() => {
+        const deficitSnaps = activeGapSnapshots.filter(s => s.isDeficit)
+        if (!deficitSnaps.length) return null
+        const first = deficitSnaps[0]
+        const cumulative = deficitSnaps[deficitSnaps.length - 1]?.cumulativeDeficit || 0
+        return (
+          <div className="bg-red-950 border-2 border-red-600 rounded-xl p-5">
+            <div className="flex items-start gap-4">
+              <div className="text-red-400 text-4xl font-black leading-none mt-0.5">!</div>
+              <div>
+                <h2 className="text-red-300 font-bold text-lg">Liquidity Exhausted — Plan Not Viable</h2>
+                <p className="text-red-400 text-sm mt-2 leading-relaxed">
+                  All liquid assets (cash, shares, bonds{first.superAUnlocked || first.superBUnlocked ? ', accessible super' : ''}) are
+                  depleted by <span className="text-red-200 font-bold">{first.year}</span>
+                  {first.ageA != null && <> (age {first.ageA}{first.ageB != null ? `/${first.ageB}` : ''})</>}.
+                  {deficitSnaps.length > 1 && <> The plan runs {deficitSnaps.length} years in deficit.</>}
+                  {cumulative > 0 && <> Cumulative shortfall: <span className="text-red-200 font-bold">${Math.round(cumulative / 1000)}k</span>.</>}
+                </p>
+                <p className="text-red-500 text-xs mt-3">
+                  To make this plan viable: delay retirement, reduce expenses, increase savings rate, or adjust asset allocation.
+                </p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Guide */}
       <GuideBox>
@@ -488,8 +522,10 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                 const base = baseByYear[s.year]
                 const delta = (isStressed && base) ? fmtDelta(transform(s.totalLiquidAssets, s.year), transform(base.totalLiquidAssets, s.year)) : null
                 return (
-                  <tr key={s.year} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                    <td className="py-2 px-3 text-gray-300">{s.year}</td>
+                  <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${s.isDeficit ? 'bg-red-950/40' : ''}`}>
+                    <td className={`py-2 px-3 ${s.isDeficit ? 'text-red-300 font-bold' : 'text-gray-300'}`}>
+                      {s.year}{s.isDeficit && ' !!'}
+                    </td>
                     <td className="py-2 px-3 text-right text-gray-300">{fmt$(transform(s.totalIncome, s.year))}</td>
                     <td className="py-2 px-3 text-right text-gray-300">{fmt$(transform(s.totalOutflows, s.year))}</td>
                     <td className={`py-2 px-3 text-right font-medium ${s.isDeficit ? 'text-red-400' : 'text-green-400'}`}>

@@ -66,7 +66,7 @@ export default function App() {
   }
 
   return (
-    <Layout {...sharedProps}>
+    <Layout {...sharedProps} snapshots={snapshots}>
       <Routes>
         <Route path="/" element={<Navigate to="/gap" replace />} />
         <Route path="/gap" element={<GapDashboard {...sharedProps} />} />

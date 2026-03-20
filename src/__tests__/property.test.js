@@ -143,6 +143,58 @@ describe('processPropertyYear', () => {
     expect(result.ioStepUpThisYear).toBe(true)
   })
 
+  describe('fixed repayment with offset (early payoff)', () => {
+    const propertyWithOriginals = {
+      ...investmentProperty,
+      originalLoanAmount: 400_000,
+      originalLoanTermYears: 25,
+      offsetBalance: 300_000,
+    }
+
+    it('uses fixed repayment from original loan terms', () => {
+      const result = processPropertyYear(propertyWithOriginals, 2026)
+      // Fixed repayment should match original $400k/25yr annuity, not recalculated from current balance
+      const expectedRepayment = calcAnnualRepayment(400_000, 0.065, 25, 'pi')
+      expect(result.annualRepayment).toBeCloseTo(expectedRepayment, 0)
+    })
+
+    it('offset reduces interest so more goes to principal', () => {
+      const withOffset = processPropertyYear(propertyWithOriginals, 2026)
+      const withoutOffset = processPropertyYear({ ...propertyWithOriginals, offsetBalance: 0 }, 2026)
+      // Same repayment amount but more principal paid when offset is large
+      expect(withOffset.principalRepayment).toBeGreaterThan(withoutOffset.principalRepayment)
+    })
+
+    it('falls back to current balance when no originals stored', () => {
+      // Legacy property without originalLoanAmount — should recalculate from current balance
+      const legacy = { ...investmentProperty, offsetBalance: 300_000 }
+      const result = processPropertyYear(legacy, 2026)
+      const fallbackRepayment = calcAnnualRepayment(400_000, 0.065, 25, 'pi')
+      expect(result.annualRepayment).toBeCloseTo(fallbackRepayment, 0)
+    })
+
+    it('caps repayment when mortgage is nearly paid off', () => {
+      const nearlyPaid = {
+        ...propertyWithOriginals,
+        mortgageBalance: 5_000,
+        offsetBalance: 0,
+      }
+      const result = processPropertyYear(nearlyPaid, 2026)
+      // Repayment should not exceed remaining balance + interest
+      expect(result.annualRepayment).toBeLessThanOrEqual(5_000 + (5_000 * 0.065) + 1)
+    })
+
+    it('zero repayment when mortgage is fully paid', () => {
+      const paidOff = {
+        ...propertyWithOriginals,
+        mortgageBalance: 0,
+      }
+      const result = processPropertyYear(paidOff, 2026)
+      expect(result.annualRepayment).toBe(0)
+      expect(result.principalRepayment).toBe(0)
+    })
+  })
+
   describe('sale event', () => {
     it('zeroes out property value and mortgage at sale', () => {
       const withSale = {

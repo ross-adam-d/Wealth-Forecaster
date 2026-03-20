@@ -9,9 +9,33 @@ const NAV = [
   { to: '/assumptions',label: 'Assumptions' },
 ]
 
-export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, displayReal, setDisplayReal }) {
+export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, displayReal, setDisplayReal, snapshots }) {
+  const deficitYears = snapshots?.deficitYears || []
+  const firstDeficitYear = snapshots?.firstDeficitYear
+  const cumulativeDeficit = snapshots?.cumulativeDeficit || 0
+
   return (
     <div className="h-screen flex flex-col">
+      {/* LIQUIDITY EXHAUSTION BANNER — persistent, impossible to miss */}
+      {deficitYears.length > 0 && (
+        <div className="bg-red-900 border-b-2 border-red-500 px-6 py-3 flex items-center gap-3">
+          <span className="text-red-200 text-2xl font-bold leading-none">!</span>
+          <div className="flex-1">
+            <p className="text-red-100 font-bold text-sm">
+              PLAN NOT VIABLE — Liquidity exhausted in {firstDeficitYear}
+            </p>
+            <p className="text-red-300 text-xs mt-0.5">
+              {deficitYears.length} deficit year{deficitYears.length > 1 ? 's' : ''} detected
+              {cumulativeDeficit > 0 && ` · $${Math.round(cumulativeDeficit / 1000)}k cumulative shortfall`}.
+              {' '}Adjust retirement age, expenses, or asset allocation to close the gap.
+            </p>
+          </div>
+          <NavLink to="/gap" className="text-xs font-semibold text-red-200 bg-red-800 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+            View Gap Analysis
+          </NavLink>
+        </div>
+      )}
+
       {/* Top nav */}
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">

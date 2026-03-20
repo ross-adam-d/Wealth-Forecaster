@@ -15,7 +15,7 @@ import { CGT_DISCOUNT } from '../constants/index.js'
  * @returns {number} annual repayment
  */
 export function calcAnnualRepayment(principal, annualRate, termYears, loanType = 'pi') {
-  if (principal <= 0 || annualRate <= 0 || termYears <= 0) return 0
+  if (!principal || principal <= 0 || !annualRate || annualRate <= 0 || !termYears || termYears <= 0) return 0
 
   if (loanType === 'io') {
     return principal * annualRate
@@ -53,17 +53,21 @@ export function processPropertyYear(property, year) {
     isPrimaryResidence,
     currentValue,
     mortgageBalance,
+    originalLoanAmount,
+    originalLoanTermYears,
     interestRate,
-    loanTermYearsRemaining,
+    loanTermYearsRemaining: _loanTerm,
     loanType,
     ioEndYear,
-    offsetBalance,
+    offsetBalance = 0,
     offsetAnnualTopUp = 0,
     annualRentalIncome = 0,
     annualPropertyExpenses = 0,
     growthRate,
     saleEvent,
   } = property
+
+  const loanTermYearsRemaining = _loanTerm || 0
 
   // Property already sold in a prior year — nothing left to calculate
   if (saleEvent && saleEvent.year < year) {
@@ -80,8 +84,34 @@ export function processPropertyYear(property, year) {
   const effectiveLoanType = (loanType === 'io' && ioEndYear && year > ioEndYear) ? 'pi' : loanType
   const ioStepUpThisYear = loanType === 'io' && ioEndYear && year === ioEndYear + 1
 
+  // Interest is calculated on the effective balance (net of offset)
   const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate)
-  const annualRepayment = calcAnnualRepayment(mortgageBalance, interestRate, loanTermYearsRemaining, effectiveLoanType)
+
+  // Fixed repayment: use original loan amount & term so the repayment stays constant.
+  // This means offset accounts reduce interest → more goes to principal → loan pays off early.
+  // For IO loans or if no original values stored, fall back to current balance calculation.
+  // After IO→PI conversion, recalculate from remaining balance and remaining term.
+  let annualRepayment
+  if (effectiveLoanType === 'io') {
+    annualRepayment = calcAnnualRepayment(mortgageBalance, interestRate, loanTermYearsRemaining, 'io')
+  } else if (ioStepUpThisYear || !originalLoanAmount || !originalLoanTermYears) {
+    // IO just converted to PI, or legacy data without originals — recalc from current state
+    annualRepayment = calcAnnualRepayment(mortgageBalance, interestRate, loanTermYearsRemaining, 'pi')
+  } else {
+    // Standard PI: fixed repayment from original loan terms
+    annualRepayment = calcAnnualRepayment(originalLoanAmount, interestRate, originalLoanTermYears, 'pi')
+  }
+
+  // If mortgage is nearly paid off, cap repayment at remaining balance + interest
+  if (mortgageBalance > 0 && annualRepayment > mortgageBalance + annualInterest) {
+    annualRepayment = mortgageBalance + annualInterest
+  }
+
+  // If mortgage is fully paid, no repayment
+  if (mortgageBalance <= 0) {
+    annualRepayment = 0
+  }
+
   const principalRepayment = Math.max(0, annualRepayment - annualInterest)
 
   // Net rental position (negative = negatively geared)
