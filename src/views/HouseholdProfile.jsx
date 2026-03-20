@@ -536,6 +536,18 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
             />
           </div>
 
+          {p.mortgageBalance > 0 && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={p.payOffWhenAble || false}
+                onChange={e => onUpdate({ payOffWhenAble: e.target.checked })}
+                className="accent-brand-500"
+              />
+              <span className="text-sm text-gray-300">Pay off mortgage when liquid assets can cover it</span>
+            </label>
+          )}
+
           {!p.isPrimaryResidence && (
             <div className="grid grid-cols-2 gap-4">
               <CurrencyInput
@@ -1126,6 +1138,53 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             + Add expense
           </button>
         </div>
+      </Section>
+
+      <Section title="Surplus Strategy" defaultOpen={false}>
+        <p className="text-sm text-gray-500 mb-4">
+          When income exceeds expenses, where should the surplus go? Funds flow through in priority order.
+        </p>
+        <div className="space-y-3">
+          {(scenario.surplusRoutingOrder || ['offset', 'shares', 'cash']).map((dest, i) => (
+            <div key={dest} className="flex items-center gap-3">
+              <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
+              <select
+                className="input flex-1 text-sm py-1.5"
+                value={dest}
+                onChange={e => {
+                  const order = [...(scenario.surplusRoutingOrder || ['offset', 'shares', 'cash'])]
+                  const newDest = e.target.value
+                  // Swap positions if the new destination is already in the list
+                  const existingIdx = order.indexOf(newDest)
+                  if (existingIdx !== -1) {
+                    order[existingIdx] = order[i]
+                  }
+                  order[i] = newDest
+                  updateScenario({ surplusRoutingOrder: order })
+                }}
+              >
+                <option value="offset">Mortgage offset accounts</option>
+                <option value="shares">Share portfolio</option>
+                <option value="cash">Cash buffer</option>
+              </select>
+              {i > 0 && (
+                <button
+                  className="text-gray-600 hover:text-gray-300 text-xs"
+                  onClick={() => {
+                    const order = [...(scenario.surplusRoutingOrder || ['offset', 'shares', 'cash'])]
+                    ;[order[i - 1], order[i]] = [order[i], order[i - 1]]
+                    updateScenario({ surplusRoutingOrder: order })
+                  }}
+                >
+                  ▲
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-600 mt-3">
+          Offset: surplus fills offset accounts (reduces mortgage interest). Shares: surplus invested in share portfolio. Cash: surplus held in cash buffer.
+        </p>
       </Section>
     </div>
   )

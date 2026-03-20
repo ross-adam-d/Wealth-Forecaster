@@ -84,6 +84,7 @@ export function createDefaultProperty(isPrimary = false) {
     annualPropertyExpenses: 0,
     growthRate: PROPERTY_GROWTH_RATE,
     saleEvent: null,          // { year, netProceeds, destination }
+    payOffWhenAble: false,    // auto-pay mortgage from liquid assets when affordable
     ownershipPctA: 100,       // % of CGT attributed to Person A (0–100)
   }
 }

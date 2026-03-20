@@ -257,18 +257,75 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     let superBExtra = 0
     const bondDrawdowns = currentBonds.map(() => 0)
 
+    // Track mortgage payoff events this year
+    const mortgagePayoffs = []
+
     if (prelimNetCashflow >= 0) {
       surplus = prelimNetCashflow
-      if (surplusRoutingOrder[0] === SURPLUS_DESTINATIONS.SHARES) {
-        sharesAdjustment = surplus
-      } else {
-        cashBuffer += surplus
+
+      // Route surplus through priority order (waterfall)
+      let remaining = surplus
+      for (const dest of surplusRoutingOrder) {
+        if (remaining <= 0) break
+        if (dest === SURPLUS_DESTINATIONS.OFFSET) {
+          // Top up offset accounts on properties that have mortgages
+          for (let i = 0; i < currentProperties.length; i++) {
+            if (remaining <= 0) break
+            const p = currentProperties[i]
+            if (p.mortgageBalance > 0) {
+              // Route to offset up to the mortgage balance (no point exceeding it)
+              const headroom = Math.max(0, p.mortgageBalance - (propertyResults[i].offsetBalance || 0))
+              const toOffset = Math.min(remaining, headroom)
+              if (toOffset > 0) {
+                propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
+                remaining -= toOffset
+              }
+            }
+          }
+        } else if (dest === SURPLUS_DESTINATIONS.SHARES) {
+          sharesAdjustment = remaining
+          remaining = 0
+        } else if (dest === SURPLUS_DESTINATIONS.CASH) {
+          cashBuffer += remaining
+          remaining = 0
+        }
+      }
+      // Anything left after waterfall goes to cash
+      if (remaining > 0) {
+        cashBuffer += remaining
+      }
+
+      // Mortgage payoff: check if any property with payOffWhenAble can be paid off
+      // from available liquid assets (cash + shares)
+      for (let i = 0; i < currentProperties.length; i++) {
+        const p = currentProperties[i]
+        if (!p.payOffWhenAble || p.mortgageBalance <= 0) continue
+        const netMortgage = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
+        if (netMortgage <= 0) continue
+        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment)
+        if (availableLiquidity >= netMortgage) {
+          // Pay from cash first, then shares
+          let toPay = netMortgage
+          const fromCashPay = Math.min(toPay, Math.max(0, cashBuffer))
+          cashBuffer -= fromCashPay
+          toPay -= fromCashPay
+          if (toPay > 0) {
+            sharesAdjustment -= toPay
+          }
+          propertyResults[i] = {
+            ...propertyResults[i],
+            mortgageBalance: 0,
+            offsetBalance: 0,
+            annualRepayment: 0,
+          }
+          mortgagePayoffs.push({ propertyIndex: i, amount: netMortgage, year })
+        }
       }
     } else {
       let remaining = Math.abs(prelimNetCashflow)
 
-      // 1. Cash buffer
-      const fromCash = Math.min(remaining, cashBuffer)
+      // 1. Cash buffer (clamp at 0 — never draw from negative cash)
+      const fromCash = Math.min(remaining, Math.max(0, cashBuffer))
       cashBuffer -= fromCash
       remaining -= fromCash
       cashDrawdown += fromCash
@@ -325,7 +382,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // liquid sources (cash + shares + bonds + pension-phase super) are exhausted
     const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown + cashDrawdown + superAExtra + superBExtra
     const netCashflow = totalIncome - totalOutflows
-    const isDeficit = netCashflow < 0
+    // Tolerance: sub-$100 rounding errors from floating point are not real deficits
+    const isDeficit = netCashflow < -100
 
     // Track cumulative deficit — the simulation continues but flags the shortfall
     if (isDeficit) {
@@ -388,6 +446,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       ...superContribB_pre.warnings,
       ...bondResults.flatMap(r => r.warnings),
       ...(isDeficit ? [`Deficit year: $${Math.round(Math.abs(netCashflow)).toLocaleString()} shortfall`] : []),
+      ...mortgagePayoffs.map(mp => `Mortgage paid off ($${Math.round(mp.amount).toLocaleString()} from liquid assets)`),
     ]
 
     yearSnapshots.push({
@@ -446,6 +505,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Deficit tracking
       cumulativeDeficit,
       firstDeficitYear,
+      // Mortgage payoff events
+      mortgagePayoffs,
     })
   }
 
