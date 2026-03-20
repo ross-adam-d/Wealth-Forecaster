@@ -16,13 +16,13 @@
 import { useMemo } from 'react'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
-const SVG_W   = 720
-const SVG_H   = 460
-const NODE_W  = 18
-const MIN_GAP = 8
+const SVG_W   = 940
+const SVG_H   = 300
+const NODE_W  = 16
+const MIN_GAP = 6
 
-const LEFT_X  = 200   // left edge of income bars  (label area: 0–192)
-const RIGHT_X = 502   // left edge of expense bars (label area: 524–720)
+const LEFT_X  = 220   // left edge of income bars  (label area: 0–212)
+const RIGHT_X = 700   // left edge of expense bars (label area: 718–940)
 
 // ── Colour palette ────────────────────────────────────────────────────────────
 const C = {
@@ -89,14 +89,14 @@ function NodeLabel({ n, side }) {
       <rect x={nx} y={n.y} width={NODE_W} height={n.h} fill={n.color} rx={2} />
       {/* Label line */}
       <text
-        x={lx} y={n.h >= 22 ? n.y + n.h / 2 - 5 : n.y + n.h / 2}
+        x={lx} y={n.h >= 18 ? n.y + n.h / 2 - 5 : n.y + n.h / 2}
         textAnchor={anchor} dominantBaseline="middle"
         fill={n.color} fontSize={10} fontFamily="system-ui, sans-serif"
       >
         {n.label}
       </text>
       {/* Amount line (only when node is tall enough for two lines) */}
-      {n.h >= 22 && (
+      {n.h >= 18 && (
         <text
           x={lx} y={n.y + n.h / 2 + 9}
           textAnchor={anchor} dominantBaseline="middle"
@@ -106,7 +106,7 @@ function NodeLabel({ n, side }) {
         </text>
       )}
       {/* Inline amount for short nodes */}
-      {n.h < 22 && n.h >= 10 && (
+      {n.h < 18 && n.h >= 8 && (
         <text
           x={lx} y={n.y + n.h / 2}
           textAnchor={anchor} dominantBaseline="middle"

@@ -339,6 +339,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       currentValue: propertyResults[i].closingValue,
       mortgageBalance: propertyResults[i].mortgageBalance,
       offsetBalance: propertyResults[i].offsetBalance,
+      loanTermYearsRemaining: propertyResults[i].loanTermYearsRemaining ?? p.loanTermYearsRemaining,
     }))
 
     // Liquidity classification
@@ -390,6 +391,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Super
       superA: superA_result,
       superB: superB_result,
+      employerContribA: superContribA_pre.employerContrib,
+      employerContribB: superContribB_pre.employerContrib,
       superABalance: superA.currentBalance,
       superBBalance: superB.currentBalance,
       // Property

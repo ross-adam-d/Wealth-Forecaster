@@ -72,6 +72,7 @@ export function processPropertyYear(property, year) {
       annualInterest: 0, annualRepayment: 0, principalRepayment: 0,
       netRentalIncomeLoss: 0, ioStepUpThisYear: false,
       saleProceeds: null, capitalGain: null, cgtAmount: null, equity: 0,
+      loanTermYearsRemaining: 0,
     }
   }
 
@@ -117,6 +118,7 @@ export function processPropertyYear(property, year) {
     closingValue: saleEvent?.year === year ? 0 : newPropertyValue,
     mortgageBalance: saleEvent?.year === year ? 0 : newMortgageBalance,
     offsetBalance: saleEvent?.year === year ? 0 : newOffsetBalance,
+    loanTermYearsRemaining: saleEvent?.year === year ? 0 : Math.max(0, loanTermYearsRemaining - 1),
     annualInterest,
     annualRepayment,
     principalRepayment,

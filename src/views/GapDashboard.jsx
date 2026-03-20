@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { applyRealNominal } from '../utils/format.js'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer, Legend,
@@ -142,7 +143,7 @@ function buildStressedScenario(scenario, stressReturn) {
   }
 }
 
-export default function GapDashboard({ snapshots, scenario, updateScenario }) {
+export default function GapDashboard({ snapshots, scenario, updateScenario, displayReal = true }) {
   const [stressExpenses, setStressExpenses] = useState(0)   // fractional: -0.20 to +0.30
   const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
   const [showPartTime, setShowPartTime] = useState(false)
@@ -150,6 +151,9 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
   const [gapChartRange, setGapChartRange] = useState('full')
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
+  const gapCurrentYearForTransform = new Date().getFullYear()
+  const gapInflationRate = scenario?.assumptions?.inflationRate ?? 0.025
+  const transform = (value, year) => applyRealNominal(value, year, gapCurrentYearForTransform, gapInflationRate, displayReal)
 
   // Base gap data
   const { gapSnapshots, gapStart, gapEnd, preserveYearA, preserveYearB } = useMemo(
@@ -190,18 +194,18 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
   const chartData = rangedGapSnapshots.map(s => ({
     year: s.year,
     // Breakdown view
-    cash: Math.max(0, s.cashBuffer),
-    shares: Math.max(0, s.sharesValue),
-    bonds: Math.max(0, s.bondLiquidity + s.bondPreTenYr),
-    superA: s.superAUnlocked ? Math.max(0, s.superABalance) : 0,
-    superB: s.superBUnlocked ? Math.max(0, s.superBBalance) : 0,
-    mortgage: -(s.totalMortgageBalance || 0),
+    cash: Math.max(0, transform(s.cashBuffer, s.year)),
+    shares: Math.max(0, transform(s.sharesValue, s.year)),
+    bonds: Math.max(0, transform(s.bondLiquidity + s.bondPreTenYr, s.year)),
+    superA: s.superAUnlocked ? Math.max(0, transform(s.superABalance, s.year)) : 0,
+    superB: s.superBUnlocked ? Math.max(0, transform(s.superBBalance, s.year)) : 0,
+    mortgage: -(transform(s.totalMortgageBalance || 0, s.year)),
     // Total liquidity view
-    totalLiquid: Math.max(0, s.totalLiquidAssets),
+    totalLiquid: Math.max(0, transform(s.totalLiquidAssets, s.year)),
     // Cashflow view
-    income: s.totalIncome,
-    outflows: s.totalOutflows,
-    net: s.netCashflow,
+    income: transform(s.totalIncome, s.year),
+    outflows: transform(s.totalOutflows, s.year),
+    net: transform(s.netCashflow, s.year),
   }))
 
   const baseReturnRate = scenario?.assumptions?.sharesReturnRate ?? 0.08
@@ -482,17 +486,17 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
             <tbody>
               {activeGapSnapshots.map(s => {
                 const base = baseByYear[s.year]
-                const delta = (isStressed && base) ? fmtDelta(s.totalLiquidAssets, base.totalLiquidAssets) : null
+                const delta = (isStressed && base) ? fmtDelta(transform(s.totalLiquidAssets, s.year), transform(base.totalLiquidAssets, s.year)) : null
                 return (
                   <tr key={s.year} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                     <td className="py-2 px-3 text-gray-300">{s.year}</td>
-                    <td className="py-2 px-3 text-right text-gray-300">{fmt$(s.totalIncome)}</td>
-                    <td className="py-2 px-3 text-right text-gray-300">{fmt$(s.totalOutflows)}</td>
+                    <td className="py-2 px-3 text-right text-gray-300">{fmt$(transform(s.totalIncome, s.year))}</td>
+                    <td className="py-2 px-3 text-right text-gray-300">{fmt$(transform(s.totalOutflows, s.year))}</td>
                     <td className={`py-2 px-3 text-right font-medium ${s.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
-                      {s.isDeficit ? '−' : '+'}{fmt$(Math.abs(s.netCashflow))}
+                      {s.isDeficit ? '−' : '+'}{fmt$(Math.abs(transform(s.netCashflow, s.year)))}
                     </td>
                     <td className={`py-2 px-3 text-right font-medium ${s.totalLiquidAssets < 50_000 ? 'text-amber-400' : 'text-gray-200'}`}>
-                      {fmt$(s.totalLiquidAssets)}
+                      {fmt$(transform(s.totalLiquidAssets, s.year))}
                     </td>
                     {isStressed && (
                       <td className={`py-2 px-3 text-right text-xs font-medium ${delta ? (delta.positive ? 'text-green-400' : 'text-red-400') : 'text-gray-600'}`}>

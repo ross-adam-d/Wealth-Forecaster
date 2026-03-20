@@ -85,48 +85,61 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
   // ── Cashflow detail table ────────────────────────────────────────────
   const INCOME_COLS = useMemo(() => [
-    { key: 'salaryA',         label: `${personAName} take-home` },
-    { key: 'salaryB',         label: `${personBName} take-home` },
-    { key: 'rentalNet',       label: 'Net rental', signed: true },
-    { key: 'dividends',       label: 'Dividends & franking' },
-    { key: 'sharesDrawdown',  label: 'Shares drawdown' },
-    { key: 'cashDrawdown',    label: 'Cash reserves drawn' },
-    { key: 'superDrawdownA',  label: `Super drawdown (${personAName})` },
-    { key: 'superDrawdownB',  label: `Super drawdown (${personBName})` },
-    { key: 'bondWithdrawals', label: 'Bond withdrawals' },
-    { key: 'propertySale',    label: 'Property sale' },
+    { key: 'grossSalaryA',   label: `${personAName} gross` },
+    { key: 'grossSalaryB',   label: `${personBName} gross` },
+    { key: 'employerSuperA', label: `Emp super A` },
+    { key: 'employerSuperB', label: `Emp super B` },
+    { key: 'rentalNet',      label: 'Net rental', signed: true },
+    { key: 'dividends',      label: 'Dividends' },
+    { key: 'superDrawdownA', label: `Super (A)` },
+    { key: 'superDrawdownB', label: `Super (B)` },
+    { key: 'cashDrawdown',   label: 'Cash' },
+    { key: 'sharesDrawdown', label: 'Shares' },
+    { key: 'bondWithdrawals',label: 'Bonds' },
+    { key: 'propertySale',   label: 'Prop sale' },
   ], [personAName, personBName])
 
-  const EXPENSE_COLS = [
-    { key: 'livingExpenses', label: 'Living expenses' },
-    { key: 'mortgage',       label: 'Mortgage repayments' },
-  ]
+  const EXPENSE_COLS = useMemo(() => [
+    { key: 'taxA',           label: `Tax A` },
+    { key: 'taxB',           label: `Tax B` },
+    { key: 'superAccumA',    label: `Super A` },
+    { key: 'superAccumB',    label: `Super B` },
+    { key: 'livingExpenses', label: 'Expenses' },
+    { key: 'mortgage',       label: 'Mortgage' },
+  ], [])
 
   const detailRows = useMemo(() => snapshots.map(s => {
     const rentalNet = s.propertyResults?.reduce(
       (sum, r) => sum + r.netRentalIncomeLoss, 0) ?? 0
     const mortgage = s.totalOutflows - s.totalExpenses
+    const bondW = s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0
     return {
       year: s.year, ageA: s.ageA, ageB: s.ageB,
       retiredA: s.retiredA, retiredB: s.retiredB, isDeficit: s.isDeficit,
-      salaryA:         s.taxA?.netTakeHome ?? 0,
-      salaryB:         s.taxB?.netTakeHome ?? 0,
+      // Income (gross flows)
+      grossSalaryA:    s.salaryA ?? 0,
+      grossSalaryB:    s.salaryB ?? 0,
+      employerSuperA:  s.employerContribA ?? 0,
+      employerSuperB:  s.employerContribB ?? 0,
       rentalNet,
       dividends:       (s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0),
-      sharesDrawdown:  s.sharesDrawdown ?? 0,
+      superDrawdownA:  (s.superA?.drawdown ?? 0) + (s.superAExtra ?? 0),
+      superDrawdownB:  (s.superB?.drawdown ?? 0) + (s.superBExtra ?? 0),
       cashDrawdown:    s.cashDrawdown ?? 0,
-      superDrawdownA:  s.superA?.drawdown ?? 0,
-      superDrawdownB:  s.superB?.drawdown ?? 0,
-      bondWithdrawals: s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0,
+      sharesDrawdown:  s.sharesDrawdown ?? 0,
+      bondWithdrawals: bondW,
       propertySale:    s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0,
-      totalIncome:     s.totalIncome,
+      // Expenses (including tax + super accum)
+      taxA:            s.taxA?.totalTaxPayable ?? 0,
+      taxB:            s.taxB?.totalTaxPayable ?? 0,
+      superAccumA:     s.superA?.inPensionPhase ? 0 : (s.superA?.contributions ?? 0),
+      superAccumB:     s.superB?.inPensionPhase ? 0 : (s.superB?.contributions ?? 0),
       livingExpenses:  s.totalExpenses,
       mortgage:        Math.max(0, mortgage),
-      totalOutflows:   s.totalOutflows,
+      // Net
       netCashflow:     s.netCashflow,
-      cashBuffer:      s.cashBuffer,
       liquidAssets:    s.totalLiquidAssets,
-      assetDrawdowns:  (s.sharesDrawdown ?? 0) + (s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) ?? 0) + (s.cashDrawdown ?? 0) + (s.superAExtra ?? 0) + (s.superBExtra ?? 0),
+      assetDrawdowns:  (s.sharesDrawdown ?? 0) + bondW + (s.cashDrawdown ?? 0) + (s.superAExtra ?? 0) + (s.superBExtra ?? 0),
     }
   }), [snapshots])
 
@@ -149,7 +162,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   }, [detailRows, showAllYears, currentYear, retireYear, lastYear])
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="px-4 py-4 space-y-4">
 
       {/* Guide */}
       <GuideBox>
@@ -390,13 +403,13 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       Year
                     </th>
                     <th
-                      colSpan={visibleIncomeCols.length + 1}
+                      colSpan={visibleIncomeCols.length}
                       className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-sky-400 font-semibold border-l border-gray-700 tracking-wide"
                     >
                       INCOME
                     </th>
                     <th
-                      colSpan={visibleExpenseCols.length + 1}
+                      colSpan={visibleExpenseCols.length}
                       className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-red-400 font-semibold border-l border-gray-700 tracking-wide"
                     >
                       EXPENSES
@@ -419,9 +432,6 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                         {col.label}
                       </th>
                     ))}
-                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-sky-400 font-semibold whitespace-nowrap">
-                      Total income
-                    </th>
                     {visibleExpenseCols.map((col, i) => (
                       <th
                         key={col.key}
@@ -431,9 +441,6 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                         {col.label}
                       </th>
                     ))}
-                    <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-red-400 font-semibold whitespace-nowrap">
-                      Total outflows
-                    </th>
                     <th style={{ top: '33px' }} className="sticky z-20 bg-gray-900 py-2 px-3 text-right text-gray-400 font-semibold whitespace-nowrap border-l border-gray-700">
                       Net cashflow
                     </th>
@@ -456,7 +463,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     return (
                       <tr key={r.year} className={rowCls}>
                         {/* Sticky year cell */}
-                        <td className={`sticky left-0 z-10 py-2 px-3 font-medium whitespace-nowrap ${stickyBg}`}>
+                        <td className={`sticky left-0 z-10 py-1.5 px-2 font-medium whitespace-nowrap ${stickyBg}`}>
                           <span className="text-gray-300">{r.year}</span>
                           {r.ageA != null && (
                             <span className="ml-1.5 text-gray-600">
@@ -476,37 +483,31 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                           return (
                             <td
                               key={col.key}
-                              className={`py-2 px-3 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${isTrivial ? 'text-gray-600' : isNeg ? 'text-amber-400' : 'text-gray-300'}`}
+                              className={`py-1.5 px-2 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${isTrivial ? 'text-gray-600' : isNeg ? 'text-amber-400' : 'text-gray-300'}`}
                             >
                               {isTrivial ? '—' : (isNeg ? `(${fmt$(transform(absVal, r.year))})` : fmt$(transform(val, r.year)))}
                             </td>
                           )
                         })}
-                        <td className="py-2 px-3 text-right font-semibold text-sky-400 tabular-nums">
-                          {fmt$(transform(r.totalIncome, r.year))}
-                        </td>
 
                         {/* Expense cols */}
                         {visibleExpenseCols.map((col, i) => (
                           <td
                             key={col.key}
-                            className={`py-2 px-3 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${r[col.key] > 500 ? 'text-gray-300' : 'text-gray-600'}`}
+                            className={`py-1.5 px-2 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${r[col.key] > 500 ? 'text-gray-300' : 'text-gray-600'}`}
                           >
                             {r[col.key] > 500 ? fmt$(transform(r[col.key], r.year)) : '—'}
                           </td>
                         ))}
-                        <td className="py-2 px-3 text-right font-semibold text-red-400 tabular-nums">
-                          {fmt$(transform(r.totalOutflows, r.year))}
-                        </td>
 
                         {/* Net */}
-                        <td className={`py-2 px-3 text-right font-semibold tabular-nums border-l border-gray-800 ${r.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
+                        <td className={`py-1.5 px-2 text-right font-semibold tabular-nums border-l border-gray-800 ${r.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
                           {r.isDeficit ? '−' : '+'}{fmt$(Math.abs(transform(r.netCashflow, r.year)))}
                         </td>
-                        <td className={`py-2 px-3 text-right tabular-nums font-medium ${r.assetDrawdowns > 500 ? 'text-amber-400' : 'text-gray-600'}`}>
+                        <td className={`py-1.5 px-2 text-right tabular-nums font-medium ${r.assetDrawdowns > 500 ? 'text-amber-400' : 'text-gray-600'}`}>
                           {r.assetDrawdowns > 500 ? fmt$(transform(r.assetDrawdowns, r.year)) : '—'}
                         </td>
-                        <td className={`py-2 px-3 text-right tabular-nums font-medium ${r.liquidAssets < 0 ? 'text-red-400 font-bold' : r.liquidAssets < 20000 ? 'text-amber-400' : 'text-gray-300'}`}>
+                        <td className={`py-1.5 px-2 text-right tabular-nums font-medium ${r.liquidAssets < 0 ? 'text-red-400 font-bold' : r.liquidAssets < 20000 ? 'text-amber-400' : 'text-gray-300'}`}>
                           {fmt$(transform(r.liquidAssets, r.year))}
                           {r.liquidAssets < 0 && <span className="ml-1">⚠</span>}
                         </td>
