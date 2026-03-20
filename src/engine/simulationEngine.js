@@ -13,6 +13,7 @@ import { processPropertyYear } from '../modules/property.js'
 import { processSharesYear } from '../modules/shares.js'
 import { processBondYear } from '../modules/investmentBonds.js'
 import { resolveExpenseTree } from '../modules/expenses.js'
+import { processOtherAssetYear } from '../modules/otherAssets.js'
 import { SURPLUS_DESTINATIONS } from '../constants/index.js'
 
 /**
@@ -78,6 +79,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     properties,
     shares,
     investmentBonds,
+    otherAssets: otherAssetsInput = [],
     expenses,
     assumptions,
     simulationEndAge,
@@ -104,6 +106,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let superB = { ...superProfileB, currentBalance: superProfileB.currentBalance || 0 }
   let currentShares = { ...shares }
   let currentBonds = investmentBonds.map(b => ({ ...b }))
+  let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))
   let currentProperties = properties.map(p => ({ ...p }))
   let cashBuffer = 0
   let firstDeficitYear = null
@@ -220,6 +223,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       processBondYear({ bond, year, drawdownNeeded: 0, assumptions })
     )
 
+    // ── Step 8b: Other assets — growth phase only (drawdown resolved after cashflow) ──
+    const otherAssetGrowthResults = currentOtherAssets.map(asset =>
+      processOtherAssetYear({ asset, year, drawdownNeeded: 0 })
+    )
+
     // ── Step 9: Expenses ──────────────────────────────────────────────────
     const expenseTree = resolveExpenseTree(
       expenses,
@@ -249,13 +257,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const prelimNetCashflow = totalIncomePreBond - totalOutflows
 
-    // Route surplus / fill deficit — waterfall: cash → shares → bonds → extra super
+    // Route surplus / fill deficit — waterfall: cash → shares → bonds → other assets → extra super
     let surplus = 0
     let sharesAdjustment = 0
     let cashDrawdown = 0
     let superAExtra = 0
     let superBExtra = 0
     const bondDrawdowns = currentBonds.map(() => 0)
+    const otherAssetDrawdowns = currentOtherAssets.map(() => 0)
 
     // Track mortgage payoff events this year
     const mortgagePayoffs = []
@@ -357,7 +366,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         }
       }
 
-      // 4. Extra super drawdown — pension-phase super is liquid; draw as much as needed
+      // 4. Other assets (drawdown-eligible)
+      if (remaining > 0) {
+        for (let i = 0; i < currentOtherAssets.length && remaining > 0; i++) {
+          if (currentOtherAssets[i].canDrawdown) {
+            const available = otherAssetGrowthResults[i].closingValue
+            const draw = Math.min(remaining, available)
+            otherAssetDrawdowns[i] = draw
+            remaining -= draw
+          }
+        }
+      }
+
+      // 5. Extra super drawdown — pension-phase super is liquid; draw as much as needed
       //    beyond the minimum already included in totalIncomePreBond
       if (remaining > 0 && superA_result.inPensionPhase) {
         superAExtra = Math.min(remaining, superA_result.closingBalance)
@@ -374,13 +395,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], assumptions })
     )
 
+    // Final other asset results with actual drawdowns applied
+    const otherAssetResults = currentOtherAssets.map((asset, i) =>
+      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i] })
+    )
+
     const totalBondWithdrawals = bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
+    const totalOtherAssetWithdrawals = otherAssetResults.reduce((sum, r) => sum + r.withdrawal, 0)
     // sharesDrawdown is positive when shares are sold to cover a deficit
     const sharesDrawdown = Math.max(0, -sharesAdjustment)
     // Include all asset drawdowns in income so netCashflow and isDeficit
     // reflect the true funded position — isDeficit only fires when ALL
-    // liquid sources (cash + shares + bonds + pension-phase super) are exhausted
-    const totalIncome = totalIncomePreBond + totalBondWithdrawals + sharesDrawdown + cashDrawdown + superAExtra + superBExtra
+    // liquid sources (cash + shares + bonds + other assets + pension-phase super) are exhausted
+    const totalIncome = totalIncomePreBond + totalBondWithdrawals + totalOtherAssetWithdrawals + sharesDrawdown + cashDrawdown + superAExtra + superBExtra
     const netCashflow = totalIncome - totalOutflows
     // Tolerance: sub-$100 rounding errors from floating point are not real deficits
     const isDeficit = netCashflow < -100
@@ -407,6 +434,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       currentBalance: bondResults[i].closingBalance,
       priorYearContribution: bond.annualContribution,
     }))
+    currentOtherAssets = currentOtherAssets.map((asset, i) => ({
+      ...asset,
+      currentValue: otherAssetResults[i].closingValue,
+    }))
     currentProperties = currentProperties.map((p, i) => ({
       ...p,
       currentValue: propertyResults[i].closingValue,
@@ -426,16 +457,22 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       return sum + (!r.isTaxFree ? currentBonds[i].currentBalance : 0)
     }, 0)
 
+    const totalOtherAssetsValue = currentOtherAssets.reduce((sum, a) => sum + a.currentValue, 0)
+    const totalOtherAssetsDrawdownable = currentOtherAssets.filter(a => a.canDrawdown).reduce((sum, a) => sum + a.currentValue, 0)
+    const totalOtherAssetsLocked = totalOtherAssetsValue - totalOtherAssetsDrawdownable
+
     const totalLiquidAssets =
       cashBuffer +
       currentShares.currentValue +
       bondLiquidity +
+      totalOtherAssetsDrawdownable +
       (superA_result.inPensionPhase ? superA.currentBalance : 0) +
       (superB_result.inPensionPhase ? superB.currentBalance : 0)
 
     const totalNetWorth =
       totalLiquidAssets +
       bondPreTenYr +
+      totalOtherAssetsLocked +
       propertyEquity +
       (superA_result.isLocked ? superA.currentBalance : 0) +
       (superB_result.isLocked ? superB.currentBalance : 0)
@@ -485,6 +522,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       bondResults,
       bondLiquidity,
       bondPreTenYr,
+      // Other assets
+      otherAssetResults,
+      totalOtherAssetsValue,
       // Expenses
       expenseTree,
       totalExpenses,

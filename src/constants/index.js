@@ -15,6 +15,7 @@ export const SHARES_RETURN_RATE = 0.045      // 4.5% p.a. capital growth (total 
 export const PROPERTY_GROWTH_RATE = 0.04    // 4.0% p.a.
 export const DIVIDEND_YIELD = 0.035         // 3.5% p.a.
 export const DEFAULT_FRANKING_PCT = 0.70    // 70% franked
+export const INVESTMENT_BOND_RETURN_RATE = 0.07  // 7.0% gross return (before 30% internal tax)
 
 // --- Superannuation ---
 export const PRESERVATION_AGE = 60          // For those born after 1 July 1964 — hardcoded

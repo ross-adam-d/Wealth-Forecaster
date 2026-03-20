@@ -2,15 +2,19 @@ import { useState } from 'react'
 import {
   INFLATION_RATE, WAGE_GROWTH_RATE, SUPER_ACCUMULATION_RATE, SUPER_PENSION_RATE,
   SHARES_RETURN_RATE, PROPERTY_GROWTH_RATE, DIVIDEND_YIELD, DEFAULT_FRANKING_PCT,
+  INVESTMENT_BOND_RETURN_RATE,
   CONCESSIONAL_CAP, NON_CONCESSIONAL_CAP, PRESERVATION_AGE, MAX_SIMULATION_END_AGE,
 } from '../constants/index.js'
 
-function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1 }) {
+function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1, hint }) {
   const display = type === 'pct' ? `${(value * 100).toFixed(1)}%` : `${value}`
 
   return (
     <tr className="border-b border-gray-800/50">
-      <td className="py-3 px-4 text-gray-300 text-sm">{label}</td>
+      <td className="py-3 px-4 text-sm">
+        <span className="text-gray-300">{label}</span>
+        {hint && <span className="block text-xs text-gray-600 mt-0.5">{hint}</span>}
+      </td>
       <td className="py-3 px-4 text-right">
         {field ? (
           <div className="flex items-center justify-end gap-2">
@@ -29,6 +33,14 @@ function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1
           <span className="text-gray-500 text-sm">{display}</span>
         )}
       </td>
+    </tr>
+  )
+}
+
+function SectionHeader({ label }) {
+  return (
+    <tr className="bg-gray-800/20">
+      <td colSpan={2} className="py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</td>
     </tr>
   )
 }
@@ -88,14 +100,31 @@ export default function Assumptions({ scenario, updateScenario }) {
             </tr>
           </thead>
           <tbody>
+            <SectionHeader label="Economy" />
             <Row label="Inflation rate" value={a.inflationRate} field="inflationRate" onUpdate={update} min={0.005} max={0.08} step={0.001} />
             <Row label="Wage growth" value={a.wageGrowthRate} field="wageGrowthRate" onUpdate={update} min={0.01} max={0.08} step={0.001} />
-            <Row label="Super — accumulation rate" value={a.superAccumulationRate} field="superAccumulationRate" onUpdate={update} min={0.02} max={0.12} step={0.005} />
-            <Row label="Super — pension phase rate" value={a.superPensionRate} field="superPensionRate" onUpdate={update} min={0.02} max={0.10} step={0.005} />
-            <Row label="Share portfolio return" value={a.sharesReturnRate} field="sharesReturnRate" onUpdate={update} min={0.02} max={0.15} step={0.005} />
-            <Row label="Property growth" value={a.propertyGrowthRate} field="propertyGrowthRate" onUpdate={update} min={0.01} max={0.10} step={0.005} />
-            <Row label="Dividend yield" value={a.dividendYield} field="dividendYield" onUpdate={update} min={0.01} max={0.08} step={0.005} />
-            <Row label="Franking credit %" value={a.frankingPct} field="frankingPct" onUpdate={update} min={0} max={1} step={0.05} />
+
+            <SectionHeader label="Superannuation" />
+            <Row label="Accumulation rate" value={a.superAccumulationRate} field="superAccumulationRate" onUpdate={update} min={0.02} max={0.12} step={0.005}
+              hint="Total return (growth + reinvested dividends). Dividends are internal to the fund." />
+            <Row label="Pension phase rate" value={a.superPensionRate} field="superPensionRate" onUpdate={update} min={0.02} max={0.10} step={0.005}
+              hint="Total return during pension phase (typically lower-risk allocation)." />
+
+            <SectionHeader label="Share Portfolio" />
+            <Row label="Capital growth" value={a.sharesReturnRate} field="sharesReturnRate" onUpdate={update} min={0} max={0.15} step={0.005}
+              hint="Share price appreciation only. Dividends are added separately below." />
+            <Row label="Dividend yield" value={a.dividendYield} field="dividendYield" onUpdate={update} min={0} max={0.08} step={0.005}
+              hint="Cash dividends paid out as household income and taxed via franking credits." />
+            <Row label="Franking credit %" value={a.frankingPct} field="frankingPct" onUpdate={update} min={0} max={1} step={0.05}
+              hint="Proportion of dividends that are franked (carry imputation credits)." />
+
+            <SectionHeader label="Property" />
+            <Row label="Property growth" value={a.propertyGrowthRate} field="propertyGrowthRate" onUpdate={update} min={0.01} max={0.10} step={0.005}
+              hint="Annual capital growth. Rental income is entered per property." />
+
+            <SectionHeader label="Investment Bonds" />
+            <Row label="Gross return rate" value={a.investmentBondRate ?? 0.07} field="investmentBondRate" onUpdate={update} min={0.02} max={0.12} step={0.005}
+              hint="Gross return before 30% internal tax. Net return ≈ rate × 0.70." />
           </tbody>
         </table>
       </div>

@@ -13,6 +13,7 @@ import {
   PROPERTY_GROWTH_RATE,
   DIVIDEND_YIELD,
   DEFAULT_FRANKING_PCT,
+  INVESTMENT_BOND_RETURN_RATE,
 } from '../constants/index.js'
 
 export function createDefaultPerson(label = 'A') {
@@ -146,6 +147,19 @@ export function createDefaultAssumptions() {
     propertyGrowthRate: PROPERTY_GROWTH_RATE,
     dividendYield: DIVIDEND_YIELD,
     frankingPct: DEFAULT_FRANKING_PCT,
+    investmentBondRate: INVESTMENT_BOND_RETURN_RATE,
+  }
+}
+
+export function createDefaultOtherAsset() {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    currentValue: 0,
+    annualContribution: 0,
+    returnRate: 0.07,          // gross annual return
+    canDrawdown: true,         // available in deficit waterfall
+    drawdownOrder: 5,          // after bonds (lower = drawn earlier)
   }
 }
 

@@ -53,7 +53,7 @@ export function processBondYear({ bond, year, drawdownNeeded = 0, assumptions })
   const isTaxFree = yearsElapsed >= INVESTMENT_BOND_YEARS_FOR_TAX_FREE
 
   // Growth — internal 30% tax on earnings
-  const rate = resolveRatePeriodRate(ratePeriods, year, 0.07)
+  const rate = resolveRatePeriodRate(ratePeriods, year, assumptions?.investmentBondRate ?? 0.07)
   const grossEarnings = (currentBalance + effectiveContribution) * rate
   const internalTax = grossEarnings * INVESTMENT_BOND_INTERNAL_TAX
   const netEarnings = grossEarnings - internalTax

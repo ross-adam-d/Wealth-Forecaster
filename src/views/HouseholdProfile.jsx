@@ -1140,6 +1140,106 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
+      <Section title={`Other Assets (${(scenario.otherAssets || []).length})`} defaultOpen={false}>
+        <p className="text-sm text-gray-500 mb-3">
+          Private equity, business interests, collectibles, or any asset not covered above.
+        </p>
+        <div className="space-y-3">
+          {(scenario.otherAssets || []).map((asset, i) => (
+            <div key={asset.id} className="bg-gray-800/50 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <input
+                  className="input flex-1 text-sm py-1.5 mr-3"
+                  placeholder="Asset name (e.g. Private Equity Fund)"
+                  value={asset.name}
+                  onChange={e => {
+                    const updated = [...scenario.otherAssets]
+                    updated[i] = { ...asset, name: e.target.value }
+                    updateScenario({ otherAssets: updated })
+                  }}
+                />
+                <button
+                  className="text-gray-600 hover:text-red-400 text-xs"
+                  onClick={() => {
+                    const updated = scenario.otherAssets.filter((_, j) => j !== i)
+                    updateScenario({ otherAssets: updated })
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <CurrencyInput
+                  label="Current value"
+                  value={asset.currentValue}
+                  onChange={v => {
+                    const updated = [...scenario.otherAssets]
+                    updated[i] = { ...asset, currentValue: v }
+                    updateScenario({ otherAssets: updated })
+                  }}
+                />
+                <CurrencyInput
+                  label="Annual contribution"
+                  value={asset.annualContribution}
+                  onChange={v => {
+                    const updated = [...scenario.otherAssets]
+                    updated[i] = { ...asset, annualContribution: v }
+                    updateScenario({ otherAssets: updated })
+                  }}
+                />
+                <PctInput
+                  label="Return rate"
+                  value={asset.returnRate}
+                  onChange={v => {
+                    const updated = [...scenario.otherAssets]
+                    updated[i] = { ...asset, returnRate: v }
+                    updateScenario({ otherAssets: updated })
+                  }}
+                  min={0}
+                  max={30}
+                  step={0.5}
+                  hint="Gross annual return"
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={asset.canDrawdown ?? true}
+                  onChange={e => {
+                    const updated = [...scenario.otherAssets]
+                    updated[i] = { ...asset, canDrawdown: e.target.checked }
+                    updateScenario({ otherAssets: updated })
+                  }}
+                  className="accent-brand-500"
+                />
+                <span className="text-sm text-gray-300">Available for drawdown in deficit years</span>
+              </label>
+            </div>
+          ))}
+          <button
+            className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm"
+            onClick={() => {
+              const newAsset = {
+                id: crypto.randomUUID(),
+                name: '',
+                currentValue: 0,
+                annualContribution: 0,
+                returnRate: 0.07,
+                canDrawdown: true,
+              }
+              updateScenario({ otherAssets: [...(scenario.otherAssets || []), newAsset] })
+            }}
+          >
+            + Add other asset
+          </button>
+          {(scenario.otherAssets || []).length === 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              Add private equity, business interests, collectibles, or any other asset class with a custom return rate.
+            </p>
+          )}
+        </div>
+      </Section>
+
       <Section title="Surplus Strategy" defaultOpen={false}>
         <p className="text-sm text-gray-500 mb-4">
           When income exceeds expenses, where should the surplus go? Funds flow through in priority order.
