@@ -33,10 +33,18 @@ describe('calcStatutory', () => {
     expect(result.fbtLiability).toBeCloseTo(11_732, 0)
   })
 
-  it('includes running costs in pre-tax package reduction', () => {
+  it('pre-tax = lease payment + running costs - ECM', () => {
+    // Without annualLeasePayment: pretax = 0 + 8,000 - 0 = 8,000
     const result = calcStatutory(baseParams)
-    // pretaxPackageReduction = rawTaxableValue + runningCosts = 12,000 + 8,000 = 20,000
-    expect(result.pretaxPackageReduction).toBeCloseTo(20_000, 0)
+    expect(result.pretaxPackageReduction).toBeCloseTo(8_000, 0)
+
+    // With lease payment: pretax = 15,000 + 8,000 - 0 = 23,000
+    const withLease = calcStatutory({ ...baseParams, annualLeasePayment: 15_000 })
+    expect(withLease.pretaxPackageReduction).toBeCloseTo(23_000, 0)
+
+    // With lease payment + ECM: pretax = 15,000 + 8,000 - 5,000 = 18,000
+    const withECM = calcStatutory({ ...baseParams, annualLeasePayment: 15_000, employeePostTaxContrib: 5_000 })
+    expect(withECM.pretaxPackageReduction).toBeCloseTo(18_000, 0)
   })
 
   it('employee post-tax contribution reduces taxable value dollar-for-dollar', () => {

@@ -46,25 +46,73 @@ function hasRetired(person, year) {
 /**
  * Resolve FBT novated lease reduction for a person in a year.
  */
+/**
+ * Calculate days available in a simulation year for a novated lease.
+ * Handles month/year dates (e.g. "2026-07") and legacy year-only values.
+ */
+function calcDaysAvailable(from, to, year) {
+  let startDay = new Date(year, 0, 1) // Jan 1
+  let endDay = new Date(year, 11, 31) // Dec 31
+
+  if (from != null) {
+    let fromDate
+    if (typeof from === 'string' && from.includes('-')) {
+      const [y, m] = from.split('-').map(Number)
+      fromDate = new Date(y, m - 1, 1) // 1st of start month
+    } else {
+      fromDate = new Date(Number(from), 0, 1)
+    }
+    if (fromDate > endDay) return 0 // hasn't started yet
+    if (fromDate > startDay) startDay = fromDate
+  }
+
+  if (to != null) {
+    let toDate
+    if (typeof to === 'string' && to.includes('-')) {
+      const [y, m] = to.split('-').map(Number)
+      // Last day of end month
+      toDate = new Date(y, m, 0)
+    } else {
+      toDate = new Date(Number(to), 11, 31)
+    }
+    if (toDate < startDay) return 0 // already ended
+    if (toDate < endDay) endDay = toDate
+  }
+
+  const msPerDay = 86400000
+  return Math.round((endDay - startDay) / msPerDay) + 1
+}
+
 function resolveNovatedLeaseReduction(person, year) {
   const lease = person.packaging?.novatedLease
   if (!lease) return { reduction: 0, fbtResult: null }
 
-  // Check active window
+  // Check active window — supports "YYYY-MM" strings and legacy year numbers
   const from = lease.activeYears?.from
   const to = lease.activeYears?.to
-  if (from != null && year < from) return { reduction: 0, fbtResult: null }
-  if (to != null && year > to) return { reduction: 0, fbtResult: null }
+  const daysAvailable = calcDaysAvailable(from, to, year)
+  if (daysAvailable <= 0) return { reduction: 0, fbtResult: null }
+
+  // Calculate annual lease payment from cost, residual, rate, term
+  const cost = lease.vehicleCostPrice || 0
+  const residual = lease.residualValue || 0
+  const term = lease.termYears || 5
+  const rate = lease.interestRate || 0
+  const financed = Math.max(0, cost - residual)
+  const totalInterest = financed * rate * term
+  const annualLeasePayment = term > 0 ? (financed + totalInterest) / term : 0
 
   // If offsetWithECM is on, first calculate without contribution to find rawTaxableValue,
   // then recalculate with that as the contribution to eliminate FBT
   let employeeContrib = lease.employeePostTaxContribution || 0
   if (lease.offsetWithECM && !lease.isEV) {
     const baseParams = {
-      vehicleCostPrice: lease.vehicleCostPrice,
+      vehicleCostPrice: cost,
       annualRunningCosts: lease.annualRunningCosts,
+      annualLeasePayment,
       annualKmTotal: lease.annualKmTotal,
       annualKmBusiness: lease.annualKmBusiness,
+      daysAvailable,
       employeePostTaxContrib: 0,
       isEV: false,
     }
@@ -73,10 +121,12 @@ function resolveNovatedLeaseReduction(person, year) {
   }
 
   const params = {
-    vehicleCostPrice: lease.vehicleCostPrice,
+    vehicleCostPrice: cost,
     annualRunningCosts: lease.annualRunningCosts,
+    annualLeasePayment,
     annualKmTotal: lease.annualKmTotal,
     annualKmBusiness: lease.annualKmBusiness,
+    daysAvailable,
     employeePostTaxContrib: employeeContrib,
     isEV: lease.isEV,
   }

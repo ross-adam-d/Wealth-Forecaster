@@ -34,12 +34,13 @@ const VEHICLE_EFFECTIVE_LIFE_YEARS = 8
 export function calcStatutory({
   vehicleCostPrice,
   annualRunningCosts,
+  annualLeasePayment = 0,
   daysAvailable = 365,
   employeePostTaxContrib = 0,
   isEV = false,
 }) {
   if (isEV) {
-    return evExemptResult(annualRunningCosts)
+    return evExemptResult(annualRunningCosts, annualLeasePayment)
   }
 
   const baseValue = vehicleCostPrice
@@ -51,6 +52,7 @@ export function calcStatutory({
     taxableValue,
     rawTaxableValue,
     annualRunningCosts,
+    annualLeasePayment,
     employeePostTaxContrib,
     isEV,
   })
@@ -76,6 +78,7 @@ export function calcStatutory({
 export function calcECM({
   vehicleCostPrice,
   annualRunningCosts,
+  annualLeasePayment = 0,
   annualKmTotal,
   annualKmBusiness,
   annualLeasePayments = 0,
@@ -84,7 +87,7 @@ export function calcECM({
   isEV = false,
 }) {
   if (isEV) {
-    return evExemptResult(annualRunningCosts)
+    return evExemptResult(annualRunningCosts, annualLeasePayment)
   }
 
   const businessUsePct = annualKmTotal > 0
@@ -103,6 +106,7 @@ export function calcECM({
     taxableValue,
     rawTaxableValue,
     annualRunningCosts,
+    annualLeasePayment,
     totalVehicleCosts,
     businessUsePct,
     depreciation,
@@ -132,13 +136,15 @@ export function compareMethodsSideBySide(statutoryParams, ecmParams) {
 
 // --- Shared helpers ---
 
-function buildResult({ method, taxableValue, rawTaxableValue, annualRunningCosts, employeePostTaxContrib = 0, isEV = false, ...extra }) {
+function buildResult({ method, taxableValue, rawTaxableValue, annualRunningCosts, annualLeasePayment = 0, employeePostTaxContrib = 0, isEV = false, ...extra }) {
   const grossedUpValue = taxableValue * FBT_GROSS_UP_TYPE1
   const fbtLiability = grossedUpValue * FBT_RATE
 
-  // Pre-tax package reduction = taxable value + running costs
-  // (both packaged pre-tax via employer)
-  const pretaxPackageReduction = rawTaxableValue + annualRunningCosts
+  // Pre-tax package reduction = total running costs - employee post-tax contribution
+  // Total running costs = lease payments + running costs (fuel, rego, insurance, maintenance)
+  // The employer funds it all from pre-tax salary; the employee's post-tax contribution offsets part
+  const totalRunningCosts = annualLeasePayment + annualRunningCosts
+  const pretaxPackageReduction = totalRunningCosts - employeePostTaxContrib
 
   // Income tax saving: the amount saved by reducing assessable income
   // Estimate at top marginal rate (45%) — actual rate applied in tax engine
@@ -151,6 +157,7 @@ function buildResult({ method, taxableValue, rawTaxableValue, annualRunningCosts
     rawTaxableValue,
     grossedUpValue,
     fbtLiability,
+    totalRunningCosts,
     pretaxPackageReduction,
     employeePostTaxContrib,
     incomeTaxSaving,
@@ -160,7 +167,8 @@ function buildResult({ method, taxableValue, rawTaxableValue, annualRunningCosts
   }
 }
 
-function evExemptResult(annualRunningCosts) {
+function evExemptResult(annualRunningCosts, annualLeasePayment = 0) {
+  const totalRunningCosts = annualLeasePayment + annualRunningCosts
   return {
     method: 'ev_exempt',
     isEV: true,
@@ -168,10 +176,11 @@ function evExemptResult(annualRunningCosts) {
     rawTaxableValue: 0,
     grossedUpValue: 0,
     fbtLiability: 0,
-    pretaxPackageReduction: annualRunningCosts,
+    totalRunningCosts,
+    pretaxPackageReduction: totalRunningCosts,
     employeePostTaxContrib: 0,
-    incomeTaxSaving: annualRunningCosts * 0.45,
-    netAnnualBenefit: annualRunningCosts * 0.45,
+    incomeTaxSaving: totalRunningCosts * 0.45,
+    netAnnualBenefit: totalRunningCosts * 0.45,
     warnings: ['EV FBT exemption subject to legislative change. Verify current eligibility.'],
   }
 }

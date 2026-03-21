@@ -37,8 +37,19 @@ describe('Statutory Formula — no employee contribution', () => {
     expect(result.fbtLiability).toBeCloseTo(result.grossedUpValue * 0.47, 2)
   })
 
-  it('pre-tax package reduction = taxable value + running costs', () => {
-    expect(result.pretaxPackageReduction).toBeCloseTo(result.rawTaxableValue + RUNNING_COSTS, 2)
+  it('pre-tax package reduction = running costs when no lease payment set', () => {
+    // Without annualLeasePayment, pretax = 0 + runningCosts - 0 = runningCosts
+    expect(result.pretaxPackageReduction).toBeCloseTo(RUNNING_COSTS, 2)
+  })
+
+  it('pre-tax package reduction = lease payment + running costs when lease payment set', () => {
+    const withLease = calcStatutory({
+      vehicleCostPrice: BASE_VEHICLE,
+      annualRunningCosts: RUNNING_COSTS,
+      annualLeasePayment: 12_000,
+      employeePostTaxContrib: 0,
+    })
+    expect(withLease.pretaxPackageReduction).toBeCloseTo(12_000 + RUNNING_COSTS, 2)
   })
 
   it('FBT liability > 0 when no employee contribution', () => {

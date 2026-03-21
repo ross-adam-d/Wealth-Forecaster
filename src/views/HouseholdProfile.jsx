@@ -87,6 +87,9 @@ function PersonForm({ person, label, onUpdate }) {
         ...p.packaging,
         novatedLease: {
           vehicleCostPrice: 0,
+          residualValue: 0,
+          termYears: 5,
+          interestRate: 0.07,
           annualKmTotal: 0,
           annualKmBusiness: 0,
           annualRunningCosts: 0,
@@ -104,15 +107,31 @@ function PersonForm({ person, label, onUpdate }) {
   const removeLease = () =>
     onUpdate({ packaging: { ...p.packaging, novatedLease: null } })
 
+  // Calculate annual lease payment for display and FBT
+  const leasePaymentCalc = useMemo(() => {
+    if (!hasLease) return null
+    const lease = p.packaging.novatedLease
+    const cost = lease.vehicleCostPrice || 0
+    const residual = lease.residualValue || 0
+    const term = lease.termYears || 5
+    const rate = lease.interestRate || 0
+    const financed = Math.max(0, cost - residual)
+    const totalInterest = financed * rate * term
+    const totalCost = financed + totalInterest
+    const annualPayment = term > 0 ? totalCost / term : 0
+    return { financed, totalInterest, totalCost, annualPayment, residual, term }
+  }, [hasLease, p.packaging?.novatedLease])
+
   // Compute FBT breakdown for display
   const fbtBreakdown = useMemo(() => {
-    if (!hasLease) return null
+    if (!hasLease || !leasePaymentCalc) return null
     const lease = p.packaging.novatedLease
     if (!lease.vehicleCostPrice) return null
 
     const params = {
       vehicleCostPrice: lease.vehicleCostPrice,
       annualRunningCosts: lease.annualRunningCosts || 0,
+      annualLeasePayment: leasePaymentCalc.annualPayment,
       annualKmTotal: lease.annualKmTotal || 0,
       annualKmBusiness: lease.annualKmBusiness || 0,
       employeePostTaxContrib: lease.employeePostTaxContribution || 0,
@@ -122,8 +141,6 @@ function PersonForm({ person, label, onUpdate }) {
     const result = lease.method === 'ecm' ? calcECM(params) : calcStatutory(params)
 
     // Calculate the post-tax contribution needed to eliminate FBT entirely
-    // This is always rawTaxableValue regardless of method — that's the amount
-    // the employee needs to contribute post-tax to bring taxable value to $0
     const offsetContribution = lease.isEV ? 0 : (result.rawTaxableValue || 0)
 
     // If auto-offset is on, recalculate with the contribution applied
@@ -134,7 +151,7 @@ function PersonForm({ person, label, onUpdate }) {
     }
 
     return { ...result, offsetContribution }
-  }, [hasLease, p.packaging?.novatedLease])
+  }, [hasLease, leasePaymentCalc, p.packaging?.novatedLease])
 
   return (
     <div className="space-y-4">
@@ -263,6 +280,31 @@ function PersonForm({ person, label, onUpdate }) {
                 onChange={v => updateLease({ vehicleCostPrice: v })}
               />
               <CurrencyInput
+                label="Residual / balloon value"
+                value={p.packaging.novatedLease.residualValue}
+                onChange={v => updateLease({ residualValue: v })}
+              />
+              <div>
+                <label className="label">Term (years)</label>
+                <input
+                  className="input w-full"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={p.packaging.novatedLease.termYears || ''}
+                  onChange={e => updateLease({ termYears: Number(e.target.value) || null })}
+                  placeholder="5"
+                />
+              </div>
+              <PctInput
+                label="Interest rate"
+                value={p.packaging.novatedLease.interestRate}
+                onChange={v => updateLease({ interestRate: v })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <CurrencyInput
                 label="Annual running costs"
                 value={p.packaging.novatedLease.annualRunningCosts}
                 onChange={v => updateLease({ annualRunningCosts: v })}
@@ -291,30 +333,37 @@ function PersonForm({ person, label, onUpdate }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Lease start year</label>
+                <label className="label">Lease start (month/year)</label>
                 <input
                   className="input w-full"
-                  type="number"
-                  min={2020}
-                  max={2070}
+                  type="month"
                   value={p.packaging.novatedLease.activeYears?.from || ''}
-                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: Number(e.target.value) || null } })}
-                  placeholder="Current"
+                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })}
                 />
               </div>
               <div>
-                <label className="label">Lease end year</label>
+                <label className="label">Lease end (month/year)</label>
                 <input
                   className="input w-full"
-                  type="number"
-                  min={2020}
-                  max={2070}
+                  type="month"
                   value={p.packaging.novatedLease.activeYears?.to || ''}
-                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: Number(e.target.value) || null } })}
-                  placeholder="Indefinite"
+                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: e.target.value || null } })}
                 />
               </div>
             </div>
+
+            {/* Lease payment breakdown */}
+            {leasePaymentCalc && leasePaymentCalc.annualPayment > 0 && (
+              <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
+                <div className="text-gray-300 font-medium mb-1">Lease Payment</div>
+                <div>Financed: ${Math.round(leasePaymentCalc.financed).toLocaleString()} (cost − residual)</div>
+                <div>Total interest: ${Math.round(leasePaymentCalc.totalInterest).toLocaleString()} (upfront)</div>
+                <div className="text-gray-300 font-medium">Annual lease payment: ${Math.round(leasePaymentCalc.annualPayment).toLocaleString()}/yr</div>
+                {(p.packaging.novatedLease.residualValue || 0) > 0 && (
+                  <div className="text-amber-400">Balloon of ${Math.round(p.packaging.novatedLease.residualValue).toLocaleString()} due at end of term</div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -377,11 +426,12 @@ function PersonForm({ person, label, onUpdate }) {
                 <div>FBT taxable value (cost × 20%): ${Math.round(fbtBreakdown.rawTaxableValue || 0).toLocaleString()}</div>
                 <div>Taxable value after contribution: ${Math.round(fbtBreakdown.taxableValue).toLocaleString()}</div>
                 <div>FBT liability: ${Math.round(fbtBreakdown.fbtLiability).toLocaleString()}</div>
-                <div>Pre-tax packaging reduction: ${Math.round(fbtBreakdown.pretaxPackageReduction).toLocaleString()}</div>
-                <div>Est. income tax saving: ${Math.round(fbtBreakdown.incomeTaxSaving).toLocaleString()}</div>
+                <div className="border-t border-gray-700 pt-1 mt-1">Total running costs (lease + running): ${Math.round(fbtBreakdown.totalRunningCosts || 0).toLocaleString()}</div>
                 {(fbtBreakdown.employeePostTaxContrib || 0) > 0 && (
-                  <div>Employee post-tax contribution: ${Math.round(fbtBreakdown.employeePostTaxContrib).toLocaleString()}/yr</div>
+                  <div>Less ECM contribution: −${Math.round(fbtBreakdown.employeePostTaxContrib).toLocaleString()}</div>
                 )}
+                <div className="text-gray-300">Pre-tax packaging reduction: ${Math.round(fbtBreakdown.pretaxPackageReduction).toLocaleString()}/yr</div>
+                <div>Est. income tax saving (@ 45%): ${Math.round(fbtBreakdown.incomeTaxSaving).toLocaleString()}</div>
                 {p.packaging.novatedLease.offsetWithECM && (
                   <div className="text-sky-400">FBT offset: contributing ${Math.round(fbtBreakdown.offsetContribution || 0).toLocaleString()}/yr post-tax to eliminate FBT</div>
                 )}
@@ -1175,8 +1225,8 @@ function ExpenseNode({ item, depth, onUpdate, onRemove }) {
   )
 }
 
-function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove }) {
-  const [open, setOpen] = useState(false)
+function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, defaultOpen }) {
+  const [open, setOpen] = useState(!!defaultOpen)
   const annualAmt = item.amountType === 'monthly'
     ? (item.amount || 0) * 12
     : (item.amount || 0)
@@ -1529,6 +1579,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 
 export default function HouseholdProfile({ scenario, updateScenario }) {
   const [guideOpen, setGuideOpen] = useState(false)
+  const [lastAddedIncomeId, setLastAddedIncomeId] = useState(null)
   const { personA, personB } = scenario.household
   const superA = scenario.super.find(s => s.personLabel === 'A') || {}
   const superB = scenario.super.find(s => s.personLabel === 'B') || {}
@@ -1772,6 +1823,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             <OtherIncomeItem
               key={src.id}
               item={src}
+              defaultOpen={src.id === lastAddedIncomeId}
               personAName={scenario.household.personA.name || 'Person A'}
               personBName={scenario.household.personB.name || 'Person B'}
               onUpdate={patch => {
@@ -1786,24 +1838,28 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           ))}
           <button
             className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm mt-2"
-            onClick={() => updateScenario({
-              otherIncome: [
-                ...(scenario.otherIncome || []),
-                {
-                  id: crypto.randomUUID(),
-                  name: '',
-                  amount: 0,
-                  amountType: 'annual',
-                  activeFrom: null,
-                  activeTo: null,
-                  adjustmentType: 'none',
-                  adjustmentRate: 0,
-                  isTaxable: true,
-                  person: 'A',
-                  notes: '',
-                },
-              ],
-            })}
+            onClick={() => {
+              const newId = crypto.randomUUID()
+              setLastAddedIncomeId(newId)
+              updateScenario({
+                otherIncome: [
+                  ...(scenario.otherIncome || []),
+                  {
+                    id: newId,
+                    name: '',
+                    amount: 0,
+                    amountType: 'annual',
+                    activeFrom: null,
+                    activeTo: null,
+                    adjustmentType: 'none',
+                    adjustmentRate: 0,
+                    isTaxable: true,
+                    person: 'A',
+                    notes: '',
+                  },
+                ],
+              })
+            }}
           >
             + Add income source
           </button>
