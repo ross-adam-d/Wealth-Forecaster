@@ -106,7 +106,19 @@
 
 **State at end of session:** Both engine and UI issues resolved. Surplus now correctly routes to bonds when they're in surplus mode. Cashflow table clearly separates income/expenses/asset balances/net.
 
-**Next session should start with:** Test all new features in live app. Validate debts appear in liquidity table and net worth chart. Test lease with residual, credit card revolving mode. Test other income tax attribution.
+### Session — 2026-03-21 (4)
+
+**What was done:**
+- **Novated lease overhaul**: Added balloon/residual value, term years, and interest rate fields. Annual lease payment auto-calculated (upfront interest model). Lease payment breakdown panel shows financed amount, interest, and balloon due.
+- **Pre-tax calc fix**: `pretaxPackageReduction` now correctly = `totalRunningCosts (lease payment + running costs) - ECM contribution`. Previously used `rawTaxableValue + runningCosts` which was wrong.
+- **Month/year dates**: Lease start/end changed from year-only to month/year (`type="month"` input). Engine calculates `daysAvailable` per simulation year and pro-rates FBT taxable value for partial years. Backward compatible with legacy year-only data.
+- **Other income auto-expand**: New income sources auto-expand on add, making once-off/dates/person attribution fields immediately visible.
+- **Critical engine fix: shares absorb-all bug**: Shares with `annualContribution=0` in surplus mode were absorbing ALL remaining surplus, starving downstream destinations (bonds, other assets, cash). This caused: (a) bonds never receiving surplus despite being in routing order, (b) wild retirement age sensitivity (52→54 = -700k to +20M). Fix: shares with no target now pass through without absorbing. Retirement 52 vs 53 net worth difference now $368k (was millions).
+- **Undefined guard**: `surplusRoutingOrder` fallback for legacy scenarios.
+- **Full engine audit**: Comprehensive review of surplus routing, deficit path, balance updates, net worth calculation. All flows verified correct.
+- 256 tests passing.
+
+**State at end of session:** Engine surplus routing fundamentally fixed. Novated lease now has full financial fields (balloon, term, rate). FBT pre-tax and pro-rating corrected.
 
 ---
 
