@@ -97,6 +97,15 @@
 
 **State at end of session:** Major feature additions deployed. Other income, debts, nested expenses, and lease UX all live. Shares surplus routing regression fixed.
 
+### Session — 2026-03-21 (3)
+
+**What was done:**
+- **Bonds surplus routing fix** — surplus-mode assets (bonds, shares, other assets) are now auto-added to the engine's routing order if they're not already present. Previously, the UI auto-added them for display but didn't persist to `surplusRoutingOrder`, so the engine would skip them. This caused surplus to fall through to cash instead of funding bonds. Engine now mirrors UI's auto-add logic before the waterfall loop.
+- **Cashflow detail table restructure** — asset drawdowns (super, shares, bonds, cash) removed from INCOME columns. New ASSETS section added between EXPENSES and NET showing per-asset balances year-by-year: Super A, Super B, Shares, Bonds, Other Assets, Cash, Debts, and Liquid Assets total. NET section trimmed to just Net Cashflow and Asset Drawdowns on the far right. Dynamic column visibility (only shows assets with non-trivial balances). Emerald green header for ASSETS group.
+- 255 tests passing.
+
+**State at end of session:** Both engine and UI issues resolved. Surplus now correctly routes to bonds when they're in surplus mode. Cashflow table clearly separates income/expenses/asset balances/net.
+
 **Next session should start with:** Test all new features in live app. Validate debts appear in liquidity table and net worth chart. Test lease with residual, credit card revolving mode. Test other income tax attribution.
 
 ---

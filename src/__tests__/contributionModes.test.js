@@ -96,14 +96,14 @@ describe('Shares contribution modes', () => {
     expect(snaps[2].sharesContribution).toBeCloseTo(12_100, 0)
   })
 
-  it('legacy shares (no contributionMode) default to surplus and absorb nothing without routing', () => {
+  it('legacy shares (no contributionMode) default to surplus and are auto-added to routing', () => {
     const scenario = makeScenario({
       shares: { annualContribution: 20_000 },  // no contributionMode set
-      surplusRoutingOrder: ['offset', 'cash'],  // shares not in routing
+      surplusRoutingOrder: ['offset', 'cash'],  // shares not explicitly in routing
     })
     const yr0 = runSimulation(scenario)[0]
-    // Default surplus mode + not in routing order = no contribution
-    expect(yr0.sharesContribution).toBe(0)
+    // Surplus-mode assets are now auto-added to the routing order before cash
+    expect(yr0.sharesContribution).toBe(20_000)
   })
 })
 

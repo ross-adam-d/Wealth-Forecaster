@@ -369,8 +369,27 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       surplus = prelimNetCashflow
 
       // Route surplus through priority order (waterfall)
+      // Auto-add surplus-mode assets that aren't already in the routing order
+      // (matches UI auto-add logic so engine stays in sync even if order was saved before asset was set to surplus mode)
+      let effectiveRoutingOrder = [...surplusRoutingOrder]
+      const hasSurplusBonds = bondTargetContributions.some(b => b.mode === BOND_CONTRIBUTION_MODES.SURPLUS)
+      const hasSurplusOtherAssets = otherAssetTargetContributions.some(a => a.mode === BOND_CONTRIBUTION_MODES.SURPLUS)
+      const hasSurplusShares = sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS
+      if (hasSurplusShares && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.SHARES)) {
+        const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
+        effectiveRoutingOrder.splice(cashIdx >= 0 ? cashIdx : effectiveRoutingOrder.length, 0, SURPLUS_DESTINATIONS.SHARES)
+      }
+      if (hasSurplusBonds && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.BONDS)) {
+        const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
+        effectiveRoutingOrder.splice(cashIdx >= 0 ? cashIdx : effectiveRoutingOrder.length, 0, SURPLUS_DESTINATIONS.BONDS)
+      }
+      if (hasSurplusOtherAssets && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.OTHER_ASSETS)) {
+        const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
+        effectiveRoutingOrder.splice(cashIdx >= 0 ? cashIdx : effectiveRoutingOrder.length, 0, SURPLUS_DESTINATIONS.OTHER_ASSETS)
+      }
+
       let remaining = surplus
-      for (const dest of surplusRoutingOrder) {
+      for (const dest of effectiveRoutingOrder) {
         if (remaining <= 0) break
         if (dest === SURPLUS_DESTINATIONS.OFFSET) {
           // Top up offset accounts on properties that have mortgages
