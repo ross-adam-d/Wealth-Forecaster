@@ -206,6 +206,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
     superA: s.superAUnlocked ? Math.max(0, transform(s.superABalance, s.year)) : 0,
     superB: s.superBUnlocked ? Math.max(0, transform(s.superBBalance, s.year)) : 0,
     mortgage: -(transform(s.totalMortgageBalance || 0, s.year)),
+    debts: -(transform(s.totalDebtBalance || 0, s.year)),
     // Total liquidity view
     totalLiquid: Math.max(0, transform(s.totalLiquidAssets, s.year)),
     // Cashflow view
@@ -324,6 +325,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                 />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                 <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
+                <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
                 <Area type="monotone" dataKey="cash"   stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
                 <Area type="monotone" dataKey="shares" stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
                 <Area type="monotone" dataKey="bonds"  stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Bonds" />

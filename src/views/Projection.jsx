@@ -63,6 +63,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       bonds: transform(s.bondLiquidity + s.bondPreTenYr, s.year),
       cash: transform(s.cashBuffer, s.year),
       mortgage: transform(-s.totalMortgageBalance, s.year),
+      debts: transform(-(s.totalDebtBalance || 0), s.year),
       isIllustrative,
     }
   })
@@ -97,6 +98,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'sharesDrawdown', label: 'Shares' },
     { key: 'bondWithdrawals',label: 'Bonds' },
     { key: 'propertySale',   label: 'Prop sale' },
+    { key: 'otherIncome',    label: 'Other income' },
   ], [personAName, personBName])
 
   const EXPENSE_COLS = useMemo(() => [
@@ -109,6 +111,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'otherContrib',   label: 'Other contrib' },
     { key: 'livingExpenses', label: 'Expenses' },
     { key: 'mortgage',       label: 'Mortgage' },
+    { key: 'debtRepayments', label: 'Debt repay' },
   ], [])
 
   const detailRows = useMemo(() => snapshots.map(s => {
@@ -132,6 +135,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       sharesDrawdown:  s.sharesDrawdown ?? 0,
       bondWithdrawals: bondW,
       propertySale:    s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0,
+      otherIncome:     s.totalOtherIncome ?? 0,
       // Expenses (including tax + super accum)
       taxA:            s.taxA?.totalTaxPayable ?? 0,
       taxB:            s.taxB?.totalTaxPayable ?? 0,
@@ -142,6 +146,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       otherContrib:      s.totalOtherAssetContributions ?? 0,
       livingExpenses:  s.totalExpenses,
       mortgage:        Math.max(0, mortgage),
+      debtRepayments:  s.totalDebtRepayments ?? 0,
       // Net
       netCashflow:     s.netCashflow,
       liquidAssets:    s.totalLiquidAssets,
@@ -250,6 +255,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
             <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
+            <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
             <Area type="monotone" dataKey="cash"     stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
             <Area type="monotone" dataKey="bonds"    stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds" />
             <Area type="monotone" dataKey="shares"   stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
@@ -302,6 +308,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               <th className="text-right py-2 px-3 text-gray-500 font-medium">Bonds (pre-10yr)</th>
               <th className="text-right py-2 px-3 text-gray-500 font-medium">Property equity</th>
               <th className="text-right py-2 px-3 text-gray-500 font-medium">Super (locked)</th>
+              <th className="text-right py-2 px-3 text-gray-500 font-medium">Debts</th>
               <th className="text-right py-2 px-3 text-gray-500 font-medium">Total net worth</th>
             </tr>
           </thead>
@@ -325,6 +332,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       ? fmt$(transform((s.superA?.isLocked ? s.superABalance : 0) + (s.superB?.isLocked ? s.superBBalance : 0), s.year))
                       : '—'
                     }
+                  </td>
+                  <td className="py-2 px-3 text-right text-red-400">
+                    {(s.totalDebtBalance || 0) > 0 ? `-${fmt$(transform(s.totalDebtBalance, s.year))}` : '—'}
                   </td>
                   <td className="py-2 px-3 text-right font-medium text-white">{fmt$(transform(s.totalNetWorth, s.year))}</td>
                 </tr>

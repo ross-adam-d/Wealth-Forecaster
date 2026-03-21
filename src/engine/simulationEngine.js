@@ -14,6 +14,8 @@ import { processSharesYear } from '../modules/shares.js'
 import { processBondYear } from '../modules/investmentBonds.js'
 import { resolveExpenseTree } from '../modules/expenses.js'
 import { processOtherAssetYear } from '../modules/otherAssets.js'
+import { processOtherIncome } from '../modules/otherIncome.js'
+import { processAllDebts } from '../modules/debts.js'
 import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE } from '../constants/index.js'
 
 /**
@@ -44,9 +46,15 @@ function hasRetired(person, year) {
 /**
  * Resolve FBT novated lease reduction for a person in a year.
  */
-function resolveNovatedLeaseReduction(person) {
+function resolveNovatedLeaseReduction(person, year) {
   const lease = person.packaging?.novatedLease
   if (!lease) return { reduction: 0, fbtResult: null }
+
+  // Check active window
+  const from = lease.activeYears?.from
+  const to = lease.activeYears?.to
+  if (from != null && year < from) return { reduction: 0, fbtResult: null }
+  if (to != null && year > to) return { reduction: 0, fbtResult: null }
 
   const params = {
     vehicleCostPrice: lease.vehicleCostPrice,
@@ -80,6 +88,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     shares,
     investmentBonds,
     otherAssets: otherAssetsInput = [],
+    otherIncome: otherIncomeInput = [],
+    debts: debtsInput = [],
     expenses,
     assumptions,
     simulationEndAge,
@@ -108,6 +118,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let currentBonds = investmentBonds.map(b => ({ ...b }))
   let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))
   let currentProperties = properties.map(p => ({ ...p }))
+  let currentDebts = debtsInput.map(d => ({ ...d }))
   let cashBuffer = 0
   let firstDeficitYear = null
   let cumulativeDeficit = 0
@@ -127,8 +138,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, salaryA)
     const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, salaryB)
-    const { reduction: leaseReductionA, fbtResult: fbtA } = resolveNovatedLeaseReduction(personA)
-    const { reduction: leaseReductionB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB)
+    const { reduction: leaseReductionA, fbtResult: fbtA } = resolveNovatedLeaseReduction(personA, year)
+    const { reduction: leaseReductionB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB, year)
 
     // ── Step 2: Income tax ────────────────────────────────────────────────
     const superContribA_pre = processContributions(superA, salaryA, year)
@@ -196,7 +207,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       assumptions,
     })
 
-    // Recalculate tax with dividends + property (CGT split by ownership %)
+    // ── Other income sources ──────────────────────────────────────────────
+    const otherIncomeResult = processOtherIncome(otherIncomeInput, year, currentYear)
+
+    // Recalculate tax with dividends + property (CGT split by ownership %) + other income
     const taxAFinal = calcPersonTax({
       grossSalary: salaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
@@ -206,15 +220,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       dividendIncome: sharesResult.cashDividend * 0.5,
       frankingCredit: sharesResult.frankingCredit * 0.5,
       capitalGain: propertyCGT_A,
+      otherIncome: otherIncomeResult.taxableA,
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
     })
 
-    const taxBFinal = propertyCGT_B > 0 ? calcPersonTax({
+    const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0) ? calcPersonTax({
       grossSalary: salaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
       capitalGain: propertyCGT_B,
+      otherIncome: otherIncomeResult.taxableB,
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
     }) : taxB
 
@@ -291,6 +307,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     )
     const totalExpenses = expenseTree.total
 
+    // ── Step 9b: Debts ────────────────────────────────────────────────────
+    const debtResult = processAllDebts(currentDebts, year)
+    const totalDebtRepayments = debtResult.totalRepayment
+    const totalDebtBalance = debtResult.totalBalance
+
     // ── Step 10: Net cashflow ─────────────────────────────────────────────
     // Compute preliminary income without asset withdrawals
     const totalIncomePreBond =
@@ -301,12 +322,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       taxAFinal.frankingRefund +
       superA_result.drawdown +
       superB_result.drawdown +
-      propertySaleProceeds
+      propertySaleProceeds +
+      otherIncomeResult.nonTaxable  // non-taxable other income (taxable already in netTakeHome)
 
     // Fixed contributions are guaranteed outflows (like expenses)
     const totalOutflows =
       totalExpenses +
       totalMortgageRepayments +
+      totalDebtRepayments +
       totalFixedContributions
 
     const prelimNetCashflow = totalIncomePreBond - totalOutflows
@@ -348,11 +371,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             }
           }
         } else if (dest === SURPLUS_DESTINATIONS.SHARES) {
-          // Allocate surplus to shares: up to target contribution if surplus-mode, otherwise skip
-          if (sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS && sharesTarget > 0) {
-            const allocated = Math.min(remaining, sharesTarget)
-            surplusSharesContribution = allocated
-            remaining -= allocated
+          // Allocate surplus to shares when in surplus mode
+          if (sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS) {
+            if (sharesTarget > 0) {
+              // Explicit target: allocate up to that amount
+              const allocated = Math.min(remaining, sharesTarget)
+              surplusSharesContribution = allocated
+              remaining -= allocated
+            } else {
+              // No explicit target (legacy or annualContribution=0): absorb all remaining surplus
+              surplusSharesContribution = remaining
+              remaining = 0
+            }
           }
         } else if (dest === SURPLUS_DESTINATIONS.BONDS) {
           // Allocate surplus to surplus-mode bonds (capped at 125% of prior year)
@@ -552,6 +582,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       offsetBalance: propertyResults[i].offsetBalance,
       loanTermYearsRemaining: propertyResults[i].loanTermYearsRemaining || p.loanTermYearsRemaining || 0,
     }))
+    currentDebts = currentDebts.map((d, i) => ({
+      ...d,
+      currentBalance: debtResult.results[i].closingBalance,
+    }))
 
     // Liquidity classification
     const propertyEquity = propertyResults.reduce((sum, r) => sum + r.equity, 0)
@@ -582,7 +616,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalOtherAssetsLocked +
       propertyEquity +
       (superA_result.isLocked ? superA.currentBalance : 0) +
-      (superB_result.isLocked ? superB.currentBalance : 0)
+      (superB_result.isLocked ? superB.currentBalance : 0) -
+      totalDebtBalance
 
     // Collect warnings
     const warnings = [
@@ -638,6 +673,13 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalOtherAssetContributions,
       // Investment contributions (all non-property assets)
       totalInvestmentContributions,
+      // Other income
+      otherIncomeResult,
+      totalOtherIncome: otherIncomeResult.total,
+      // Debts
+      debtResult,
+      totalDebtBalance,
+      totalDebtRepayments,
       // Expenses
       expenseTree,
       totalExpenses,

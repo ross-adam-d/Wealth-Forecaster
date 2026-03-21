@@ -115,6 +115,7 @@ export function calcPersonTax({
   dividendIncome = 0,
   frankingCredit = 0,
   capitalGain = 0,
+  otherIncome = 0,
   inPensionPhase = false,
 } = {}) {
   // Step 1: assessable income
@@ -127,6 +128,7 @@ export function calcPersonTax({
     + dividendIncome
     + frankingCredit        // gross-up added before tax
     + capitalGain
+    + otherIncome           // taxable other income attributed to this person
 
   const taxableIncome = Math.max(0, assessableIncome)
 
@@ -160,7 +162,7 @@ export function calcPersonTax({
     netTax,
     medicareLevy,
     totalTaxPayable,
-    netTakeHome: grossSalary - salarySacrifice - packagingReduction - novatedLeaseReduction - totalTaxPayable,
+    netTakeHome: grossSalary + otherIncome - salarySacrifice - packagingReduction - novatedLeaseReduction - totalTaxPayable,
   }
 }
 

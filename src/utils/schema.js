@@ -170,6 +170,60 @@ export function createDefaultOtherAsset() {
   }
 }
 
+export function createDefaultDebt(type = 'personal_loan') {
+  const base = {
+    id: crypto.randomUUID(),
+    name: '',
+    type,                        // 'personal_loan' | 'lease' | 'credit_card'
+    currentBalance: 0,
+    interestRate: 0.08,          // annual rate
+    startYear: null,             // year debt was taken (null = already held)
+  }
+
+  if (type === 'personal_loan') {
+    return {
+      ...base,
+      interestRate: 0.08,
+      monthlyRepayment: 0,       // fixed monthly P&I repayment
+      termYears: 5,              // original loan term
+    }
+  }
+
+  if (type === 'lease') {
+    return {
+      ...base,
+      interestRate: 0.07,
+      termYears: 5,
+      residualValue: 0,          // balloon payment at end of lease
+      monthlyRepayment: 0,       // auto-calculated from balance, term, residual if 0
+    }
+  }
+
+  // credit_card
+  return {
+    ...base,
+    interestRate: 0.20,
+    monthlyRepayment: 0,         // fixed repayment (0 = minimum 2% of balance)
+    repaymentMode: 'payoff',     // 'payoff' | 'revolving'
+  }
+}
+
+export function createDefaultOtherIncomeSource() {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    amount: 0,
+    amountType: 'annual',         // 'annual' | 'monthly' | 'one_off'
+    activeFrom: null,             // year (null = from start)
+    activeTo: null,               // year (null = indefinite; same as activeFrom for one_off)
+    adjustmentType: 'none',       // 'none' | 'percent' | 'dollar'
+    adjustmentRate: 0,            // e.g. 0.03 for +3%/yr, or -2000 for -$2k/yr
+    isTaxable: true,              // included in assessable income for tax calc
+    person: 'A',                  // 'A' | 'B' | 'household' — determines whose tax return
+    notes: '',
+  }
+}
+
 export function createDefaultScenario(name = 'Base Plan') {
   return {
     id: crypto.randomUUID(),
@@ -189,6 +243,8 @@ export function createDefaultScenario(name = 'Base Plan') {
     investmentBonds: [],
     otherAssets: [],
     expenses: createDefaultExpenseHierarchy(),
+    otherIncome: [],
+    debts: [],
     events: [],
     surplusRoutingOrder: ['offset', 'shares', 'cash'],
   }

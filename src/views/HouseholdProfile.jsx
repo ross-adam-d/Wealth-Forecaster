@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   CONCESSIONAL_CAP,
   NON_CONCESSIONAL_CAP,
@@ -7,6 +7,7 @@ import {
   QLD_HEALTH_GENERAL_CAP,
   QLD_HEALTH_MEAL_ENTERTAINMENT_CAP,
 } from '../constants/index.js'
+import { calcStatutory, calcECM } from '../modules/fbt.js'
 
 // ── Shared primitives ─────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ function PersonForm({ person, label, onUpdate }) {
   const updateLease = patch =>
     onUpdate({ packaging: { ...p.packaging, novatedLease: { ...p.packaging.novatedLease, ...patch } } })
 
-  const addLease = () =>
+  const addLease = () => {
     onUpdate({
       packaging: {
         ...p.packaging,
@@ -92,13 +93,42 @@ function PersonForm({ person, label, onUpdate }) {
           method: 'statutory',
           isEV: false,
           employeePostTaxContribution: 0,
+          offsetWithECM: false,
           activeYears: { from: null, to: null },
         },
       },
     })
+    setLeaseOpen(true) // auto-expand
+  }
 
   const removeLease = () =>
     onUpdate({ packaging: { ...p.packaging, novatedLease: null } })
+
+  // Compute FBT breakdown for display
+  const fbtBreakdown = useMemo(() => {
+    if (!hasLease) return null
+    const lease = p.packaging.novatedLease
+    if (!lease.vehicleCostPrice) return null
+
+    const params = {
+      vehicleCostPrice: lease.vehicleCostPrice,
+      annualRunningCosts: lease.annualRunningCosts || 0,
+      annualKmTotal: lease.annualKmTotal || 0,
+      annualKmBusiness: lease.annualKmBusiness || 0,
+      employeePostTaxContrib: lease.employeePostTaxContribution || 0,
+      isEV: lease.isEV,
+    }
+
+    const result = lease.method === 'ecm' ? calcECM(params) : calcStatutory(params)
+
+    // If "offset with ECM" is checked, calculate what contribution eliminates FBT
+    let ecmOffsetContrib = 0
+    if (lease.offsetWithECM && !lease.isEV) {
+      ecmOffsetContrib = result.rawTaxableValue || 0
+    }
+
+    return { ...result, ecmOffsetContrib }
+  }, [hasLease, p.packaging?.novatedLease])
 
   return (
     <div className="space-y-4">
@@ -252,35 +282,106 @@ function PersonForm({ person, label, onUpdate }) {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">FBT method</label>
-                <select
+                <label className="label">Lease start year</label>
+                <input
                   className="input w-full"
-                  value={p.packaging.novatedLease.method}
-                  onChange={e => updateLease({ method: e.target.value })}
-                >
-                  <option value="statutory">Statutory (20% flat)</option>
-                  <option value="ecm">Operating cost / ECM</option>
-                </select>
+                  type="number"
+                  min={2020}
+                  max={2070}
+                  value={p.packaging.novatedLease.activeYears?.from || ''}
+                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: Number(e.target.value) || null } })}
+                  placeholder="Current"
+                />
               </div>
-              <CurrencyInput
-                label="Employee post-tax contribution"
-                value={p.packaging.novatedLease.employeePostTaxContribution}
-                onChange={v => updateLease({ employeePostTaxContribution: v })}
-              />
+              <div>
+                <label className="label">Lease end year</label>
+                <input
+                  className="input w-full"
+                  type="number"
+                  min={2020}
+                  max={2070}
+                  value={p.packaging.novatedLease.activeYears?.to || ''}
+                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: Number(e.target.value) || null } })}
+                  placeholder="Indefinite"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id={`ev-${label}`}
-                checked={!!p.packaging.novatedLease.isEV}
-                onChange={e => updateLease({ isEV: e.target.checked })}
-              />
-              <label htmlFor={`ev-${label}`} className="text-sm text-gray-400">
-                Electric / zero-emission vehicle (FBT exempt)
-              </label>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={`ev-${label}`}
+                  checked={!!p.packaging.novatedLease.isEV}
+                  onChange={e => updateLease({ isEV: e.target.checked })}
+                />
+                <label htmlFor={`ev-${label}`} className="text-sm text-gray-400">
+                  Electric / zero-emission vehicle (FBT exempt)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={`ecm-offset-${label}`}
+                  checked={!!p.packaging.novatedLease.offsetWithECM}
+                  onChange={e => {
+                    const useECM = e.target.checked
+                    const contrib = useECM && fbtBreakdown ? fbtBreakdown.ecmOffsetContrib : 0
+                    updateLease({
+                      offsetWithECM: useECM,
+                      employeePostTaxContribution: contrib,
+                      method: useECM ? 'ecm' : p.packaging.novatedLease.method,
+                    })
+                  }}
+                />
+                <label htmlFor={`ecm-offset-${label}`} className="text-sm text-gray-400">
+                  Offset FBT with employee post-tax contribution (auto-calculated)
+                </label>
+              </div>
             </div>
+
+            {!p.packaging.novatedLease.offsetWithECM && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">FBT method</label>
+                  <select
+                    className="input w-full"
+                    value={p.packaging.novatedLease.method}
+                    onChange={e => updateLease({ method: e.target.value })}
+                  >
+                    <option value="statutory">Statutory (20% flat)</option>
+                    <option value="ecm">Operating cost / ECM</option>
+                  </select>
+                </div>
+                <CurrencyInput
+                  label="Employee post-tax contribution"
+                  value={p.packaging.novatedLease.employeePostTaxContribution}
+                  onChange={v => updateLease({ employeePostTaxContribution: v })}
+                />
+              </div>
+            )}
+
+            {/* FBT breakdown */}
+            {fbtBreakdown && (
+              <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
+                <div className="text-gray-300 font-medium mb-1">FBT Calculation ({fbtBreakdown.method === 'ev_exempt' ? 'EV exempt' : fbtBreakdown.method === 'ecm' ? 'ECM' : 'Statutory'})</div>
+                <div>Taxable value: ${Math.round(fbtBreakdown.taxableValue).toLocaleString()}</div>
+                <div>FBT liability: ${Math.round(fbtBreakdown.fbtLiability).toLocaleString()}</div>
+                <div>Pre-tax packaging reduction: ${Math.round(fbtBreakdown.pretaxPackageReduction).toLocaleString()}</div>
+                <div>Est. income tax saving: ${Math.round(fbtBreakdown.incomeTaxSaving).toLocaleString()}</div>
+                {(fbtBreakdown.employeePostTaxContrib || 0) > 0 && (
+                  <div>Employee post-tax contribution: ${Math.round(fbtBreakdown.employeePostTaxContrib).toLocaleString()}</div>
+                )}
+                <div className="text-green-400 font-medium">Net annual benefit: ${Math.round(fbtBreakdown.netAnnualBenefit).toLocaleString()}/yr</div>
+                {fbtBreakdown.warnings?.map((w, i) => (
+                  <div key={i} className="text-amber-400">{w}</div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -885,7 +986,187 @@ const AMOUNT_TYPE_LABELS = {
   time_bounded: 'Time-bounded',
 }
 
-function ExpenseItem({ item, onUpdate, onRemove }) {
+const EXPENSE_DEPTH_LABELS = ['group', 'category', 'subcategory']
+const EXPENSE_DEPTH_PLACEHOLDERS = ['Group name (e.g. Living)', 'Category name (e.g. Food)', 'Item name (e.g. Groceries)']
+
+function calcExpenseTotal(node) {
+  const own = node.amountType === 'monthly' ? (node.amount || 0) * 12 : (node.amount || 0)
+  const childTotal = (node.children || []).reduce((sum, c) => sum + calcExpenseTotal(c), 0)
+  return own + childTotal
+}
+
+function ExpenseNode({ item, depth, onUpdate, onRemove }) {
+  const [open, setOpen] = useState(depth < 2)
+  const totalAmt = calcExpenseTotal(item)
+  const ownAmt = item.amountType === 'monthly' ? (item.amount || 0) * 12 : (item.amount || 0)
+  const hasChildren = (item.children || []).length > 0
+  const canAddChild = depth < 2 // max 3 levels: group(0) → category(1) → subcategory(2)
+
+  const updateChild = (i, patch) => {
+    const children = [...(item.children || [])]
+    children[i] = { ...children[i], ...patch }
+    onUpdate({ children })
+  }
+  const removeChild = i => {
+    onUpdate({ children: (item.children || []).filter((_, idx) => idx !== i) })
+  }
+  const addChild = () => {
+    onUpdate({
+      children: [
+        ...(item.children || []),
+        {
+          id: crypto.randomUUID(),
+          label: '',
+          type: EXPENSE_DEPTH_LABELS[depth + 1] || 'subcategory',
+          amountType: 'annual',
+          amount: 0,
+          isDiscretionary: item.isDiscretionary || false,
+          activeFrom: null,
+          activeTo: null,
+          inflationRate: null,
+          notes: '',
+          children: [],
+        },
+      ],
+    })
+  }
+
+  const indentPx = depth * 20
+
+  return (
+    <div className={depth === 0 ? 'border border-gray-700 rounded-lg overflow-hidden' : ''}>
+      <div
+        className="flex items-center gap-2 px-3 py-2 bg-gray-800/30"
+        style={{ paddingLeft: `${12 + indentPx}px` }}
+      >
+        <button
+          className="text-gray-500 text-xs w-4 shrink-0"
+          onClick={() => setOpen(o => !o)}
+        >
+          {open ? '▾' : '▸'}
+        </button>
+        <input
+          className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
+          value={item.label || ''}
+          onChange={e => onUpdate({ label: e.target.value })}
+          placeholder={EXPENSE_DEPTH_PLACEHOLDERS[depth] || 'Label'}
+        />
+        {depth > 0 && (
+          <span className="text-xs text-gray-600 shrink-0">
+            {AMOUNT_TYPE_LABELS[item.amountType] || 'Annual'}
+          </span>
+        )}
+        {item.isDiscretionary && (
+          <span className="text-xs text-amber-500 shrink-0">disc.</span>
+        )}
+        <span className={`text-xs font-mono shrink-0 ${hasChildren && ownAmt === 0 ? 'text-gray-500' : 'text-gray-400'}`}>
+          ${Math.round(totalAmt).toLocaleString()}/yr
+        </span>
+        <button
+          className="text-gray-600 hover:text-red-400 text-sm shrink-0"
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      </div>
+
+      {open && (
+        <>
+          {/* Own amount + settings */}
+          <div className="px-4 py-3 space-y-3 bg-gray-800/10" style={{ paddingLeft: `${16 + indentPx}px` }}>
+            <div className="grid grid-cols-2 gap-4">
+              <CurrencyInput
+                label={hasChildren ? 'Own amount (excl. children)' : 'Amount'}
+                value={item.amount}
+                onChange={v => onUpdate({ amount: v })}
+              />
+              <div>
+                <label className="label">Amount type</label>
+                <select
+                  className="input w-full"
+                  value={item.amountType || 'annual'}
+                  onChange={e => onUpdate({ amountType: e.target.value })}
+                >
+                  <option value="annual">Annual</option>
+                  <option value="monthly">Monthly (×12)</option>
+                  <option value="one_off">One-off</option>
+                  <option value="time_bounded">Time-bounded</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`disc-${item.id}`}
+                checked={!!item.isDiscretionary}
+                onChange={e => onUpdate({ isDiscretionary: e.target.checked })}
+              />
+              <label htmlFor={`disc-${item.id}`} className="text-sm text-gray-400">
+                Discretionary
+              </label>
+            </div>
+
+            {(item.amountType === 'time_bounded' || item.amountType === 'one_off') && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Active from (year)</label>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    min={2024}
+                    max={2070}
+                    value={item.activeFrom || ''}
+                    onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null })}
+                    placeholder="e.g. 2026"
+                  />
+                </div>
+                {item.amountType === 'time_bounded' && (
+                  <div>
+                    <label className="label">Active to (year)</label>
+                    <input
+                      className="input w-full"
+                      type="number"
+                      min={2024}
+                      max={2070}
+                      value={item.activeTo || ''}
+                      onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
+                      placeholder="e.g. 2032"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Children */}
+          {(item.children || []).map((child, i) => (
+            <ExpenseNode
+              key={child.id}
+              item={child}
+              depth={depth + 1}
+              onUpdate={patch => updateChild(i, patch)}
+              onRemove={() => removeChild(i)}
+            />
+          ))}
+
+          {canAddChild && (
+            <div style={{ paddingLeft: `${16 + (depth + 1) * 20}px` }} className="py-1.5">
+              <button
+                className="text-xs text-gray-500 hover:text-gray-300"
+                onClick={addChild}
+              >
+                + Add {EXPENSE_DEPTH_LABELS[depth + 1] || 'item'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove }) {
   const [open, setOpen] = useState(false)
   const annualAmt = item.amountType === 'monthly'
     ? (item.amount || 0) * 12
@@ -902,18 +1183,18 @@ function ExpenseItem({ item, onUpdate, onRemove }) {
         </button>
         <input
           className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
-          value={item.label || ''}
-          onChange={e => onUpdate({ label: e.target.value })}
-          placeholder="Expense label"
+          value={item.name || ''}
+          onChange={e => onUpdate({ name: e.target.value })}
+          placeholder="Income source name"
         />
         <span className="text-xs text-gray-500 shrink-0">
-          {AMOUNT_TYPE_LABELS[item.amountType] || 'Annual'}
+          {item.person === 'household' ? 'Joint' : item.person === 'B' ? personBName : personAName}
         </span>
-        {item.isDiscretionary && (
-          <span className="text-xs text-amber-500 shrink-0">discretionary</span>
+        {!item.isTaxable && (
+          <span className="text-xs text-green-500 shrink-0">tax-free</span>
         )}
         <span className="text-xs text-gray-400 font-mono shrink-0">
-          ${Math.round(annualAmt).toLocaleString()}/yr
+          ${Math.round(annualAmt).toLocaleString()}{item.amountType !== 'one_off' ? '/yr' : ''}
         </span>
         <button
           className="text-gray-600 hover:text-red-400 text-sm shrink-0 ml-1"
@@ -941,52 +1222,293 @@ function ExpenseItem({ item, onUpdate, onRemove }) {
                 <option value="annual">Annual</option>
                 <option value="monthly">Monthly (×12)</option>
                 <option value="one_off">One-off</option>
-                <option value="time_bounded">Time-bounded (date range)</option>
               </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`disc-${item.id}`}
-              checked={!!item.isDiscretionary}
-              onChange={e => onUpdate({ isDiscretionary: e.target.checked })}
-            />
-            <label htmlFor={`disc-${item.id}`} className="text-sm text-gray-400">
-              Discretionary — can be reduced in Gap stress test
-            </label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Attributed to</label>
+              <select
+                className="input w-full"
+                value={item.person || 'A'}
+                onChange={e => onUpdate({ person: e.target.value })}
+              >
+                <option value="A">{personAName}</option>
+                <option value="B">{personBName}</option>
+                <option value="household">Joint (50/50)</option>
+              </select>
+            </div>
+            <div className="flex items-end pb-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id={`taxable-${item.id}`}
+                  checked={item.isTaxable !== false}
+                  onChange={e => onUpdate({ isTaxable: e.target.checked })}
+                />
+                <label htmlFor={`taxable-${item.id}`} className="text-sm text-gray-400">
+                  Taxable income
+                </label>
+              </div>
+            </div>
           </div>
 
-          {(item.amountType === 'time_bounded' || item.amountType === 'one_off') && (
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">{item.amountType === 'one_off' ? 'Year' : 'Starts (year)'}</label>
+              <input
+                className="input w-full"
+                type="number"
+                min={2024}
+                max={2070}
+                value={item.activeFrom || ''}
+                onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null })}
+                placeholder="e.g. 2026"
+              />
+            </div>
+            {item.amountType !== 'one_off' && (
               <div>
-                <label className="label">Active from (year)</label>
+                <label className="label">Ends (year)</label>
                 <input
                   className="input w-full"
                   type="number"
                   min={2024}
                   max={2070}
-                  value={item.activeFrom || ''}
-                  onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null })}
-                  placeholder="e.g. 2026"
+                  value={item.activeTo || ''}
+                  onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
+                  placeholder="Indefinite"
                 />
               </div>
-              {item.amountType === 'time_bounded' && (
+            )}
+          </div>
+
+          {item.amountType !== 'one_off' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Annual adjustment</label>
+                <select
+                  className="input w-full"
+                  value={item.adjustmentType || 'none'}
+                  onChange={e => onUpdate({ adjustmentType: e.target.value, adjustmentRate: 0 })}
+                >
+                  <option value="none">None (flat)</option>
+                  <option value="percent">By % per year</option>
+                  <option value="dollar">By $ per year</option>
+                </select>
+              </div>
+              {item.adjustmentType === 'percent' && (
+                <PctInput
+                  label="Rate (% per year)"
+                  value={item.adjustmentRate}
+                  onChange={v => onUpdate({ adjustmentRate: v })}
+                  min={-50}
+                  hint="Negative to decrease"
+                />
+              )}
+              {item.adjustmentType === 'dollar' && (
                 <div>
-                  <label className="label">Active to (year)</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    min={2024}
-                    max={2070}
-                    value={item.activeTo || ''}
-                    onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
-                    placeholder="e.g. 2032"
-                  />
+                  <label className="label">$ per year</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      className="input w-full pl-7"
+                      type="number"
+                      value={item.adjustmentRate || ''}
+                      onChange={e => onUpdate({ adjustmentRate: Number(e.target.value) })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Negative to decrease</p>
                 </div>
               )}
             </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Debt helpers ──────────────────────────────────────────────────────────
+
+const DEBT_TYPE_LABELS = { personal_loan: 'Personal Loan', lease: 'Lease', credit_card: 'Credit Card' }
+
+function createDebtDefaults(type) {
+  const base = {
+    id: crypto.randomUUID(),
+    name: '',
+    type,
+    currentBalance: 0,
+    interestRate: type === 'credit_card' ? 0.20 : type === 'lease' ? 0.07 : 0.08,
+    startYear: null,
+  }
+  if (type === 'personal_loan') return { ...base, monthlyRepayment: 0, termYears: 5 }
+  if (type === 'lease') return { ...base, termYears: 5, residualValue: 0, monthlyRepayment: 0 }
+  return { ...base, monthlyRepayment: 0, repaymentMode: 'payoff' }
+}
+
+function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
+  const [open, setOpen] = useState(!!defaultOpen)
+  const annualRepay = (item.monthlyRepayment || 0) * 12
+
+  // For leases: auto-calc repayment if not manually set
+  let displayRepay = annualRepay
+  if (item.type === 'lease' && !item.monthlyRepayment && item.currentBalance > 0 && item.termYears > 0) {
+    const financed = item.currentBalance - (item.residualValue || 0)
+    const totalInterest = financed * (item.interestRate || 0) * item.termYears
+    displayRepay = (financed + totalInterest) / item.termYears
+  }
+
+  return (
+    <div className="border border-gray-700 rounded-lg overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-800/30">
+        <button
+          className="text-gray-500 text-xs w-4 shrink-0"
+          onClick={() => setOpen(o => !o)}
+        >
+          {open ? '▾' : '▸'}
+        </button>
+        <input
+          className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
+          value={item.name || ''}
+          onChange={e => onUpdate({ name: e.target.value })}
+          placeholder={`${DEBT_TYPE_LABELS[item.type] || 'Debt'} name`}
+        />
+        <span className="text-xs text-gray-500 shrink-0">{DEBT_TYPE_LABELS[item.type]}</span>
+        {item.currentBalance > 0 && (
+          <span className="text-xs text-red-400 font-mono shrink-0">
+            ${Math.round(item.currentBalance).toLocaleString()}
+          </span>
+        )}
+        {displayRepay > 0 && (
+          <span className="text-xs text-gray-400 font-mono shrink-0">
+            ${Math.round(displayRepay).toLocaleString()}/yr
+          </span>
+        )}
+        <button
+          className="text-gray-600 hover:text-red-400 text-sm shrink-0 ml-1"
+          onClick={onRemove}
+        >
+          ×
+        </button>
+      </div>
+
+      {open && (
+        <div className="p-4 space-y-3 bg-gray-800/20">
+          <div className="grid grid-cols-2 gap-4">
+            <CurrencyInput
+              label="Current balance"
+              value={item.currentBalance}
+              onChange={v => onUpdate({ currentBalance: v })}
+            />
+            <PctInput
+              label="Interest rate"
+              value={item.interestRate}
+              onChange={v => onUpdate({ interestRate: v })}
+            />
+          </div>
+
+          {item.type !== 'credit_card' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label">Term (years)</label>
+                <input
+                  className="input w-full"
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={item.termYears || ''}
+                  onChange={e => onUpdate({ termYears: Number(e.target.value) || null })}
+                  placeholder="5"
+                />
+              </div>
+              <div>
+                <label className="label">Start year</label>
+                <input
+                  className="input w-full"
+                  type="number"
+                  min={2020}
+                  max={2070}
+                  value={item.startYear || ''}
+                  onChange={e => onUpdate({ startYear: Number(e.target.value) || null })}
+                  placeholder="Already held"
+                />
+              </div>
+            </div>
+          )}
+
+          {item.type === 'lease' && (
+            <div className="grid grid-cols-2 gap-4">
+              <CurrencyInput
+                label="Residual / balloon value"
+                value={item.residualValue}
+                onChange={v => onUpdate({ residualValue: v })}
+              />
+              <CurrencyInput
+                label="Monthly repayment (0 = auto-calc)"
+                value={item.monthlyRepayment}
+                onChange={v => onUpdate({ monthlyRepayment: v })}
+              />
+            </div>
+          )}
+
+          {item.type === 'lease' && item.currentBalance > 0 && item.termYears > 0 && (
+            <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
+              {(() => {
+                const financed = item.currentBalance - (item.residualValue || 0)
+                const totalInterest = financed * (item.interestRate || 0) * item.termYears
+                const totalCost = financed + totalInterest
+                const annualPay = totalCost / item.termYears
+                return (
+                  <>
+                    <div>Financed: ${Math.round(financed).toLocaleString()} (balance − residual)</div>
+                    <div>Total interest: ${Math.round(totalInterest).toLocaleString()} (calculated upfront)</div>
+                    <div>Total cost: ${Math.round(totalCost).toLocaleString()}</div>
+                    <div className="text-gray-300 font-medium">Annual repayment: ${Math.round(annualPay).toLocaleString()}/yr (${Math.round(annualPay / 12).toLocaleString()}/mo)</div>
+                    {(item.residualValue || 0) > 0 && (
+                      <div className="text-amber-400">Residual of ${Math.round(item.residualValue).toLocaleString()} due in final year</div>
+                    )}
+                  </>
+                )
+              })()}
+            </div>
+          )}
+
+          {item.type === 'personal_loan' && (
+            <CurrencyInput
+              label="Monthly repayment"
+              value={item.monthlyRepayment}
+              onChange={v => onUpdate({ monthlyRepayment: v })}
+            />
+          )}
+
+          {item.type === 'credit_card' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <CurrencyInput
+                  label="Monthly repayment (0 = min 2%)"
+                  value={item.monthlyRepayment}
+                  onChange={v => onUpdate({ monthlyRepayment: v })}
+                />
+                <div>
+                  <label className="label">Mode</label>
+                  <select
+                    className="input w-full"
+                    value={item.repaymentMode || 'payoff'}
+                    onChange={e => onUpdate({ repaymentMode: e.target.value })}
+                  >
+                    <option value="payoff">Pay off (balance reduces)</option>
+                    <option value="revolving">Revolving (balance steady)</option>
+                  </select>
+                </div>
+              </div>
+              {item.repaymentMode === 'revolving' && (
+                <p className="text-xs text-amber-400">
+                  Revolving mode assumes the balance stays constant — interest is paid each year but principal is not reduced.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1068,7 +1590,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
   const removeBond = i =>
     updateScenario({ investmentBonds: scenario.investmentBonds.filter((_, idx) => idx !== i) })
 
-  const addExpense = () =>
+  const addExpenseGroup = () =>
     updateScenario({
       expenses: {
         ...scenario.expenses,
@@ -1077,7 +1599,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           {
             id: crypto.randomUUID(),
             label: '',
-            type: 'category',
+            type: 'group',
             amountType: 'annual',
             amount: 0,
             isDiscretionary: false,
@@ -1204,7 +1726,10 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title={`Expenses (${expenseItems.length} items)`} defaultOpen={false}>
+      <Section title={`Expenses (${expenseItems.length} groups)`} defaultOpen={false}>
+        <p className="text-xs text-gray-500 mb-3">
+          Organise expenses into groups, categories, and items (up to 3 levels). Each level can hold its own amount.
+        </p>
         <div className="space-y-2">
           {expenseItems.length === 0 && (
             <p className="text-sm text-gray-500 py-1">
@@ -1212,18 +1737,66 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             </p>
           )}
           {expenseItems.map((item, i) => (
-            <ExpenseItem
+            <ExpenseNode
               key={item.id}
               item={item}
+              depth={0}
               onUpdate={patch => updateExpense(i, patch)}
               onRemove={() => removeExpense(i)}
             />
           ))}
           <button
             className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm mt-2"
-            onClick={addExpense}
+            onClick={addExpenseGroup}
           >
-            + Add expense
+            + Add expense group
+          </button>
+        </div>
+      </Section>
+
+      <Section title={`Other Income (${(scenario.otherIncome || []).length})`} defaultOpen={false}>
+        <p className="text-sm text-gray-500 mb-3">
+          Consulting, part-time work, gifts, pensions, trust distributions, or any non-salary income.
+        </p>
+        <div className="space-y-3">
+          {(scenario.otherIncome || []).map((src, i) => (
+            <OtherIncomeItem
+              key={src.id}
+              item={src}
+              personAName={scenario.household.personA.name || 'Person A'}
+              personBName={scenario.household.personB.name || 'Person B'}
+              onUpdate={patch => {
+                const updated = [...(scenario.otherIncome || [])]
+                updated[i] = { ...updated[i], ...patch }
+                updateScenario({ otherIncome: updated })
+              }}
+              onRemove={() => {
+                updateScenario({ otherIncome: (scenario.otherIncome || []).filter((_, idx) => idx !== i) })
+              }}
+            />
+          ))}
+          <button
+            className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm mt-2"
+            onClick={() => updateScenario({
+              otherIncome: [
+                ...(scenario.otherIncome || []),
+                {
+                  id: crypto.randomUUID(),
+                  name: '',
+                  amount: 0,
+                  amountType: 'annual',
+                  activeFrom: null,
+                  activeTo: null,
+                  adjustmentType: 'none',
+                  adjustmentRate: 0,
+                  isTaxable: true,
+                  person: 'A',
+                  notes: '',
+                },
+              ],
+            })}
+          >
+            + Add income source
           </button>
         </div>
       </Section>
@@ -1381,13 +1954,63 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
+      <Section title={`Debts (${(scenario.debts || []).length})`} defaultOpen={false}>
+        <p className="text-sm text-gray-500 mb-3">
+          Personal loans, car leases, credit cards — any non-mortgage liabilities. Repayments are deducted from cashflow.
+        </p>
+        <div className="space-y-3">
+          {(scenario.debts || []).map((debt, i) => (
+            <DebtItem
+              key={debt.id}
+              item={debt}
+              defaultOpen={debt._autoOpen}
+              onUpdate={patch => {
+                const updated = [...(scenario.debts || [])]
+                const { _autoOpen, ...clean } = { ...updated[i], ...patch }
+                updated[i] = clean
+                updateScenario({ debts: updated })
+              }}
+              onRemove={() => {
+                updateScenario({ debts: (scenario.debts || []).filter((_, idx) => idx !== i) })
+              }}
+            />
+          ))}
+          <div className="flex gap-2">
+            <button
+              className="btn-ghost flex-1 py-2 border border-dashed border-gray-700 rounded-lg text-sm"
+              onClick={() => updateScenario({
+                debts: [...(scenario.debts || []), { ...createDebtDefaults('personal_loan'), _autoOpen: true }],
+              })}
+            >
+              + Personal loan
+            </button>
+            <button
+              className="btn-ghost flex-1 py-2 border border-dashed border-gray-700 rounded-lg text-sm"
+              onClick={() => updateScenario({
+                debts: [...(scenario.debts || []), { ...createDebtDefaults('lease'), _autoOpen: true }],
+              })}
+            >
+              + Lease
+            </button>
+            <button
+              className="btn-ghost flex-1 py-2 border border-dashed border-gray-700 rounded-lg text-sm"
+              onClick={() => updateScenario({
+                debts: [...(scenario.debts || []), { ...createDebtDefaults('credit_card'), _autoOpen: true }],
+              })}
+            >
+              + Credit card
+            </button>
+          </div>
+        </div>
+      </Section>
+
       <Section title="Surplus Strategy" defaultOpen={false}>
         <p className="text-sm text-gray-500 mb-4">
           When income exceeds expenses, where should the surplus go? Funds flow through in priority order.
           Only assets set to "From surplus" mode appear here.
         </p>
         {(() => {
-          const hasSurplusShares = (scenario.shares?.contributionMode || 'surplus') === 'surplus' && (scenario.shares?.annualContribution || 0) > 0
+          const hasSurplusShares = (scenario.shares?.contributionMode || 'surplus') === 'surplus'
           const hasSurplusBonds = (scenario.investmentBonds || []).some(b => b.contributionMode === 'surplus')
           const hasSurplusOtherAssets = (scenario.otherAssets || []).some(a => a.contributionMode === 'surplus')
 
@@ -1396,7 +2019,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
           // Auto-add/remove surplus destinations based on which assets are in surplus mode
           if (hasSurplusShares && !order.includes('shares')) order.splice(order.indexOf('cash'), 0, 'shares')
-          if (!hasSurplusShares && (scenario.shares?.annualContribution || 0) === 0) order = order.filter(d => d !== 'shares')
+          if (!hasSurplusShares) order = order.filter(d => d !== 'shares')
           if (hasSurplusBonds && !order.includes('bonds')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'bonds')
           if (!hasSurplusBonds) order = order.filter(d => d !== 'bonds')
           if (hasSurplusOtherAssets && !order.includes('otherAssets')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'otherAssets')
@@ -1456,7 +2079,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           )
         })()}
         <p className="text-xs text-gray-600 mt-3">
-          Each surplus-mode investment gets up to its target contribution. Remaining surplus flows to the next priority. Cash absorbs anything left over.
+          Each surplus-mode investment gets up to its target contribution. Shares with no target absorb all remaining surplus. Cash absorbs anything left over.
         </p>
       </Section>
     </div>
