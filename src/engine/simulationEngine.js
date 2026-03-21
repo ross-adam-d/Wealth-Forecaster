@@ -421,7 +421,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Route surplus through priority order (waterfall)
       // Auto-add surplus-mode assets that aren't already in the routing order
       // (matches UI auto-add logic so engine stays in sync even if order was saved before asset was set to surplus mode)
-      let effectiveRoutingOrder = [...surplusRoutingOrder]
+      let effectiveRoutingOrder = [...(surplusRoutingOrder || ['offset', 'shares', 'cash'])]
       const hasSurplusBonds = bondTargetContributions.some(b => b.mode === BOND_CONTRIBUTION_MODES.SURPLUS)
       const hasSurplusOtherAssets = otherAssetTargetContributions.some(a => a.mode === BOND_CONTRIBUTION_MODES.SURPLUS)
       const hasSurplusShares = sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS
@@ -456,19 +456,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             }
           }
         } else if (dest === SURPLUS_DESTINATIONS.SHARES) {
-          // Allocate surplus to shares when in surplus mode
-          if (sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS) {
-            if (sharesTarget > 0) {
-              // Explicit target: allocate up to that amount
-              const allocated = Math.min(remaining, sharesTarget)
-              surplusSharesContribution = allocated
-              remaining -= allocated
-            } else {
-              // No explicit target (legacy or annualContribution=0): absorb all remaining surplus
-              surplusSharesContribution = remaining
-              remaining = 0
-            }
+          // Allocate surplus to shares when in surplus mode, up to target
+          if (sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS && sharesTarget > 0) {
+            const allocated = Math.min(remaining, sharesTarget)
+            surplusSharesContribution = allocated
+            remaining -= allocated
           }
+          // If no target set (annualContribution=0), shares don't absorb surplus —
+          // remaining flows to the next destination in the waterfall
         } else if (dest === SURPLUS_DESTINATIONS.BONDS) {
           // Allocate surplus to surplus-mode bonds (capped at 125% of prior year)
           for (let i = 0; i < currentBonds.length; i++) {

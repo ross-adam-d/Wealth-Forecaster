@@ -78,16 +78,17 @@ describe('Bond contribution modes — engine integration', () => {
       expect(yr0.totalSurplusBondContributions).toBeGreaterThan(0)
     })
 
-    it('does not contribute when bonds not in routing order', () => {
+    it('surplus-mode bonds auto-added to routing order when missing', () => {
       const scenario = makeScenario({
         bond: { contributionMode: 'surplus' },
         surplusRoutingOrder: ['offset', 'shares', 'cash'],
-        // No 'bonds' in routing order
+        // No 'bonds' in routing order — engine auto-adds before cash
       })
       const snapshots = runSimulation(scenario)
       const yr0 = snapshots[0]
-      expect(yr0.totalBondContributions).toBe(0)
-      expect(yr0.totalSurplusBondContributions).toBe(0)
+      // Surplus-mode bonds are now auto-added to routing order
+      expect(yr0.totalBondContributions).toBeGreaterThan(0)
+      expect(yr0.totalSurplusBondContributions).toBeGreaterThan(0)
     })
 
     it('surplus-mode bond gets zero contribution in deficit year', () => {
