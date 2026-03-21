@@ -121,13 +121,19 @@ function PersonForm({ person, label, onUpdate }) {
 
     const result = lease.method === 'ecm' ? calcECM(params) : calcStatutory(params)
 
-    // If "offset with ECM" is checked, calculate what contribution eliminates FBT
-    let ecmOffsetContrib = 0
-    if (lease.offsetWithECM && !lease.isEV) {
-      ecmOffsetContrib = result.rawTaxableValue || 0
+    // Calculate the post-tax contribution needed to eliminate FBT entirely
+    // This is always rawTaxableValue regardless of method — that's the amount
+    // the employee needs to contribute post-tax to bring taxable value to $0
+    const offsetContribution = lease.isEV ? 0 : (result.rawTaxableValue || 0)
+
+    // If auto-offset is on, recalculate with the contribution applied
+    if (lease.offsetWithECM && offsetContribution > 0) {
+      const adjustedParams = { ...params, employeePostTaxContrib: offsetContribution }
+      const adjusted = lease.method === 'ecm' ? calcECM(adjustedParams) : calcStatutory(adjustedParams)
+      return { ...adjusted, offsetContribution }
     }
 
-    return { ...result, ecmOffsetContrib }
+    return { ...result, offsetContribution }
   }, [hasLease, p.packaging?.novatedLease])
 
   return (
@@ -329,12 +335,11 @@ function PersonForm({ person, label, onUpdate }) {
                   id={`ecm-offset-${label}`}
                   checked={!!p.packaging.novatedLease.offsetWithECM}
                   onChange={e => {
-                    const useECM = e.target.checked
-                    const contrib = useECM && fbtBreakdown ? fbtBreakdown.ecmOffsetContrib : 0
+                    const offset = e.target.checked
+                    const contrib = offset && fbtBreakdown ? fbtBreakdown.offsetContribution : 0
                     updateLease({
-                      offsetWithECM: useECM,
+                      offsetWithECM: offset,
                       employeePostTaxContribution: contrib,
-                      method: useECM ? 'ecm' : p.packaging.novatedLease.method,
                     })
                   }}
                 />
@@ -368,13 +373,17 @@ function PersonForm({ person, label, onUpdate }) {
             {/* FBT breakdown */}
             {fbtBreakdown && (
               <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
-                <div className="text-gray-300 font-medium mb-1">FBT Calculation ({fbtBreakdown.method === 'ev_exempt' ? 'EV exempt' : fbtBreakdown.method === 'ecm' ? 'ECM' : 'Statutory'})</div>
-                <div>Taxable value: ${Math.round(fbtBreakdown.taxableValue).toLocaleString()}</div>
+                <div className="text-gray-300 font-medium mb-1">FBT Calculation ({fbtBreakdown.method === 'ev_exempt' ? 'EV exempt' : fbtBreakdown.method === 'ecm' ? 'Operating Cost (ECM)' : 'Statutory'})</div>
+                <div>FBT taxable value (cost × 20%): ${Math.round(fbtBreakdown.rawTaxableValue || 0).toLocaleString()}</div>
+                <div>Taxable value after contribution: ${Math.round(fbtBreakdown.taxableValue).toLocaleString()}</div>
                 <div>FBT liability: ${Math.round(fbtBreakdown.fbtLiability).toLocaleString()}</div>
                 <div>Pre-tax packaging reduction: ${Math.round(fbtBreakdown.pretaxPackageReduction).toLocaleString()}</div>
                 <div>Est. income tax saving: ${Math.round(fbtBreakdown.incomeTaxSaving).toLocaleString()}</div>
                 {(fbtBreakdown.employeePostTaxContrib || 0) > 0 && (
-                  <div>Employee post-tax contribution: ${Math.round(fbtBreakdown.employeePostTaxContrib).toLocaleString()}</div>
+                  <div>Employee post-tax contribution: ${Math.round(fbtBreakdown.employeePostTaxContrib).toLocaleString()}/yr</div>
+                )}
+                {p.packaging.novatedLease.offsetWithECM && (
+                  <div className="text-sky-400">FBT offset: contributing ${Math.round(fbtBreakdown.offsetContribution || 0).toLocaleString()}/yr post-tax to eliminate FBT</div>
                 )}
                 <div className="text-green-400 font-medium">Net annual benefit: ${Math.round(fbtBreakdown.netAnnualBenefit).toLocaleString()}/yr</div>
                 {fbtBreakdown.warnings?.map((w, i) => (

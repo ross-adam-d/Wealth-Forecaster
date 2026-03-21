@@ -56,12 +56,28 @@ function resolveNovatedLeaseReduction(person, year) {
   if (from != null && year < from) return { reduction: 0, fbtResult: null }
   if (to != null && year > to) return { reduction: 0, fbtResult: null }
 
+  // If offsetWithECM is on, first calculate without contribution to find rawTaxableValue,
+  // then recalculate with that as the contribution to eliminate FBT
+  let employeeContrib = lease.employeePostTaxContribution || 0
+  if (lease.offsetWithECM && !lease.isEV) {
+    const baseParams = {
+      vehicleCostPrice: lease.vehicleCostPrice,
+      annualRunningCosts: lease.annualRunningCosts,
+      annualKmTotal: lease.annualKmTotal,
+      annualKmBusiness: lease.annualKmBusiness,
+      employeePostTaxContrib: 0,
+      isEV: false,
+    }
+    const baseResult = lease.method === 'ecm' ? calcECM(baseParams) : calcStatutory(baseParams)
+    employeeContrib = baseResult.rawTaxableValue || 0
+  }
+
   const params = {
     vehicleCostPrice: lease.vehicleCostPrice,
     annualRunningCosts: lease.annualRunningCosts,
     annualKmTotal: lease.annualKmTotal,
     annualKmBusiness: lease.annualKmBusiness,
-    employeePostTaxContrib: lease.employeePostTaxContribution,
+    employeePostTaxContrib: employeeContrib,
     isEV: lease.isEV,
   }
 
