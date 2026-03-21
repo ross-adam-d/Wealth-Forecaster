@@ -64,6 +64,7 @@
 - [x] **Post-retirement income routing** — other income sources can be directed to specific vehicles (shares, bonds, other assets, cash) after retirement instead of flowing through general cashflow. New `routeTo` field on each income source.
 - [x] **Contribution capping** — fixed contributions no longer force asset drawdowns. Capped at available cashflow (income minus essential outflows). If income drops below expenses + mortgage + debts, contributions scale down proportionally.
 - [x] **Routed income duplication fix** — income routed to a vehicle is now subtracted from general cashflow so it only goes to one destination (was double-counted: vehicle + cash).
+- [x] **Dynamic liabilities in cashflow detail table** — new LIABILITIES column group (amber) between ASSETS and NET. Dynamically built from scenario properties (mortgage balances) and debts (loans, leases, credit cards). Each liability gets its own named column plus a "Total liabilities" summary. Auto-hides when no liabilities exist. Removed redundant `debtsBal` from ASSET_COLS.
 - [ ] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
 - [ ] **Investment breakdown view** — year-by-year table or chart showing each investment asset growing/depleting over time
 - [ ] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: income, income breakdown, expenses, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
@@ -92,6 +93,15 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-21 (6)
+
+**What was done:**
+- **Dynamic liabilities in cashflow detail table**: New LIABILITIES column group (amber-colored header) between ASSETS and NET. Columns built dynamically from `scenario.properties` (mortgage balances via `propertyResults[i].mortgageBalance`) and `scenario.debts` (closing balances via `debtResult.results[i].closingBalance`). Each liability uses its name from the scenario. Includes "Total liabilities" summary column. Auto-hides empty columns and entire group when no liabilities exist. Removed redundant `debtsBal` from ASSET_COLS since liabilities now have their own section. Real/nominal transform applied.
+
+**State at end of session:** Cashflow detail table now shows full balance sheet — assets AND liabilities tracked year-by-year. 281 tests passing. Deployed to production.
+
+---
 
 ### Session — 2026-03-21 (5)
 

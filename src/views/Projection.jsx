@@ -121,9 +121,27 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'bondsBal',      label: 'Bonds' },
     { key: 'otherAssetsBal', label: 'Other assets' },
     { key: 'cashBal',       label: 'Cash' },
-    { key: 'debtsBal',      label: 'Debts', signed: true },
     { key: 'liquidAssets',  label: 'Liquid assets', isTotal: true },
   ], [])
+
+  // Dynamic liability columns — built from scenario properties + debts
+  const LIABILITY_COLS = useMemo(() => {
+    const cols = []
+    ;(scenario.properties || []).forEach((prop, i) => {
+      if (prop.purchasePrice > 0 || prop.currentValue > 0) {
+        cols.push({ key: `mortgage_${i}`, label: prop.name || `Mortgage ${i + 1}` })
+      }
+    })
+    ;(scenario.debts || []).forEach((debt, i) => {
+      if (debt.currentBalance > 0) {
+        cols.push({ key: `debt_${i}`, label: debt.name || `Debt ${i + 1}` })
+      }
+    })
+    if (cols.length > 0) {
+      cols.push({ key: 'totalLiabilities', label: 'Total liabilities', isTotal: true })
+    }
+    return cols
+  }, [scenario.properties, scenario.debts])
 
   const detailRows = useMemo(() => snapshots.map(s => {
     const rentalNet = s.propertyResults?.reduce(
@@ -161,8 +179,17 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       bondsBal:        (s.bondLiquidity ?? 0) + (s.bondPreTenYr ?? 0),
       otherAssetsBal:  s.totalOtherAssetsValue ?? 0,
       cashBal:         s.cashBuffer ?? 0,
-      debtsBal:        -(s.totalDebtBalance ?? 0),
       liquidAssets:    s.totalLiquidAssets,
+      // Liability balances (dynamic)
+      ...(scenario.properties || []).reduce((acc, _, i) => {
+        acc[`mortgage_${i}`] = s.propertyResults?.[i]?.mortgageBalance ?? 0
+        return acc
+      }, {}),
+      ...(scenario.debts || []).reduce((acc, _, i) => {
+        acc[`debt_${i}`] = s.debtResult?.results?.[i]?.closingBalance ?? 0
+        return acc
+      }, {}),
+      totalLiabilities: (s.totalMortgageBalance ?? 0) + (s.totalDebtBalance ?? 0),
       // Net
       netCashflow:     s.netCashflow,
       assetDrawdowns:  (s.sharesDrawdown ?? 0) + bondW + (s.cashDrawdown ?? 0) + (s.superAExtra ?? 0) + (s.superBExtra ?? 0),
@@ -176,6 +203,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const visibleExpenseCols = EXPENSE_COLS.filter(col => detailRows.some(r => r[col.key] > 500))
   const visibleAssetCols = ASSET_COLS.filter(col =>
     col.isTotal || detailRows.some(r => Math.abs(r[col.key]) > 500)
+  )
+  const visibleLiabilityCols = LIABILITY_COLS.filter(col =>
+    col.isTotal || detailRows.some(r => r[col.key] > 500)
   )
 
   // Filter to 5-yr steps when not showing all (always include current, retirement, and final year)
@@ -488,6 +518,14 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     >
                       ASSETS
                     </th>
+                    {visibleLiabilityCols.length > 0 && (
+                      <th
+                        colSpan={visibleLiabilityCols.length}
+                        className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-amber-400 font-semibold border-l border-gray-700 tracking-wide"
+                      >
+                        LIABILITIES
+                      </th>
+                    )}
                     <th
                       colSpan={2}
                       className="sticky top-0 z-20 bg-gray-900 py-2 px-3 text-center text-gray-400 font-semibold border-l border-gray-700 tracking-wide"
@@ -520,6 +558,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                         key={col.key}
                         style={{ top: '33px' }}
                         className={`sticky z-20 bg-gray-900 py-2 px-3 text-right whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''} ${col.isTotal ? 'text-emerald-400 font-semibold' : 'text-gray-500 font-medium'}`}
+                      >
+                        {col.label}
+                      </th>
+                    ))}
+                    {visibleLiabilityCols.map((col, i) => (
+                      <th
+                        key={col.key}
+                        style={{ top: '33px' }}
+                        className={`sticky z-20 bg-gray-900 py-2 px-3 text-right whitespace-nowrap ${i === 0 ? 'border-l border-gray-700' : ''} ${col.isTotal ? 'text-amber-400 font-semibold' : 'text-gray-500 font-medium'}`}
                       >
                         {col.label}
                       </th>
@@ -602,6 +649,29 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                               className={`py-1.5 px-2 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${isNeg ? 'text-red-400' : absVal > 500 ? 'text-gray-300' : 'text-gray-600'}`}
                             >
                               {absVal > 500 ? (isNeg ? `(${fmt$(transform(absVal, r.year))})` : fmt$(transform(val, r.year))) : '—'}
+                            </td>
+                          )
+                        })}
+
+                        {/* Liability balances */}
+                        {visibleLiabilityCols.map((col, i) => {
+                          const val = r[col.key]
+                          if (col.isTotal) {
+                            return (
+                              <td
+                                key={col.key}
+                                className={`py-1.5 px-2 text-right tabular-nums font-semibold ${i === 0 ? 'border-l border-gray-800' : ''} ${val > 500 ? 'text-amber-400' : 'text-gray-600'}`}
+                              >
+                                {val > 500 ? fmt$(transform(val, r.year)) : '—'}
+                              </td>
+                            )
+                          }
+                          return (
+                            <td
+                              key={col.key}
+                              className={`py-1.5 px-2 text-right tabular-nums ${i === 0 ? 'border-l border-gray-800' : ''} ${val > 500 ? 'text-gray-300' : 'text-gray-600'}`}
+                            >
+                              {val > 500 ? fmt$(transform(val, r.year)) : '—'}
                             </td>
                           )
                         })}
