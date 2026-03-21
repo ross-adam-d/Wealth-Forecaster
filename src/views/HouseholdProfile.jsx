@@ -1383,6 +1383,24 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
               )}
             </div>
           )}
+
+          <div>
+            <label className="label">Post-retirement routing</label>
+            <select
+              className="input w-full"
+              value={item.routeTo || 'cashflow'}
+              onChange={e => onUpdate({ routeTo: e.target.value })}
+            >
+              <option value="cashflow">General cashflow</option>
+              <option value="shares">Direct to shares</option>
+              <option value="bonds">Direct to investment bonds</option>
+              <option value="otherAssets">Direct to other assets</option>
+              <option value="cash">Direct to cash buffer</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              After retirement, route this income directly to a specific vehicle instead of general cashflow
+            </p>
+          </div>
         </div>
       )}
     </div>
@@ -2145,6 +2163,67 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         })()}
         <p className="text-xs text-gray-600 mt-3">
           Each surplus-mode investment gets up to its target contribution. Shares with no target absorb all remaining surplus. Cash absorbs anything left over.
+        </p>
+      </Section>
+
+      <Section title="Drawdown Strategy" defaultOpen={false}>
+        <p className="text-sm text-gray-500 mb-4">
+          When expenses exceed income (post-retirement), which assets should be sold first to cover the shortfall?
+        </p>
+        {(() => {
+          const defaultOrder = ['cash', 'shares', 'bonds', 'otherAssets', 'super']
+          const order = [...(scenario.drawdownOrder || defaultOrder)]
+
+          const destLabels = {
+            cash: 'Cash buffer',
+            shares: 'Share portfolio',
+            bonds: 'Investment bonds',
+            otherAssets: 'Other assets',
+            super: 'Super (pension phase)',
+          }
+
+          return (
+            <div className="space-y-3">
+              {order.map((dest, i) => (
+                <div key={dest} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
+                  <select
+                    className="input flex-1 text-sm py-1.5"
+                    value={dest}
+                    onChange={e => {
+                      const newOrder = [...order]
+                      const newDest = e.target.value
+                      const existingIdx = newOrder.indexOf(newDest)
+                      if (existingIdx !== -1) {
+                        newOrder[existingIdx] = newOrder[i]
+                      }
+                      newOrder[i] = newDest
+                      updateScenario({ drawdownOrder: newOrder })
+                    }}
+                  >
+                    {Object.entries(destLabels).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                  {i > 0 && (
+                    <button
+                      className="text-gray-600 hover:text-gray-300 text-xs"
+                      onClick={() => {
+                        const newOrder = [...order]
+                        ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]
+                        updateScenario({ drawdownOrder: newOrder })
+                      }}
+                    >
+                      ▲
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+        <p className="text-xs text-gray-600 mt-3">
+          Assets are drawn in this order until the shortfall is covered. Super is only available in pension phase. Bonds draw tax-free tranches first.
         </p>
       </Section>
     </div>

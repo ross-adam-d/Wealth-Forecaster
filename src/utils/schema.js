@@ -221,6 +221,7 @@ export function createDefaultOtherIncomeSource() {
     isTaxable: true,              // included in assessable income for tax calc
     person: 'A',                  // 'A' | 'B' | 'household' — determines whose tax return
     notes: '',
+    routeTo: 'cashflow',            // 'cashflow' | 'shares' | 'bonds' | 'otherAssets' | 'cash' — where to direct funds post-retirement
   }
 }
 
@@ -247,5 +248,6 @@ export function createDefaultScenario(name = 'Base Plan') {
     debts: [],
     events: [],
     surplusRoutingOrder: ['offset', 'shares', 'cash'],
+    drawdownOrder: ['cash', 'shares', 'bonds', 'otherAssets', 'super'],
   }
 }

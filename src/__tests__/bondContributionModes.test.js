@@ -51,17 +51,18 @@ describe('Bond contribution modes — engine integration', () => {
       expect(bondClosing).toBeGreaterThan(50_000 + 40_000)
     })
 
-    it('fixed contributions can create deficit when income is insufficient', () => {
-      // Set expenses to eat almost all income, so 40k bond contribution pushes into deficit
+    it('fixed contributions are capped at available cashflow (no deficit-funded contributions)', () => {
+      // Set expenses to eat almost all income, so 40k bond contribution would exceed available
       const scenario = makeScenario({
         bond: { contributionMode: 'fixed' },
         expenses: 100_000,
       })
       const snapshots = runSimulation(scenario)
       const yr0 = snapshots[0]
-      // With 150k salary, ~100k expenses, ~40k bond = outflows > income after tax
-      // Contribution is still made even if it causes deficit
-      expect(yr0.totalBondContributions).toBeCloseTo(40_000, 0)
+      // With 150k salary, ~100k expenses, contribution capped at available cashflow
+      // Should be less than target but still contribute what's available
+      expect(yr0.totalBondContributions).toBeLessThan(40_000)
+      expect(yr0.totalBondContributions).toBeGreaterThan(0)
     })
   })
 

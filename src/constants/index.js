@@ -99,3 +99,14 @@ export const SURPLUS_DESTINATIONS = {
   BONDS: 'bonds',
   OTHER_ASSETS: 'otherAssets',
 }
+
+// Drawdown priority — which assets to sell first when expenses exceed income
+export const DRAWDOWN_SOURCES = {
+  CASH: 'cash',
+  SHARES: 'shares',
+  BONDS: 'bonds',
+  OTHER_ASSETS: 'otherAssets',
+  SUPER: 'super',
+}
+
+export const DEFAULT_DRAWDOWN_ORDER = ['cash', 'shares', 'bonds', 'otherAssets', 'super']

@@ -68,14 +68,18 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     }
   })
 
-  // Cashflow chart data
-  const cashflowData = snapshots.map(s => ({
-    year: s.year,
-    income: transform(s.totalIncome, s.year),
-    outflows: transform(s.totalOutflows, s.year),
-    net: transform(s.netCashflow, s.year),
-    isDeficit: s.isDeficit,
-  }))
+  // Cashflow chart data — include novated lease in outflows for chart visibility
+  const cashflowData = snapshots.map(s => {
+    const leaseNet = (s.leaseReductionA || 0) + (s.leaseReductionB || 0)
+    return {
+      year: s.year,
+      income: transform(s.totalIncome, s.year),
+      outflows: transform(s.totalOutflows + leaseNet, s.year),
+      lease: leaseNet > 0 ? transform(leaseNet, s.year) : 0,
+      net: transform(s.netCashflow, s.year),
+      isDeficit: s.isDeficit,
+    }
+  })
 
   const retireYear = retirementDate?.retirementYear
 
@@ -107,6 +111,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'livingExpenses', label: 'Expenses' },
     { key: 'mortgage',       label: 'Mortgage' },
     { key: 'debtRepayments', label: 'Debt repay' },
+    { key: 'novatedLease',   label: 'Novated lease' },
   ], [])
 
   const ASSET_COLS = useMemo(() => [
@@ -148,6 +153,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       livingExpenses:  s.totalExpenses,
       mortgage:        Math.max(0, mortgage),
       debtRepayments:  s.totalDebtRepayments ?? 0,
+      novatedLease:    (s.leaseReductionA ?? 0) + (s.leaseReductionB ?? 0),
       // Asset balances
       superABal:       s.superABalance ?? 0,
       superBBal:       s.superBBalance ?? 0,
@@ -279,7 +285,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Annual cashflow */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-1">
           <h2 className="text-sm font-semibold text-gray-300">Annual Cashflow</h2>
           <select
             value={cashflowRange}
@@ -292,6 +298,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             <option value="full">Full plan</option>
           </select>
         </div>
+        <p className="text-xs text-gray-600 mb-4">
+          Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
+        </p>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
@@ -303,7 +312,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income (after tax)" />
-            <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Total Outflows (expenses + mortgage)" />
+            <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Total outflows (incl. lease)" />
             <Bar dataKey="net"      fill="#4ade80" fillOpacity={0.6} name="Net surplus / deficit" />
           </BarChart>
         </ResponsiveContainer>
@@ -402,6 +411,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             <CashflowSankey
               snapshot={snapshots[sankeyYearIdx]}
               scenario={scenario}
+              transform={transform}
             />
 
             <p className="mt-3 text-xs text-gray-600 leading-relaxed">

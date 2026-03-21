@@ -35,9 +35,11 @@ const C = {
   bonds:     '#fbbf24',
   shares:    '#4ade80',
   propSale:  '#34d399',
+  otherInc:  '#c084fc',
   tax:       '#f87171',
   expenses:  '#ef4444',
   mortgage:  '#fca5a5',
+  lease:     '#fb923c',
   surplus:   '#4ade80',
   deficit:   '#f87171',
 }
@@ -120,9 +122,11 @@ function NodeLabel({ n, side }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function CashflowSankey({ snapshot, scenario }) {
+export default function CashflowSankey({ snapshot, scenario, transform }) {
   const personAName = scenario?.household?.personA?.name || 'Person A'
   const personBName = scenario?.household?.personB?.name || 'Person B'
+  // transform: (value, year) => adjusted value — identity if not provided
+  const tx = transform || (v => v)
 
   const { leftNodes, rightNodes, links } = useMemo(() => {
     const empty = { leftNodes: [], rightNodes: [], links: [] }
@@ -131,20 +135,23 @@ export default function CashflowSankey({ snapshot, scenario }) {
     const s = snapshot
 
     // ── Raw values ────────────────────────────────────────────────────────────
-    const salaryA   = s.salaryA || 0
-    const salaryB   = s.salaryB || 0
-    const totalTax  = (s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0)
-    const rentalNet = s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) || 0
-    const dividends = (s.sharesResult?.cashDividend || 0) + (s.taxA?.frankingRefund || 0)
-    const superA    = (s.superA?.drawdown || 0) + (s.superAExtra || 0)
-    const superB    = (s.superB?.drawdown || 0) + (s.superBExtra || 0)
-    const bondW     = s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) || 0
-    const sharesD   = s.sharesDrawdown || 0
-    const cashD     = s.cashDrawdown || 0
-    const propSale  = s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) || 0
-    const livingExp = s.totalExpenses || 0
-    const mortgage  = Math.max(0, (s.totalOutflows || 0) - (s.totalExpenses || 0))
-    const netCF     = s.netCashflow || 0
+    const yr = s.year
+    const salaryA   = tx(s.salaryA || 0, yr)
+    const salaryB   = tx(s.salaryB || 0, yr)
+    const totalTax  = tx((s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0), yr)
+    const rentalNet = tx(s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) || 0, yr)
+    const dividends = tx((s.sharesResult?.cashDividend || 0) + (s.taxA?.frankingRefund || 0), yr)
+    const superA    = tx((s.superA?.drawdown || 0) + (s.superAExtra || 0), yr)
+    const superB    = tx((s.superB?.drawdown || 0) + (s.superBExtra || 0), yr)
+    const bondW     = tx(s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) || 0, yr)
+    const sharesD   = tx(s.sharesDrawdown || 0, yr)
+    const cashD     = tx(s.cashDrawdown || 0, yr)
+    const propSale  = tx(s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) || 0, yr)
+    const otherInc  = tx(s.totalOtherIncome || 0, yr)
+    const leaseNet  = tx((s.leaseReductionA || 0) + (s.leaseReductionB || 0), yr)
+    const livingExp = tx(s.totalExpenses || 0, yr)
+    const mortgage  = Math.max(0, tx((s.totalOutflows || 0) - (s.totalExpenses || 0) - ((s.leaseReductionA || 0) + (s.leaseReductionB || 0)), yr))
+    const netCF     = tx(s.netCashflow || 0, yr)
     const surplus   = netCF > 0 ? netCF : 0
     const deficit   = netCF < 0 ? Math.abs(netCF) : 0
 
@@ -160,6 +167,7 @@ export default function CashflowSankey({ snapshot, scenario }) {
     if (bondW     > 100)  rawLeft.push({ id: 'bonds',     label: 'Bond withdrawals',                     value: bondW,     color: C.bonds     })
     if (sharesD   > 100)  rawLeft.push({ id: 'shares',    label: 'Shares sold (gap funding)',   value: sharesD,   color: C.shares    })
     if (cashD     > 100)  rawLeft.push({ id: 'cashD',     label: 'Cash reserves drawn',         value: cashD,     color: '#94a3b8'   })
+    if (otherInc  > 100)  rawLeft.push({ id: 'otherInc',  label: 'Other income',                 value: otherInc,  color: C.otherInc  })
     if (propSale  > 100)  rawLeft.push({ id: 'propSale',  label: 'Property sale proceeds',      value: propSale,  color: C.propSale  })
 
     // ── RIGHT: uses of income ─────────────────────────────────────────────────
@@ -167,6 +175,7 @@ export default function CashflowSankey({ snapshot, scenario }) {
     if (totalTax  > 100)  rawRight.push({ id: 'tax',      label: 'Income tax & Medicare',                value: totalTax,  color: C.tax      })
     if (livingExp > 100)  rawRight.push({ id: 'expenses', label: 'Living expenses',                      value: livingExp, color: C.expenses })
     if (mortgage  > 100)  rawRight.push({ id: 'mortgage', label: 'Mortgage repayments',                  value: mortgage,  color: C.mortgage })
+    if (leaseNet  > 100)  rawRight.push({ id: 'lease',    label: 'Novated lease (net)',                  value: leaseNet,  color: C.lease    })
     if (surplus   > 100)  rawRight.push({ id: 'surplus',  label: 'Surplus → savings & investments',      value: surplus,   color: C.surplus  })
     if (deficit   > 100)  rawRight.push({ id: 'deficit',  label: 'Deficit (all sources exhausted)',      value: deficit,   color: C.deficit  })
 
@@ -211,7 +220,7 @@ export default function CashflowSankey({ snapshot, scenario }) {
     })
 
     return { leftNodes, rightNodes, links }
-  }, [snapshot, personAName, personBName])
+  }, [snapshot, personAName, personBName, tx])
 
   if (!leftNodes.length) {
     return (

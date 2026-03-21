@@ -14,12 +14,16 @@
 /**
  * Resolve a single other-income source's annual amount for a given year.
  *
+ * One-off amounts are treated as "today's dollars" (real) — they are inflated
+ * to nominal so that when displayed in real terms they show the entered value.
+ *
  * @param {object} source - other income source from data model
  * @param {number} year   - simulation year
  * @param {number} startYear - first simulation year (for compounding adjustments)
+ * @param {number} [inflationRate=0] - annual inflation rate for real→nominal conversion
  * @returns {number} resolved annual amount (0 if outside active window)
  */
-export function resolveOtherIncomeAmount(source, year, startYear) {
+export function resolveOtherIncomeAmount(source, year, startYear, inflationRate = 0) {
   const { amount, amountType, activeFrom, activeTo, adjustmentType, adjustmentRate } = source
   if (amount == null || amount === 0) return 0
 
@@ -29,10 +33,11 @@ export function resolveOtherIncomeAmount(source, year, startYear) {
 
   if (year < effectiveFrom || year > effectiveTo) return 0
 
-  // One-off: only in the specific year
+  // One-off: only in the specific year — inflate to nominal (user enters real dollars)
   if (amountType === 'one_off') {
     if (year !== effectiveFrom) return 0
-    return amount
+    const yearsFromNow = year - startYear
+    return amount * Math.pow(1 + inflationRate, yearsFromNow)
   }
 
   // Base annual amount
@@ -62,9 +67,10 @@ export function resolveOtherIncomeAmount(source, year, startYear) {
  * @param {Array} sources   - scenario.otherIncome array
  * @param {number} year     - simulation year
  * @param {number} startYear
+ * @param {number} [inflationRate=0] - for real→nominal inflation on one-off amounts
  * @returns {{ total, taxableA, taxableB, nonTaxable, breakdown }}
  */
-export function processOtherIncome(sources, year, startYear) {
+export function processOtherIncome(sources, year, startYear, inflationRate = 0) {
   let total = 0
   let taxableA = 0
   let taxableB = 0
@@ -72,7 +78,7 @@ export function processOtherIncome(sources, year, startYear) {
   const breakdown = []
 
   for (const source of sources) {
-    const amount = resolveOtherIncomeAmount(source, year, startYear)
+    const amount = resolveOtherIncomeAmount(source, year, startYear, inflationRate)
     if (amount <= 0) continue
 
     total += amount

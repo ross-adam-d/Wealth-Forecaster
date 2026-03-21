@@ -179,9 +179,11 @@ describe('End-to-end model validation', () => {
 
   it('bond fixed contributions deducted every year while working', () => {
     const snaps = runSimulation(buildRealisticScenario())
-    // Check first 10 years (both still working)
-    for (let i = 0; i < 10 && i < snaps.length; i++) {
-      expect(snaps[i].totalBondContributions).toBeCloseTo(30_000, -2)
+    // Check years while both are working (person A retires at 55 = 2035)
+    const bothWorkingSnaps = snaps.filter(s => s.salaryA > 0 && s.salaryB > 0)
+    expect(bothWorkingSnaps.length).toBeGreaterThan(5)
+    for (const s of bothWorkingSnaps) {
+      expect(s.totalBondContributions).toBeCloseTo(30_000, -2)
     }
   })
 
@@ -240,9 +242,12 @@ describe('End-to-end model validation', () => {
     if (yr2033) expect(yr2033.otherIncomeResult.taxableA).toBe(0)
 
     // Inheritance: one-off $50k in 2030, non-taxable
+    // One-off amounts are entered in today's dollars and inflated to nominal
     const yr2030 = snaps.find(s => s.year === 2030)
     if (yr2030) {
-      expect(yr2030.otherIncomeResult.nonTaxable).toBeCloseTo(50_000, -2)
+      const yearsOut = 2030 - currentYear
+      const expected = 50_000 * Math.pow(1.025, yearsOut)
+      expect(yr2030.otherIncomeResult.nonTaxable).toBeCloseTo(expected, -2)
     }
   })
 
@@ -410,5 +415,61 @@ describe('End-to-end model validation', () => {
     for (const s of snaps) {
       expect(Array.isArray(s.warnings)).toBe(true)
     }
+  })
+
+  it('custom drawdown order is respected', () => {
+    const scenario = buildRealisticScenario()
+    // Force deficit: no salary, high expenses
+    scenario.household.personA.retirementAge = 40  // already retired
+    scenario.household.personB.retirementAge = 40
+    scenario.expenses.children[0].amount = 60_000
+    scenario.investmentBonds = []
+    scenario.debts = []
+    // Put shares before cash in drawdown order
+    scenario.drawdownOrder = ['shares', 'cash', 'bonds', 'otherAssets', 'super']
+    scenario.shares.currentValue = 100_000
+    const snaps = runSimulation(scenario)
+    const yr0 = snaps[0]
+    // Shares should be drawn before cash
+    const sharesDrawn = yr0.sharesDrawdown || 0
+    expect(sharesDrawn).toBeGreaterThan(0)
+  })
+
+  it('post-retirement income routing directs to target vehicle', () => {
+    const scenario = buildRealisticScenario()
+    scenario.household.personA.retirementAge = 40  // already retired
+    scenario.household.personB.retirementAge = 40
+    scenario.expenses.children[0].amount = 10_000  // low expenses
+    scenario.investmentBonds = []
+    scenario.debts = []
+    // Add other income routed to shares
+    scenario.otherIncome = [{
+      id: 'pension-1',
+      name: 'Pension',
+      amount: 30_000,
+      amountType: 'annual',
+      activeFrom: null,
+      activeTo: null,
+      adjustmentType: 'none',
+      adjustmentRate: 0,
+      isTaxable: false,
+      person: 'A',
+      routeTo: 'shares',
+    }]
+    const snaps = runSimulation(scenario)
+    const yr0 = snaps[0]
+    // Shares should receive the routed pension contribution
+    expect(yr0.sharesContribution).toBeCloseTo(30_000, 0)
+  })
+
+  it('accumulation contributions stop post-retirement', () => {
+    const scenario = buildRealisticScenario()
+    scenario.household.personA.retirementAge = 40  // already retired
+    scenario.household.personB.retirementAge = 40
+    const snaps = runSimulation(scenario)
+    const yr0 = snaps[0]
+    // No fixed/surplus contributions post-retirement
+    expect(yr0.sharesContribution).toBe(0)
+    expect(yr0.totalBondContributions).toBe(0)
   })
 })

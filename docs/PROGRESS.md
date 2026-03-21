@@ -54,11 +54,19 @@
 - [x] **Novated lease UX** — auto-expand on add, ECM offset checkbox with auto-calc, FBT breakdown panel, start/end year wired into simulation. 255 tests passing.
 
 ### Up Next (prioritised)
-- [x] **End-to-end model validation** — 22-test suite covering: mortgage offset waterfall, surplus routing priority, shares/bonds contributions, super pension phase transition, salary retirement cutoff, debt payoff, other income windows, novated lease FBT pro-rating, deficit detection, retirement age proportionality, NaN/Infinity guards, cashflow reconciliation, net worth consistency.
+- [x] **End-to-end model validation** — 25-test suite covering: mortgage offset waterfall, surplus routing priority, shares/bonds contributions, super pension phase transition, salary retirement cutoff, debt payoff, other income windows, novated lease FBT pro-rating, deficit detection, retirement age proportionality, NaN/Infinity guards, cashflow reconciliation, net worth consistency, custom drawdown order, post-retirement income routing, accumulation cessation.
+- [x] **Novated lease in charts** — lease reduction stored in snapshot; shown as expense in Sankey ("Novated lease (net)") and included in cashflow chart outflows. Detail table has "Novated lease" column.
+- [x] **Other income in Sankey** — `totalOtherIncome` now appears as income node in cashflow flow diagram.
+- [x] **Cashflow chart real/nominal fix** — Y-axis subtitle shows "today's dollars" vs "nominal (projected)" matching net worth chart. Sankey also receives `transform` function and adjusts all values for real/nominal toggle.
+- [x] **One-off income as real dollars** — one-off future income inflated to nominal in engine (user enters today's money; $1M in 2046 = $1M today, inflated to ~$1.6M nominal).
+- [x] **Post-retirement accumulation stop** — all fixed/surplus contributions to shares, bonds, and other assets cease when all persons retire. Balances continue to compound but no new money flows in.
+- [x] **Drawdown strategy** — configurable priority order for deficit asset drawdowns: cash, shares, bonds, other assets, super. UI section in Household Profile mirrors surplus strategy pattern.
+- [x] **Post-retirement income routing** — other income sources can be directed to specific vehicles (shares, bonds, other assets, cash) after retirement instead of flowing through general cashflow. New `routeTo` field on each income source.
+- [x] **Contribution capping** — fixed contributions no longer force asset drawdowns. Capped at available cashflow (income minus essential outflows). If income drops below expenses + mortgage + debts, contributions scale down proportionally.
+- [x] **Routed income duplication fix** — income routed to a vehicle is now subtracted from general cashflow so it only goes to one destination (was double-counted: vehicle + cash).
 - [ ] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
 - [ ] **Investment breakdown view** — year-by-year table or chart showing each investment asset growing/depleting over time
 - [ ] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: income, income breakdown, expenses, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
-- [ ] **Cashflow chart real/nominal fix** — cashflow chart doesn't respond to today's vs real dollars toggle
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [ ] Impact Analyser: wire lever values into simulation overrides
@@ -84,6 +92,24 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-21 (5)
+
+**What was done:**
+- **Novated lease in charts**: `leaseReductionA`/`leaseReductionB` stored in snapshot. Sankey shows "Novated lease (net)" as expense node. Cashflow chart outflows bar includes lease. Detail table has "Novated lease" expense column.
+- **Other income in Sankey**: `totalOtherIncome` added as purple income node on left side of Sankey diagram.
+- **Cashflow chart real/nominal**: Y-axis subtitle added to cashflow chart matching net worth chart. Sankey now receives `transform` function — all dollar amounts respond to real/nominal toggle.
+- **One-off income as real dollars**: `resolveOtherIncomeAmount()` inflates one-off amounts by `inflationRate^yearsFromNow`. User enters today's money; engine converts to nominal.
+- **Post-retirement accumulation stop**: `allRetired` check at Step 8 — `resolveTargetContribution()` returns 0 when all persons retired. No more bond contributions in the 80s from super.
+- **Drawdown strategy**: New `drawdownOrder` on scenario (default: cash → shares → bonds → otherAssets → super). Engine deficit waterfall uses configurable order. UI section in Household Profile with reorderable dropdowns.
+- **Post-retirement income routing**: New `routeTo` field on other income sources (cashflow/shares/bonds/otherAssets/cash). When all retired, routed income bypasses general cashflow and goes directly to target vehicle. Still taxed normally.
+- **Contribution capping fix**: Fixed contributions capped at available cashflow (income − essential outflows). Prevents selling shares to fund bond contributions when income drops.
+- **Routed income duplication fix**: `totalRoutedContributions` subtracted from `prelimNetCashflow` — income now goes to ONE destination only.
+- **281 tests passing** (3 new: drawdown order, income routing, accumulation cessation).
+
+**State at end of session:** Major engine improvements — retirement phase properly modeled with configurable drawdown strategy, income routing to vehicles, and contribution capping. All chart/display issues fixed. Deployed to production.
+
+---
 
 ### Session — 2026-03-21 (2)
 
