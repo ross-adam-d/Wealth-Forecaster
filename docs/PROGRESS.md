@@ -47,6 +47,11 @@
 - [x] 195 unit tests passing (5 new mortgage tests).
 - [x] **Investment bond contribution modes** — bonds now properly deducted from cashflow. Two modes: Fixed (guaranteed expense-like outflow) and Surplus (funded from surplus waterfall at user-set priority). Maximise toggle auto-ratchets at 125%/yr. Bond contributions column in cashflow detail table. Surplus Strategy UI includes bonds when surplus-mode bonds exist. 211 tests passing (16 new).
 - [x] **Unified contribution model** — all non-property investments (shares, bonds, other assets) now support fixed/surplus contribution modes + annual increase rate. Shares no longer absorb all surplus — gets up to target contribution only. Surplus routing handles all asset types. Cashflow table shows per-asset contribution columns. 225 tests passing.
+- [x] **Shares surplus routing fix** — legacy scenarios with annualContribution=0 now absorb all remaining surplus (old behavior preserved). Explicit target: caps at that amount. Fixes retirement 52→53 discontinuity bug.
+- [x] **Other income sources** — new module for non-salary income (consulting, gifts, pensions, etc). Annual/monthly/one-off amounts, % or $ annual adjustment, tax attribution per person, taxable/non-taxable. Integrated into tax engine and cashflow. 14 new tests.
+- [x] **3-level expense nesting** — recursive ExpenseNode UI supports group → category → subcategory hierarchy. Engine already supported it; UI now exposes full tree with add/remove at each level.
+- [x] **Debts** — personal loans (P&I amortisation), leases (upfront interest + residual), credit cards (payoff or revolving). Repayments in totalOutflows, balances deducted from net worth. New column in liquidity table and net worth chart. 13 new tests.
+- [x] **Novated lease UX** — auto-expand on add, ECM offset checkbox with auto-calc, FBT breakdown panel, start/end year wired into simulation. 255 tests passing.
 
 ### Up Next (prioritised)
 - [ ] **Validate model end-to-end with Ross's base plan** — confirm mortgage offset works correctly, deficit warnings fire when expected, and projection runs to end-of-life
@@ -79,6 +84,22 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-21 (2)
+
+**What was done:**
+- **Shares surplus routing fix** — retirement 52→53 discontinuity root cause identified and fixed. Legacy shares (annualContribution=0, surplus mode) now absorb all remaining surplus as before. Only caps at target when explicit annualContribution > 0. Surplus Strategy UI also fixed to show shares regardless of target amount.
+- **Other income sources** — full end-to-end feature. New `otherIncome.js` module, schema, tax engine integration (`otherIncome` param on `calcPersonTax`), simulation engine integration. Supports annual/monthly/one-off, % or $ annual adjustment (increase or decrease), tax attribution (Person A/B/joint 50-50), taxable/non-taxable flag. UI with collapsible items in HouseholdProfile. "Other income" column in cashflow detail table.
+- **3-level expense nesting** — rebuilt expense UI with recursive `ExpenseNode` component. Group → Category → Subcategory with add/remove at each level. Each level can hold own amount + children (totals roll up). Engine already supported this hierarchy.
+- **Debts** — new `debts.js` module with three types: personal loans (standard P&I amortisation), leases (interest calculated upfront, flat repayments, residual/balloon at end), credit cards (payoff mode with min 2% or revolving/interest-only). Engine integration: repayments in `totalOutflows`, balances deducted from `totalNetWorth`. Liquidity table "Debts" column, net worth chart negative area, cashflow detail "Debt repay" column.
+- **Novated lease UX overhaul** — auto-expand on add; "Offset FBT with ECM" checkbox auto-calculates employee contribution to eliminate FBT; FBT breakdown panel (taxable value, liability, packaging reduction, tax saving, net benefit); lease start/end year fields wired into simulation engine (`activeYears` now functional).
+- **255 tests passing** (30 new: 14 other income, 13 debts, 3 retirement discontinuity diagnostic).
+
+**State at end of session:** Major feature additions deployed. Other income, debts, nested expenses, and lease UX all live. Shares surplus routing regression fixed.
+
+**Next session should start with:** Test all new features in live app. Validate debts appear in liquidity table and net worth chart. Test lease with residual, credit card revolving mode. Test other income tax attribution.
+
+---
 
 ### Session — 2026-03-21
 
