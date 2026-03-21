@@ -54,7 +54,7 @@
 - [x] **Novated lease UX** — auto-expand on add, ECM offset checkbox with auto-calc, FBT breakdown panel, start/end year wired into simulation. 255 tests passing.
 
 ### Up Next (prioritised)
-- [ ] **Validate model end-to-end with Ross's base plan** — confirm mortgage offset works correctly, deficit warnings fire when expected, and projection runs to end-of-life
+- [x] **End-to-end model validation** — 22-test suite covering: mortgage offset waterfall, surplus routing priority, shares/bonds contributions, super pension phase transition, salary retirement cutoff, debt payoff, other income windows, novated lease FBT pro-rating, deficit detection, retirement age proportionality, NaN/Infinity guards, cashflow reconciliation, net worth consistency.
 - [ ] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
 - [ ] **Investment breakdown view** — year-by-year table or chart showing each investment asset growing/depleting over time
 - [ ] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: income, income breakdown, expenses, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
@@ -118,7 +118,9 @@
 - **Full engine audit**: Comprehensive review of surplus routing, deficit path, balance updates, net worth calculation. All flows verified correct.
 - 256 tests passing.
 
-**State at end of session:** Engine surplus routing fundamentally fixed. Novated lease now has full financial fields (balloon, term, rate). FBT pre-tax and pro-rating corrected.
+- **End-to-end model validation** — 22-test suite exercising a realistic dual-income household scenario through full lifecycle. Covers: mortgage offset waterfall, surplus routing priority, shares/bonds surplus/fixed contributions, super accumulation→pension phase transition, salary retirement cutoff, debt payoff timeline, other income active windows (consulting + one-off gift), novated lease FBT pro-rating for partial years, deficit detection with forced high expenses, retirement age proportionality (55 vs 57 net worth diff < 50%), NaN/Infinity guards across all snapshot fields, netCashflow = totalIncome − totalOutflows reconciliation, liquid assets consistency check. 278 total tests passing.
+
+**State at end of session:** Engine surplus routing fundamentally fixed. Novated lease has full financial fields (balloon, term, rate). FBT pre-tax and pro-rating corrected. Full end-to-end test suite validates the model. Deployed to production.
 
 ---
 
