@@ -1042,7 +1042,6 @@ const AMOUNT_TYPE_LABELS = {
   annual: 'Annual',
   monthly: 'Monthly',
   one_off: 'One-off',
-  time_bounded: 'Time-bounded',
 }
 
 const EXPENSE_DEPTH_LABELS = ['group', 'category', 'subcategory']
@@ -1054,7 +1053,7 @@ function calcExpenseTotal(node) {
   return own + childTotal
 }
 
-function ExpenseNode({ item, depth, onUpdate, onRemove }) {
+function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYear }) {
   const [open, setOpen] = useState(depth < 2)
   const totalAmt = calcExpenseTotal(item)
   const ownAmt = item.amountType === 'monthly' ? (item.amount || 0) * 12 : (item.amount || 0)
@@ -1080,8 +1079,8 @@ function ExpenseNode({ item, depth, onUpdate, onRemove }) {
           amountType: 'annual',
           amount: 0,
           isDiscretionary: item.isDiscretionary || false,
-          activeFrom: null,
-          activeTo: null,
+          activeFrom: planStartYear || null,
+          activeTo: planEndYear || null,
           inflationRate: null,
           notes: '',
           children: [],
@@ -1144,12 +1143,16 @@ function ExpenseNode({ item, depth, onUpdate, onRemove }) {
                 <select
                   className="input w-full"
                   value={item.amountType || 'annual'}
-                  onChange={e => onUpdate({ amountType: e.target.value })}
+                  onChange={e => {
+                    const newType = e.target.value
+                    const patch = { amountType: newType }
+                    if (newType === 'one_off') patch.activeTo = null
+                    onUpdate(patch)
+                  }}
                 >
                   <option value="annual">Annual</option>
                   <option value="monthly">Monthly (×12)</option>
                   <option value="one_off">One-off</option>
-                  <option value="time_bounded">Time-bounded</option>
                 </select>
               </div>
             </div>
@@ -1166,10 +1169,25 @@ function ExpenseNode({ item, depth, onUpdate, onRemove }) {
               </label>
             </div>
 
-            {(item.amountType === 'time_bounded' || item.amountType === 'one_off') && (
+            {item.amountType === 'one_off' ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Active from (year)</label>
+                  <label className="label">Date (year)</label>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    min={2024}
+                    max={2070}
+                    value={item.activeFrom || ''}
+                    onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null, activeTo: null })}
+                    placeholder="e.g. 2026"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Start year</label>
                   <input
                     className="input w-full"
                     type="number"
@@ -1177,23 +1195,21 @@ function ExpenseNode({ item, depth, onUpdate, onRemove }) {
                     max={2070}
                     value={item.activeFrom || ''}
                     onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null })}
-                    placeholder="e.g. 2026"
+                    placeholder={planStartYear ? String(planStartYear) : 'e.g. 2026'}
                   />
                 </div>
-                {item.amountType === 'time_bounded' && (
-                  <div>
-                    <label className="label">Active to (year)</label>
-                    <input
-                      className="input w-full"
-                      type="number"
-                      min={2024}
-                      max={2070}
-                      value={item.activeTo || ''}
-                      onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
-                      placeholder="e.g. 2032"
-                    />
-                  </div>
-                )}
+                <div>
+                  <label className="label">End year</label>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    min={2024}
+                    max={2070}
+                    value={item.activeTo || ''}
+                    onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
+                    placeholder={planEndYear ? String(planEndYear) : 'e.g. 2060'}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -1206,6 +1222,8 @@ function ExpenseNode({ item, depth, onUpdate, onRemove }) {
               depth={depth + 1}
               onUpdate={patch => updateChild(i, patch)}
               onRemove={() => removeChild(i)}
+              planStartYear={planStartYear}
+              planEndYear={planEndYear}
             />
           ))}
 
@@ -1603,6 +1621,16 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
   const superB = scenario.super.find(s => s.personLabel === 'B') || {}
   const expenseItems = scenario.expenses?.children || []
 
+  // Plan year range for expense date defaults
+  const planStartYear = new Date().getFullYear()
+  const olderBirthYear = Math.min(
+    personA?.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() : 9999,
+    personB?.dateOfBirth ? new Date(personB.dateOfBirth).getFullYear() : 9999,
+  )
+  const planEndYear = olderBirthYear < 9999
+    ? olderBirthYear + (scenario.assumptions?.simulationEndAge || 90)
+    : planStartYear + 40
+
   const updatePersonA = patch =>
     updateScenario({ household: { ...scenario.household, personA: { ...personA, ...patch } } })
   const updatePersonB = patch =>
@@ -1821,6 +1849,8 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
               depth={0}
               onUpdate={patch => updateExpense(i, patch)}
               onRemove={() => removeExpense(i)}
+              planStartYear={planStartYear}
+              planEndYear={planEndYear}
             />
           ))}
           <button

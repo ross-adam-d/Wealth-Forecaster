@@ -55,10 +55,10 @@ describe('resolveNodeAmount', () => {
     })
   })
 
-  describe('time-bounded expenses', () => {
+  describe('date-bounded expenses', () => {
     const timeBounded = {
       ...annualNode,
-      amountType: 'time_bounded',
+      amountType: 'annual',
       activeFrom: CURRENT_YEAR + 1,
       activeTo: CURRENT_YEAR + 5,
     }

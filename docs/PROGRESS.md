@@ -107,7 +107,11 @@
 - **Investment breakdown chart** — new stacked column chart between cashflow and liquidity table. Shows full portfolio: liquid assets (solid bars — cash, shares, bonds, other, unlocked super) and illiquid assets (faded bars — property equity, locked super, pre-10yr bonds). Own timeline dropdown (10/20/40/full).
 - **Cashflow chart overhaul** — pill toggle with 4 views: Summary (grouped bars: income/outflows/net), Income (stacked bars: salary A/B, super drawdown, Age Pension, dividends, rental, other, property sale), Expenses (stacked bars: living expenses, tax, mortgage, debt, invest contrib, lease), Surplus (ComposedChart: green surplus bars + red deficit bars below zero line + net cashflow line).
 
-**State at end of session:** Three engine features (Division 293, Age Pension, Downsizer) and three Projection page chart improvements all implemented. 316 tests passing.
+- **Novated lease expense fix** — lease column in cashflow detail table was double-counting: pre-tax reduction (already embedded in reduced salary) was shown alongside post-tax employee contribution. Fixed to show only post-tax costs (`totalLeasePostTaxCost`). Residual/balloon now attributed to correct year (uses `activeYears.to` not `fromYear + term - 1`). Sankey diagram updated to use `totalLeasePostTaxCost`.
+- **Mortgage after sale fix** — mortgage column was using `totalOutflows - totalExpenses` which caught debts, div293, lease costs etc. Fixed to use actual `propertyResults.annualRepayment` — correctly shows zero after property sale.
+- **Expense UI restructure** — removed `time_bounded` as amountType (redundant — annual/monthly with start/end dates achieves the same thing). All expenses now show start/end year fields (defaulting to plan start/end year). One-off expenses show a single "Date (year)" field instead. Starter expenses updated (`school_fees` now `annual`).
+
+**State at end of session:** Engine features, chart improvements, lease/mortgage fixes, and expense UI all implemented. 316 tests passing.
 
 ---
 

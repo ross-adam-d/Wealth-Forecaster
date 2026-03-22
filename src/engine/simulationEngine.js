@@ -136,10 +136,9 @@ function resolveNovatedLeaseReduction(person, year) {
     ? calcECM(params)
     : calcStatutory(params)
 
-  // Residual/balloon: post-tax lump sum in the final year of the lease
-  const fromYear = typeof from === 'string' ? parseInt(from.slice(0, 4), 10) : (from || year)
-  const leaseEndYear = fromYear + term - 1
-  const residualPayment = (residual > 0 && year === leaseEndYear) ? residual : 0
+  // Residual/balloon: post-tax lump sum in the final year of the lease (based on activeYears.to)
+  const toYear = typeof to === 'string' ? parseInt(to.slice(0, 4), 10) : (to || year)
+  const residualPayment = (residual > 0 && year === toYear) ? residual : 0
 
   return {
     reduction: fbtResult.pretaxPackageReduction,

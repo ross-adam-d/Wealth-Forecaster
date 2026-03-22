@@ -1,7 +1,7 @@
 /**
  * Expense Hierarchy Module
  * Three-level tree: Group → Category → Subcategory
- * Supports annual, monthly, one-off, and time-bounded amounts.
+ * Supports annual, monthly, and one-off amounts with optional date ranges.
  * Fixed/discretionary tagging cascades down; children can override.
  */
 
@@ -165,7 +165,7 @@ export function createStarterExpenses() {
         amount: 0,
         isDiscretionary: false,
         children: [
-          { id: 'school_fees', label: 'School fees', type: 'category', amount: 0, amountType: 'time_bounded', isDiscretionary: false, children: [] },
+          { id: 'school_fees', label: 'School fees', type: 'category', amount: 0, amountType: 'annual', isDiscretionary: false, children: [] },
           { id: 'insurance', label: 'Insurance', type: 'category', amount: 4000, amountType: 'annual', isDiscretionary: false, children: [] },
           { id: 'donations', label: 'Donations', type: 'category', amount: 0, amountType: 'annual', isDiscretionary: true, children: [] },
         ],
