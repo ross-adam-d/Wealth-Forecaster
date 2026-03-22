@@ -45,6 +45,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [netWorthView, setNetWorthView] = useState('networth') // networth | liquidity | breakdown
   const [cashflowRange, setCashflowRange] = useState('full')
   const [cashflowView, setCashflowView] = useState('summary') // summary | income | expenses | surplus
+  const [investRange, setInvestRange] = useState('full')
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
@@ -518,10 +519,22 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Investment breakdown */}
       <div className="card">
-        <h2 className="text-sm font-semibold text-gray-300 mb-1">Investment Breakdown</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-sm font-semibold text-gray-300">Investment Breakdown</h2>
+          <select
+            value={investRange}
+            onChange={e => setInvestRange(e.target.value)}
+            className="input text-xs py-1 px-2 h-7"
+          >
+            <option value="10">Next 10 years</option>
+            <option value="20">Next 20 years</option>
+            <option value="40">Next 40 years</option>
+            <option value="full">Full plan</option>
+          </select>
+        </div>
         <p className="text-xs text-gray-600 mb-4">Each asset balance tracked year by year</p>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
+          <BarChart data={rangeFilter(netWorthData, investRange)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
             <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -532,16 +545,16 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-            <Area type="monotone" dataKey="liqCash"   stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.15} strokeWidth={1.5} name="Cash" />
-            <Area type="monotone" dataKey="liqShares" stroke="#34d399" fill="#34d399" fillOpacity={0.15} strokeWidth={1.5} name="Shares" />
-            <Area type="monotone" dataKey="liqBonds"  stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} strokeWidth={1.5} name="Bonds" />
-            <Area type="monotone" dataKey="liqOther"  stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.15} strokeWidth={1.5} name="Other assets" />
-            <Area type="monotone" dataKey="superA"    stroke="#f59e0b" fill="none" strokeWidth={1.5} strokeDasharray="4 2" name={`Super A${personAName !== 'Person A' ? ` (${personAName})` : ''}`} />
-            <Area type="monotone" dataKey="superB"    stroke="#fb923c" fill="none" strokeWidth={1.5} strokeDasharray="4 2" name={`Super B${personBName !== 'Person B' ? ` (${personBName})` : ''}`} />
-          </AreaChart>
+            <Bar dataKey="liqCash"   stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
+            <Bar dataKey="liqBonds"  stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Bonds" />
+            <Bar dataKey="liqOther"  stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other assets" />
+            <Bar dataKey="liqShares" stackId="1" fill="#34d399" fillOpacity={0.7} name="Shares" />
+            <Bar dataKey="superA"    stackId="1" fill="#f59e0b" fillOpacity={0.7} name={`Super A${personAName !== 'Person A' ? ` (${personAName})` : ''}`} />
+            <Bar dataKey="superB"    stackId="1" fill="#fb923c" fillOpacity={0.7} name={`Super B${personBName !== 'Person B' ? ` (${personBName})` : ''}`} />
+          </BarChart>
         </ResponsiveContainer>
         <p className="mt-2 text-xs text-gray-600">
-          Super lines are dashed — they only show accessible (unlocked) balances. Locked super is excluded.
+          Super shows accessible (unlocked) balances only. Locked super is excluded.
         </p>
       </div>
 
