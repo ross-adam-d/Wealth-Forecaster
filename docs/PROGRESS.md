@@ -65,9 +65,9 @@
 - [x] **Contribution capping** — fixed contributions no longer force asset drawdowns. Capped at available cashflow (income minus essential outflows). If income drops below expenses + mortgage + debts, contributions scale down proportionally.
 - [x] **Routed income duplication fix** — income routed to a vehicle is now subtracted from general cashflow so it only goes to one destination (was double-counted: vehicle + cash).
 - [x] **Dynamic liabilities in cashflow detail table** — new LIABILITIES column group (amber) between ASSETS and NET. Dynamically built from scenario properties (mortgage balances) and debts (loans, leases, credit cards). Each liability gets its own named column plus a "Total liabilities" summary. Auto-hides when no liabilities exist. Removed redundant `debtsBal` from ASSET_COLS.
-- [ ] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
-- [ ] **Investment breakdown view** — year-by-year table or chart showing each investment asset growing/depleting over time
-- [ ] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: income, income breakdown, expenses, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
+- [x] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
+- [x] **Investment breakdown view** — year-by-year chart showing each investment asset growing/depleting over time
+- [x] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: summary, income breakdown, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [ ] Impact Analyser: wire lever values into simulation overrides
@@ -104,6 +104,10 @@
 - **316 tests passing** (35 new).
 
 **State at end of session:** Three major engine features implemented — Division 293 tax, Age Pension means testing, and Downsizer contributions. All integrated into simulation engine with full test coverage.
+
+- **Projection chart view toggle** — pill toggle on net worth chart switches between: Net Worth (stacked areas with property/super/shares/bonds/cash minus debts), Liquidity (single green area of total liquid assets), Breakdown (stacked areas of liquid asset components — cash, shares, bonds, other assets, unlocked super A/B). Uses same pattern as Gap Dashboard toggle.
+- **Investment breakdown chart** — new chart between cashflow and liquidity table showing each investment asset as individual lines/areas over time. Super shown as dashed lines (unlocked only). Cash, shares, bonds, other assets shown with subtle fills. Inherits net worth range selector.
+- **Cashflow chart overhaul** — pill toggle with 4 views: Summary (grouped bars: income/outflows/net), Income (stacked bars: salary A/B, super drawdown, Age Pension, dividends, rental, other, property sale), Expenses (stacked bars: living expenses, tax, mortgage, debt, invest contrib, lease), Surplus (ComposedChart: green surplus bars + red deficit bars below zero line + net cashflow line).
 
 ---
 

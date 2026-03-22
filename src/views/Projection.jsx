@@ -1,5 +1,5 @@
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  AreaChart, Area, BarChart, Bar, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
 import { useState, useMemo } from 'react'
@@ -42,7 +42,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [sankeyOpen, setSankeyOpen] = useState(false)
   const [sankeyYearIdx, setSankeyYearIdx] = useState(0)
   const [netWorthRange, setNetWorthRange] = useState('full')
+  const [netWorthView, setNetWorthView] = useState('networth') // networth | liquidity | breakdown
   const [cashflowRange, setCashflowRange] = useState('full')
+  const [cashflowView, setCashflowView] = useState('summary') // summary | income | expenses | surplus
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
@@ -52,11 +54,12 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const personAName = scenario.household.personA.name || 'Person A'
   const personBName = scenario.household.personB.name || 'Person B'
 
-  // Net worth chart data
+  // Net worth / liquidity / breakdown chart data
   const netWorthData = snapshots.map(s => {
     const isIllustrative = s.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
     return {
       year: s.year,
+      // Net worth view
       super: transform(s.superABalance + s.superBBalance, s.year),
       property: transform(s.totalPropertyValue, s.year),
       shares: transform(s.sharesValue, s.year),
@@ -64,19 +67,48 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       cash: transform(s.cashBuffer, s.year),
       mortgage: transform(-s.totalMortgageBalance, s.year),
       debts: transform(-(s.totalDebtBalance || 0), s.year),
+      // Liquidity view
+      totalLiquid: Math.max(0, transform(s.totalLiquidAssets, s.year)),
+      // Breakdown view (liquid assets stacked)
+      superA: s.superA && !s.superA.isLocked ? Math.max(0, transform(s.superABalance, s.year)) : 0,
+      superB: s.superB && !s.superB.isLocked ? Math.max(0, transform(s.superBBalance, s.year)) : 0,
+      liqShares: Math.max(0, transform(s.sharesValue, s.year)),
+      liqBonds: Math.max(0, transform(s.bondLiquidity, s.year)),
+      liqOther: Math.max(0, transform(s.totalOtherAssetsValue, s.year)),
+      liqCash: Math.max(0, transform(s.cashBuffer, s.year)),
       isIllustrative,
     }
   })
 
-  // Cashflow chart data — include novated lease in outflows for chart visibility
+  // Cashflow chart data — include breakdowns for toggle views
   const cashflowData = snapshots.map(s => {
     const leaseNet = (s.leaseReductionA || 0) + (s.leaseReductionB || 0)
+    const rentalNet = s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) ?? 0
     return {
       year: s.year,
+      // Summary view
       income: transform(s.totalIncome, s.year),
       outflows: transform(s.totalOutflows + leaseNet, s.year),
-      lease: leaseNet > 0 ? transform(leaseNet, s.year) : 0,
       net: transform(s.netCashflow, s.year),
+      // Income breakdown
+      salaryA: transform(s.salaryA ?? 0, s.year),
+      salaryB: transform(s.salaryB ?? 0, s.year),
+      rental: transform(Math.max(0, rentalNet), s.year),
+      dividends: transform((s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0), s.year),
+      propSale: transform(s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0, s.year),
+      otherInc: transform(s.totalOtherIncome ?? 0, s.year),
+      superDraw: transform((s.superA?.drawdown ?? 0) + (s.superB?.drawdown ?? 0), s.year),
+      pension: transform(s.agePension?.totalPension ?? 0, s.year),
+      // Expense breakdown
+      tax: transform((s.taxA?.totalTaxPayable ?? 0) + (s.taxB?.totalTaxPayable ?? 0), s.year),
+      livingExp: transform(s.totalExpenses, s.year),
+      mortgageExp: transform(s.propertyResults?.reduce((sum, r) => sum + (r.annualRepayment || 0), 0) ?? 0, s.year),
+      debtExp: transform(s.totalDebtRepayments ?? 0, s.year),
+      investContrib: transform(s.totalInvestmentContributions ?? 0, s.year),
+      leaseExp: transform(leaseNet, s.year),
+      // Surplus/deficit
+      surplus: transform(Math.max(0, s.netCashflow), s.year),
+      deficit: transform(Math.min(0, s.netCashflow), s.year),
       isDeficit: s.isDeficit,
     }
   })
@@ -272,10 +304,33 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         </span>
       </div>
 
-      {/* Net worth over time */}
+      {/* Net worth / liquidity chart */}
       <div className="card">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold text-gray-300">Net Worth Over Time</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-gray-300">
+              {netWorthView === 'networth' ? 'Net Worth' : netWorthView === 'liquidity' ? 'Liquidity' : 'Liquidity Breakdown'}
+            </h2>
+            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
+              {[
+                { id: 'networth', label: 'Net Worth' },
+                { id: 'liquidity', label: 'Liquidity' },
+                { id: 'breakdown', label: 'Breakdown' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setNetWorthView(id)}
+                  className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                    netWorthView === id
+                      ? 'bg-brand-600 text-white font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <select
             value={netWorthRange}
             onChange={e => setNetWorthRange(e.target.value)}
@@ -291,32 +346,89 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
         </p>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-            <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-            <Tooltip
-              formatter={(v, name) => [fmt$(v), name]}
-              contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-              labelStyle={{ color: '#f9fafb' }}
-            />
-            <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-            {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-            <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
-            <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
-            <Area type="monotone" dataKey="cash"     stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
-            <Area type="monotone" dataKey="bonds"    stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds" />
-            <Area type="monotone" dataKey="shares"   stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
-            <Area type="monotone" dataKey="property" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (gross)" />
-            <Area type="monotone" dataKey="super"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
-          </AreaChart>
+          {netWorthView === 'networth' ? (
+            <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+                labelStyle={{ color: '#f9fafb' }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
+              <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
+              <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
+              <Area type="monotone" dataKey="cash"     stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
+              <Area type="monotone" dataKey="bonds"    stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds" />
+              <Area type="monotone" dataKey="shares"   stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
+              <Area type="monotone" dataKey="property" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (gross)" />
+              <Area type="monotone" dataKey="super"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
+            </AreaChart>
+          ) : netWorthView === 'liquidity' ? (
+            <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+                labelStyle={{ color: '#f9fafb' }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
+              <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={0.3} name="Liquid assets" />
+            </AreaChart>
+          ) : (
+            <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+                labelStyle={{ color: '#f9fafb' }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
+              <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
+              <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds (tax-free)" />
+              <Area type="monotone" dataKey="liqOther"  stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.5} name="Other assets" />
+              <Area type="monotone" dataKey="liqShares" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
+              <Area type="monotone" dataKey="superA"    stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Super A (unlocked)" />
+              <Area type="monotone" dataKey="superB"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super B (unlocked)" />
+            </AreaChart>
+          )}
         </ResponsiveContainer>
       </div>
 
       {/* Annual cashflow */}
       <div className="card">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold text-gray-300">Annual Cashflow</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-gray-300">Annual Cashflow</h2>
+            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
+              {[
+                { id: 'summary', label: 'Summary' },
+                { id: 'income', label: 'Income' },
+                { id: 'expenses', label: 'Expenses' },
+                { id: 'surplus', label: 'Surplus' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setCashflowView(id)}
+                  className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                    cashflowView === id
+                      ? 'bg-brand-600 text-white font-medium'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <select
             value={cashflowRange}
             onChange={e => setCashflowRange(e.target.value)}
@@ -332,20 +444,105 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
         </p>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
+          {cashflowView === 'summary' ? (
+            <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income" />
+              <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Outflows" />
+              <Bar dataKey="net"      fill="#4ade80" fillOpacity={0.6} name="Net" />
+            </BarChart>
+          ) : cashflowView === 'income' ? (
+            <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
+              <Bar dataKey="salaryA"  stackId="1" fill="#34d399" fillOpacity={0.8} name={`${personAName} salary`} />
+              <Bar dataKey="salaryB"  stackId="1" fill="#6ee7b7" fillOpacity={0.8} name={`${personBName} salary`} />
+              <Bar dataKey="superDraw" stackId="1" fill="#fb923c" fillOpacity={0.8} name="Super drawdown" />
+              <Bar dataKey="pension"  stackId="1" fill="#fbbf24" fillOpacity={0.8} name="Age Pension" />
+              <Bar dataKey="dividends" stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Dividends" />
+              <Bar dataKey="rental"   stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Net rental" />
+              <Bar dataKey="otherInc" stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other income" />
+              <Bar dataKey="propSale" stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Property sale" />
+            </BarChart>
+          ) : cashflowView === 'expenses' ? (
+            <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
+              <Bar dataKey="livingExp"     stackId="1" fill="#f87171" fillOpacity={0.8} name="Living expenses" />
+              <Bar dataKey="tax"           stackId="1" fill="#ef4444" fillOpacity={0.6} name="Tax" />
+              <Bar dataKey="mortgageExp"   stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Mortgage" />
+              <Bar dataKey="debtExp"       stackId="1" fill="#fb923c" fillOpacity={0.7} name="Debt repay" />
+              <Bar dataKey="investContrib" stackId="1" fill="#a78bfa" fillOpacity={0.6} name="Invest. contrib" />
+              <Bar dataKey="leaseExp"      stackId="1" fill="#94a3b8" fillOpacity={0.6} name="Novated lease" />
+            </BarChart>
+          ) : (
+            <ComposedChart data={rangeFilter(cashflowData, cashflowRange)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip
+                formatter={(v, name) => [fmt$(v), name]}
+                contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+              {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
+              <Bar dataKey="surplus" fill="#4ade80" fillOpacity={0.7} name="Surplus" />
+              <Bar dataKey="deficit" fill="#f87171" fillOpacity={0.7} name="Deficit" />
+              <Line type="monotone" dataKey="net" stroke="#e2e8f0" strokeWidth={1.5} dot={false} name="Net cashflow" />
+            </ComposedChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+
+      {/* Investment breakdown */}
+      <div className="card">
+        <h2 className="text-sm font-semibold text-gray-300 mb-1">Investment Breakdown</h2>
+        <p className="text-xs text-gray-600 mb-4">Each asset balance tracked year by year</p>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
             <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
             <Tooltip
               formatter={(v, name) => [fmt$(v), name]}
               contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              labelStyle={{ color: '#f9fafb' }}
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-            <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income (after tax)" />
-            <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Total outflows (incl. lease)" />
-            <Bar dataKey="net"      fill="#4ade80" fillOpacity={0.6} name="Net surplus / deficit" />
-          </BarChart>
+            {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
+            <Area type="monotone" dataKey="liqCash"   stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.15} strokeWidth={1.5} name="Cash" />
+            <Area type="monotone" dataKey="liqShares" stroke="#34d399" fill="#34d399" fillOpacity={0.15} strokeWidth={1.5} name="Shares" />
+            <Area type="monotone" dataKey="liqBonds"  stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} strokeWidth={1.5} name="Bonds" />
+            <Area type="monotone" dataKey="liqOther"  stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.15} strokeWidth={1.5} name="Other assets" />
+            <Area type="monotone" dataKey="superA"    stroke="#f59e0b" fill="none" strokeWidth={1.5} strokeDasharray="4 2" name={`Super A${personAName !== 'Person A' ? ` (${personAName})` : ''}`} />
+            <Area type="monotone" dataKey="superB"    stroke="#fb923c" fill="none" strokeWidth={1.5} strokeDasharray="4 2" name={`Super B${personBName !== 'Person B' ? ` (${personBName})` : ''}`} />
+          </AreaChart>
         </ResponsiveContainer>
+        <p className="mt-2 text-xs text-gray-600">
+          Super lines are dashed — they only show accessible (unlocked) balances. Locked super is excluded.
+        </p>
       </div>
 
       {/* Liquidity table */}
