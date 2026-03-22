@@ -103,11 +103,11 @@
 - **Engine integration** — `simulationEngine.js` updated: downsizer contributions added to super balances after property sales (tax-free, outside caps); Age Pension calculated and added to income (tax-free); Division 293 added as essential outflow. All three features added to year snapshot and warnings.
 - **316 tests passing** (35 new).
 
-**State at end of session:** Three major engine features implemented — Division 293 tax, Age Pension means testing, and Downsizer contributions. All integrated into simulation engine with full test coverage.
-
 - **Projection chart view toggle** — pill toggle on net worth chart switches between: Net Worth (stacked areas with property/super/shares/bonds/cash minus debts), Liquidity (single green area of total liquid assets), Breakdown (stacked areas of liquid asset components — cash, shares, bonds, other assets, unlocked super A/B). Uses same pattern as Gap Dashboard toggle.
-- **Investment breakdown chart** — new chart between cashflow and liquidity table showing each investment asset as individual lines/areas over time. Super shown as dashed lines (unlocked only). Cash, shares, bonds, other assets shown with subtle fills. Inherits net worth range selector.
+- **Investment breakdown chart** — new stacked column chart between cashflow and liquidity table. Shows full portfolio: liquid assets (solid bars — cash, shares, bonds, other, unlocked super) and illiquid assets (faded bars — property equity, locked super, pre-10yr bonds). Own timeline dropdown (10/20/40/full).
 - **Cashflow chart overhaul** — pill toggle with 4 views: Summary (grouped bars: income/outflows/net), Income (stacked bars: salary A/B, super drawdown, Age Pension, dividends, rental, other, property sale), Expenses (stacked bars: living expenses, tax, mortgage, debt, invest contrib, lease), Surplus (ComposedChart: green surplus bars + red deficit bars below zero line + net cashflow line).
+
+**State at end of session:** Three engine features (Division 293, Age Pension, Downsizer) and three Projection page chart improvements all implemented. 316 tests passing.
 
 ---
 
