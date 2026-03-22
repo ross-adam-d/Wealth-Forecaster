@@ -10,6 +10,10 @@ import {
   MIN_DRAWDOWN_RATES,
   PRESERVATION_AGE,
   SG_RATE_SCHEDULE,
+  DIV293_THRESHOLD,
+  DIV293_RATE,
+  DOWNSIZER_CONTRIBUTION_CAP,
+  DOWNSIZER_MIN_AGE,
 } from '../constants/index.js'
 import { resolveRatePeriodRate } from '../engine/ratePeriodEngine.js'
 
@@ -74,6 +78,33 @@ export function calcEmployerContribution(superProfile, grossSalary, year) {
 }
 
 /**
+ * Calculate Division 293 tax — additional 15% on concessional contributions
+ * for high-income earners.
+ *
+ * Division 293 income = taxable income + low-tax contributed amounts (concessional contributions).
+ * If div293 income > $250k, additional 15% is levied on the LESSER of:
+ *   - total concessional contributions, or
+ *   - amount by which div293 income exceeds $250k
+ *
+ * @param {number} grossSalary - pre-sacrifice assessable salary
+ * @param {number} totalConcessional - total concessional super contributions
+ * @returns {{ div293Tax: number, div293Income: number, isSubject: boolean }}
+ */
+export function calcDiv293(grossSalary, totalConcessional) {
+  const div293Income = grossSalary + totalConcessional
+  if (div293Income <= DIV293_THRESHOLD) {
+    return { div293Tax: 0, div293Income, isSubject: false }
+  }
+  const excess = div293Income - DIV293_THRESHOLD
+  const taxableAmount = Math.min(totalConcessional, excess)
+  return {
+    div293Tax: taxableAmount * DIV293_RATE,
+    div293Income,
+    isSubject: true,
+  }
+}
+
+/**
  * Process super contributions for a year.
  * Returns contributions (net of 15% tax), cap warnings, and take-home pay impact.
  *
@@ -103,12 +134,18 @@ export function processContributions(superProfile, grossSalary, year) {
 
   const totalNetToFund = concessionalNetToFund + nonConcessionalNetToFund
 
+  // Division 293 — additional 15% on concessional contributions for high earners
+  const div293 = calcDiv293(grossSalary, totalConcessional)
+
   const warnings = []
   if (concessionalBreached) {
     warnings.push(`Concessional cap exceeded by $${Math.round(totalConcessional - CONCESSIONAL_CAP).toLocaleString()}. Excess taxed at marginal rate.`)
   }
   if (nonConcessionalBreached) {
     warnings.push(`Non-concessional cap exceeded by $${Math.round(totalNonConcessional - NON_CONCESSIONAL_CAP).toLocaleString()}.`)
+  }
+  if (div293.isSubject) {
+    warnings.push(`Division 293: additional $${Math.round(div293.div293Tax).toLocaleString()} tax on super contributions (income + contributions > $${(DIV293_THRESHOLD / 1000)}k).`)
   }
 
   return {
@@ -121,6 +158,9 @@ export function processContributions(superProfile, grossSalary, year) {
     totalNetToFund,
     concessionalBreached,
     nonConcessionalBreached,
+    div293Tax: div293.div293Tax,
+    div293Income: div293.div293Income,
+    div293Subject: div293.isSubject,
     warnings,
   }
 }
@@ -186,4 +226,25 @@ export function growSuperBalance({
     isTTR,
     isLocked: !hasReachedPreservationAge(personAge) && !isTTR,
   }
+}
+
+/**
+ * Calculate downsizer contribution — up to $300k per person from property sale proceeds
+ * into super, outside normal contribution caps. No contributions tax applies.
+ *
+ * Eligibility: age >= 55, property owned for 10+ years (assumed if sale event present).
+ * The contribution is not subject to contribution caps or 15% contributions tax.
+ *
+ * @param {number} saleProceeds - net proceeds from property sale
+ * @param {number} personAge - age of the person
+ * @param {number} ownershipPct - percentage ownership (0-100)
+ * @returns {{ amount: number, eligible: boolean }}
+ */
+export function calcDownsizerContribution(saleProceeds, personAge, ownershipPct = 100) {
+  if (personAge < DOWNSIZER_MIN_AGE || saleProceeds <= 0) {
+    return { amount: 0, eligible: false }
+  }
+  const shareOfProceeds = saleProceeds * (ownershipPct / 100)
+  const amount = Math.min(shareOfProceeds, DOWNSIZER_CONTRIBUTION_CAP)
+  return { amount, eligible: true }
 }

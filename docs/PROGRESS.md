@@ -83,16 +83,29 @@
 - [ ] Rate period visualisation per asset
 
 ### Phase 2 (future)
-- [ ] Age Pension means testing
+- [x] Age Pension means testing
 - [ ] Monte Carlo simulation (500 runs)
-- [ ] Division 293 tax
-- [ ] Downsizer contribution rule
+- [x] Division 293 tax
+- [x] Downsizer contribution rule
 - [ ] PDF export
 - [ ] Public landing page + waitlist
 
 ---
 
 ## Session Log
+
+### Session — 2026-03-22
+
+**What was done:**
+- **Division 293 tax** — `calcDiv293()` in `super.js`: additional 15% on concessional super contributions when income + contributions > $250k, taxed on lesser of contributions or excess above threshold. Integrated into `processContributions()` — returns `div293Tax`, `div293Income`, `div293Subject` fields with warning message. Constants: `DIV293_THRESHOLD = 250,000`, `DIV293_RATE = 0.15`. 6 tests.
+- **Age Pension means testing** — new `agePension.js` module with 4 functions: `calcDeemedIncome()` (lower/upper rate deeming), `calcAssetTestPension()` (taper per $1,000 above threshold), `calcIncomeTestPension()` (50c/$1 taper above free area), `calcAgePension()` (integration — eligibility, assessable assets, deemed income, min of both tests, couple splitting). Primary residence exempt, accumulation-phase super exempt. 18 new constants. 21 tests.
+- **Downsizer contribution** — `calcDownsizerContribution()` in `super.js`: up to $300k per person from property sale proceeds into super, outside normal caps, no contributions tax, age 55+ eligible. Ownership percentage support. 8 tests.
+- **Engine integration** — `simulationEngine.js` updated: downsizer contributions added to super balances after property sales (tax-free, outside caps); Age Pension calculated and added to income (tax-free); Division 293 added as essential outflow. All three features added to year snapshot and warnings.
+- **316 tests passing** (35 new).
+
+**State at end of session:** Three major engine features implemented — Division 293 tax, Age Pension means testing, and Downsizer contributions. All integrated into simulation engine with full test coverage.
+
+---
 
 ### Session — 2026-03-21 (6)
 

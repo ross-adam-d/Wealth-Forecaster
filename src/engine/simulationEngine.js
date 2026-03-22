@@ -8,7 +8,7 @@
 
 import { resolvePackagingReductions, calcPersonTax, calcFrankingCredit } from './taxEngine.js'
 import { calcECM, calcStatutory } from '../modules/fbt.js'
-import { processContributions, growSuperBalance, hasReachedPreservationAge } from '../modules/super.js'
+import { processContributions, growSuperBalance, hasReachedPreservationAge, calcDownsizerContribution } from '../modules/super.js'
 import { processPropertyYear } from '../modules/property.js'
 import { processSharesYear } from '../modules/shares.js'
 import { processBondYear } from '../modules/investmentBonds.js'
@@ -16,6 +16,7 @@ import { resolveExpenseTree } from '../modules/expenses.js'
 import { processOtherAssetYear } from '../modules/otherAssets.js'
 import { processOtherIncome } from '../modules/otherIncome.js'
 import { processAllDebts } from '../modules/debts.js'
+import { calcAgePension } from '../modules/agePension.js'
 import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE, DRAWDOWN_SOURCES, DEFAULT_DRAWDOWN_ORDER } from '../constants/index.js'
 
 /**
@@ -264,6 +265,33 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       return sum + (r.cgtAmount || 0) * (1 - pct)
     }, 0)
 
+    // ── Downsizer contribution — if property sold and person is 55+ ────
+    let downsizerA = { amount: 0, eligible: false }
+    let downsizerB = { amount: 0, eligible: false }
+    if (propertySaleProceeds > 0) {
+      for (let i = 0; i < propertyResults.length; i++) {
+        if (propertyResults[i].saleProceeds > 0) {
+          const pctA = currentProperties[i].ownershipPctA ?? 100
+          if (ageA != null) {
+            const dA = calcDownsizerContribution(propertyResults[i].saleProceeds, ageA, pctA)
+            if (dA.eligible) {
+              downsizerA = { amount: downsizerA.amount + dA.amount, eligible: true }
+            }
+          }
+          if (ageB != null && personB.dateOfBirth) {
+            const dB = calcDownsizerContribution(propertyResults[i].saleProceeds, ageB, 100 - pctA)
+            if (dB.eligible) {
+              downsizerB = { amount: downsizerB.amount + dB.amount, eligible: true }
+            }
+          }
+        }
+      }
+      // Cap at $300k per person across all sales in a year
+      downsizerA.amount = Math.min(downsizerA.amount, 300_000)
+      downsizerB.amount = Math.min(downsizerB.amount, 300_000)
+    }
+    const totalDownsizer = downsizerA.amount + downsizerB.amount
+
     // ── Step 7: Shares — growth phase only (contribution resolved after cashflow) ──
     const sharesResult = processSharesYear({
       shares: currentShares,
@@ -383,6 +411,31 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalDebtRepayments = debtResult.totalRepayment
     const totalDebtBalance = debtResult.totalBalance
 
+    // ── Age Pension (preliminary — calculated before cashflow for income inclusion) ──
+    // NOTE: Full pension calc with final asset values is done post-balances (see below).
+    // This preliminary calc uses opening-year balances for income inclusion.
+    const hasHomePrimaryPrelim = currentProperties.some(p => p.isPrimaryResidence)
+    const investmentPropertyEquityPrelim = currentProperties.reduce((sum, p) =>
+      sum + (p.isPrimaryResidence ? 0 : Math.max(0, (p.currentValue || 0) - (p.mortgageBalance || 0))), 0)
+
+    const agePensionPrelim = calcAgePension({
+      ageA,
+      ageB: personB.dateOfBirth ? ageB : null,
+      retiredA,
+      retiredB,
+      isHomeowner: hasHomePrimaryPrelim,
+      superABalance: superA.currentBalance,
+      superAInPension: superA_result.inPensionPhase,
+      superBBalance: superB.currentBalance,
+      superBInPension: superB_result.inPensionPhase,
+      sharesValue: currentShares.currentValue,
+      bondLiquidity: currentBonds.reduce((s, b) => s + (b.currentBalance || 0), 0),
+      otherAssetsValue: currentOtherAssets.reduce((s, a) => s + (a.currentValue || 0), 0),
+      cashBuffer: Math.max(0, cashBuffer),
+      investmentPropertyEquity: investmentPropertyEquityPrelim,
+      otherIncome: otherIncomeResult.total,
+    })
+
     // ── Step 10: Net cashflow ─────────────────────────────────────────────
     // Compute preliminary income without asset withdrawals
     const totalIncomePreBond =
@@ -394,10 +447,16 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       superA_result.drawdown +
       superB_result.drawdown +
       propertySaleProceeds +
-      otherIncomeResult.nonTaxable  // non-taxable other income (taxable already in netTakeHome)
+      otherIncomeResult.nonTaxable +  // non-taxable other income (taxable already in netTakeHome)
+      agePensionPrelim.totalPension    // Age Pension is tax-free for pensioners
+
+    // Division 293 tax — additional personal tax liability for high-income earners
+    const div293TaxA = superContribA_pre.div293Tax || 0
+    const div293TaxB = superContribB_pre.div293Tax || 0
+    const totalDiv293Tax = div293TaxA + div293TaxB
 
     // Fixed contributions should not force asset drawdowns — cap at available cashflow
-    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments
+    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer
     const availableForContributions = Math.max(0, totalIncomePreBond - essentialOutflows)
     const cappedFixedContributions = Math.min(totalFixedContributions, availableForContributions)
 
@@ -709,8 +768,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // CGT already calculated in property results above
 
     // ── Step 12: Update balances ──────────────────────────────────────────
-    superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra) }
-    superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra) }
+    // Downsizer contributions added directly to super (tax-free, outside caps)
+    superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra + downsizerA.amount) }
+    superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra + downsizerB.amount) }
     // Apply shares growth + resolved contributions + deficit drawdowns
     currentShares = {
       ...currentShares,
@@ -779,6 +839,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       ...bondResults.flatMap(r => r.warnings),
       ...(isDeficit ? [`Deficit year: $${Math.round(Math.abs(netCashflow)).toLocaleString()} shortfall`] : []),
       ...mortgagePayoffs.map(mp => `Mortgage paid off ($${Math.round(mp.amount).toLocaleString()} from liquid assets)`),
+      ...(downsizerA.amount > 0 ? [`Downsizer contribution (A): $${Math.round(downsizerA.amount).toLocaleString()} into super`] : []),
+      ...(downsizerB.amount > 0 ? [`Downsizer contribution (B): $${Math.round(downsizerB.amount).toLocaleString()} into super`] : []),
+      ...(agePensionPrelim.totalPension > 0 ? [`Age Pension: $${Math.round(agePensionPrelim.totalPension).toLocaleString()}/yr`] : []),
     ]
 
     yearSnapshots.push({
@@ -794,6 +857,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Tax
       taxA: taxAFinal,
       taxB: taxBFinal,
+      div293TaxA,
+      div293TaxB,
+      totalDiv293Tax,
       // Super
       superA: superA_result,
       superB: superB_result,
@@ -853,6 +919,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Markers for Gap dashboard
       superAUnlocked: ageA != null && ageA >= 60 && !superA_result.isLocked,
       superBUnlocked: ageB != null && ageB >= 60 && !superB_result.isLocked,
+      // Age Pension
+      agePension: agePensionPrelim,
+      // Downsizer contributions
+      downsizerA: downsizerA.amount,
+      downsizerB: downsizerB.amount,
+      totalDownsizer,
       // Deficit tracking
       cumulativeDeficit,
       firstDeficitYear,
