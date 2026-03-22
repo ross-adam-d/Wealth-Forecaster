@@ -88,13 +88,13 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
   // Cashflow chart data — include breakdowns for toggle views
   const cashflowData = snapshots.map(s => {
-    const leaseNet = (s.leaseReductionA || 0) + (s.leaseReductionB || 0)
+    const leasePreTax = (s.leaseReductionA || 0) + (s.leaseReductionB || 0)
     const rentalNet = s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) ?? 0
     return {
       year: s.year,
-      // Summary view
+      // Summary view — add pre-tax lease to outflows for chart (already subtracted from income via netTakeHome)
       income: transform(s.totalIncome, s.year),
-      outflows: transform(s.totalOutflows + leaseNet, s.year),
+      outflows: transform(s.totalOutflows + leasePreTax, s.year),
       net: transform(s.netCashflow, s.year),
       // Income breakdown
       salaryA: transform(s.salaryA ?? 0, s.year),
@@ -111,7 +111,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       mortgageExp: transform(s.propertyResults?.reduce((sum, r) => sum + (r.annualRepayment || 0), 0) ?? 0, s.year),
       debtExp: transform(s.totalDebtRepayments ?? 0, s.year),
       investContrib: transform(s.totalInvestmentContributions ?? 0, s.year),
-      leaseExp: transform(leaseNet, s.year),
+      leaseExp: transform(leasePreTax + (s.totalLeasePostTaxCost ?? 0), s.year),
       // Surplus/deficit
       surplus: transform(Math.max(0, s.netCashflow), s.year),
       deficit: transform(Math.min(0, s.netCashflow), s.year),
@@ -209,7 +209,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       livingExpenses:  s.totalExpenses,
       mortgage:        Math.max(0, mortgage),
       debtRepayments:  s.totalDebtRepayments ?? 0,
-      novatedLease:    (s.leaseReductionA ?? 0) + (s.leaseReductionB ?? 0),
+      novatedLease:    (s.leaseReductionA ?? 0) + (s.leaseReductionB ?? 0) + (s.totalLeasePostTaxCost ?? 0),
       // Asset balances
       superABal:       s.superABalance ?? 0,
       superBBal:       s.superBBalance ?? 0,

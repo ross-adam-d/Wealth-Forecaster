@@ -136,7 +136,17 @@ function resolveNovatedLeaseReduction(person, year) {
     ? calcECM(params)
     : calcStatutory(params)
 
-  return { reduction: fbtResult.pretaxPackageReduction, fbtResult }
+  // Residual/balloon: post-tax lump sum in the final year of the lease
+  const fromYear = typeof from === 'string' ? parseInt(from.slice(0, 4), 10) : (from || year)
+  const leaseEndYear = fromYear + term - 1
+  const residualPayment = (residual > 0 && year === leaseEndYear) ? residual : 0
+
+  return {
+    reduction: fbtResult.pretaxPackageReduction,
+    employeePostTaxContrib: employeeContrib,
+    residualPayment,
+    fbtResult,
+  }
 }
 
 /**
@@ -206,8 +216,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, salaryA)
     const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, salaryB)
-    const { reduction: leaseReductionA, fbtResult: fbtA } = resolveNovatedLeaseReduction(personA, year)
-    const { reduction: leaseReductionB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB, year)
+    const { reduction: leaseReductionA, employeePostTaxContrib: leasePostTaxA, residualPayment: leaseResidualA, fbtResult: fbtA } = resolveNovatedLeaseReduction(personA, year)
+    const { reduction: leaseReductionB, employeePostTaxContrib: leasePostTaxB, residualPayment: leaseResidualB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB, year)
 
     // ── Step 2: Income tax ────────────────────────────────────────────────
     const superContribA_pre = processContributions(superA, salaryA, year)
@@ -455,8 +465,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const div293TaxB = superContribB_pre.div293Tax || 0
     const totalDiv293Tax = div293TaxA + div293TaxB
 
+    // Novated lease post-tax costs: employee post-tax contribution + residual balloon (final year)
+    // Pre-tax package reduction is already deducted from netTakeHome (salary packaging)
+    const totalLeasePostTaxCost =
+      (leasePostTaxA || 0) + (leasePostTaxB || 0) +
+      (leaseResidualA || 0) + (leaseResidualB || 0)
+
     // Fixed contributions should not force asset drawdowns — cap at available cashflow
-    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer
+    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer + totalLeasePostTaxCost
     const availableForContributions = Math.max(0, totalIncomePreBond - essentialOutflows)
     const cappedFixedContributions = Math.min(totalFixedContributions, availableForContributions)
 
@@ -842,6 +858,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       ...(downsizerA.amount > 0 ? [`Downsizer contribution (A): $${Math.round(downsizerA.amount).toLocaleString()} into super`] : []),
       ...(downsizerB.amount > 0 ? [`Downsizer contribution (B): $${Math.round(downsizerB.amount).toLocaleString()} into super`] : []),
       ...(agePensionPrelim.totalPension > 0 ? [`Age Pension: $${Math.round(agePensionPrelim.totalPension).toLocaleString()}/yr`] : []),
+      ...(leaseResidualA > 0 ? [`Lease residual (A): $${Math.round(leaseResidualA).toLocaleString()} balloon payment (post-tax)`] : []),
+      ...(leaseResidualB > 0 ? [`Lease residual (B): $${Math.round(leaseResidualB).toLocaleString()} balloon payment (post-tax)`] : []),
     ]
 
     yearSnapshots.push({
@@ -895,6 +913,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Novated lease
       leaseReductionA,
       leaseReductionB,
+      leasePostTaxA: leasePostTaxA || 0,
+      leasePostTaxB: leasePostTaxB || 0,
+      leaseResidualA: leaseResidualA || 0,
+      leaseResidualB: leaseResidualB || 0,
+      totalLeasePostTaxCost,
       // Other income
       otherIncomeResult,
       totalOtherIncome: otherIncomeResult.total,

@@ -148,9 +148,11 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     const cashD     = tx(s.cashDrawdown || 0, yr)
     const propSale  = tx(s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) || 0, yr)
     const otherInc  = tx(s.totalOtherIncome || 0, yr)
-    const leaseNet  = tx((s.leaseReductionA || 0) + (s.leaseReductionB || 0), yr)
+    const leasePreTax = (s.leaseReductionA || 0) + (s.leaseReductionB || 0)
+    const leaseFull = leasePreTax + (s.totalLeasePostTaxCost || 0)
+    const leaseNet  = tx(leaseFull, yr)
     const livingExp = tx(s.totalExpenses || 0, yr)
-    const mortgage  = Math.max(0, tx((s.totalOutflows || 0) - (s.totalExpenses || 0) - ((s.leaseReductionA || 0) + (s.leaseReductionB || 0)), yr))
+    const mortgage  = Math.max(0, tx((s.totalOutflows || 0) - (s.totalExpenses || 0), yr))
     const netCF     = tx(s.netCashflow || 0, yr)
     const surplus   = netCF > 0 ? netCF : 0
     const deficit   = netCF < 0 ? Math.abs(netCF) : 0
