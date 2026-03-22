@@ -77,6 +77,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       liqBonds: Math.max(0, transform(s.bondLiquidity, s.year)),
       liqOther: Math.max(0, transform(s.totalOtherAssetsValue, s.year)),
       liqCash: Math.max(0, transform(s.cashBuffer, s.year)),
+      // Illiquid assets for investment breakdown
+      lockedSuperA: s.superA?.isLocked ? Math.max(0, transform(s.superABalance, s.year)) : 0,
+      lockedSuperB: s.superB?.isLocked ? Math.max(0, transform(s.superBBalance, s.year)) : 0,
+      preTenYrBonds: Math.max(0, transform(s.bondPreTenYr ?? 0, s.year)),
+      propertyEq: Math.max(0, transform(s.propertyEquity ?? 0, s.year)),
       isIllustrative,
     }
   })
@@ -545,16 +550,20 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             />
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-            <Bar dataKey="liqCash"   stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
-            <Bar dataKey="liqBonds"  stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Bonds" />
-            <Bar dataKey="liqOther"  stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other assets" />
-            <Bar dataKey="liqShares" stackId="1" fill="#34d399" fillOpacity={0.7} name="Shares" />
-            <Bar dataKey="superA"    stackId="1" fill="#f59e0b" fillOpacity={0.7} name={`Super A${personAName !== 'Person A' ? ` (${personAName})` : ''}`} />
-            <Bar dataKey="superB"    stackId="1" fill="#fb923c" fillOpacity={0.7} name={`Super B${personBName !== 'Person B' ? ` (${personBName})` : ''}`} />
+            <Bar dataKey="liqCash"       stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
+            <Bar dataKey="liqBonds"      stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Bonds (liquid)" />
+            <Bar dataKey="liqOther"      stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other assets" />
+            <Bar dataKey="liqShares"     stackId="1" fill="#34d399" fillOpacity={0.7} name="Shares" />
+            <Bar dataKey="superA"        stackId="1" fill="#f59e0b" fillOpacity={0.7} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+            <Bar dataKey="superB"        stackId="1" fill="#fb923c" fillOpacity={0.7} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+            <Bar dataKey="preTenYrBonds" stackId="1" fill="#a78bfa" fillOpacity={0.3} name="Bonds (pre-10yr)" />
+            <Bar dataKey="propertyEq"    stackId="1" fill="#f59e0b" fillOpacity={0.3} name="Property equity" />
+            <Bar dataKey="lockedSuperA"  stackId="1" fill="#f59e0b" fillOpacity={0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+            <Bar dataKey="lockedSuperB"  stackId="1" fill="#fb923c" fillOpacity={0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
           </BarChart>
         </ResponsiveContainer>
         <p className="mt-2 text-xs text-gray-600">
-          Super shows accessible (unlocked) balances only. Locked super is excluded.
+          Solid = liquid / accessible. Faded = illiquid (locked super, pre-10yr bonds, property equity).
         </p>
       </div>
 
