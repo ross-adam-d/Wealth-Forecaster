@@ -180,11 +180,11 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
             <div key={`${evt.sortKey}-${evt.label}`} className="flex items-center">
               {/* Column for this event */}
               <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '90px' }}>
-                {/* Callout line + label above (if staggered) or label directly above dot */}
+                {/* Callout line + label above dot */}
                 <div
-                  className="absolute flex flex-col items-center"
+                  className="absolute flex flex-col items-center z-20"
                   style={{
-                    bottom: '22px', // above the dot
+                    bottom: '22px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                   }}
@@ -194,7 +194,7 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
                     className="text-[10px] font-medium whitespace-nowrap"
                     style={{
                       color: evt.color,
-                      marginBottom: evt.level > 0 ? '2px' : '2px',
+                      marginBottom: '2px',
                       transform: `translateY(-${CALLOUT_HEIGHTS[Math.min(evt.level, 2)]}px)`,
                     }}
                   >

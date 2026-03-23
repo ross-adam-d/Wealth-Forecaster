@@ -68,8 +68,9 @@
 - [x] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
 - [x] **Investment breakdown view** — year-by-year chart showing each investment asset growing/depleting over time
 - [x] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: summary, income breakdown, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
-- [ ] **Timeline label fix** — level-0 labels behind dots; alternate above/below for non-callout items
-- [ ] **Compare deficit visibility** — red Xs for losing metrics (not just green ticks); red highlight rows for deficit/viability; make non-viable plans unmissable
+- [x] **Timeline label fix** — added `z-20` to label container so labels render above dots (`z-10`)
+- [x] **Compare deficit visibility** — red Xs for losing metrics, red text for losers, red-highlighted deficit rows with warning icon
+- [x] **Compare chart x-axis fix** — "Full plan" range now caps at plan end year; `XAxis type="number" domain` prevents padding
 - [ ] **Month precision across app** — extend year fields to "YYYY-MM" with month picker UI:
   - Expenses: start/end month, one-off date month
   - Property sale events: month (e.g. "Oct 2029")
@@ -102,6 +103,18 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-24
+
+**What was done:**
+- **Timeline label z-index fix** — label container now `z-20` so level-0 labels render above dots (`z-10`) instead of behind them.
+- **Compare table deficit visibility** — `WinIndicator` now shows red X (`✗`) for losing scenario alongside green checkmark for winner. Losing values colored red. Deficit-related rows (`deficitCount`, `firstDeficitYear`, `cumulativeDeficit`) get `bg-red-900/20` highlight and `⚠` warning icon when either scenario has deficits.
+- **Compare chart x-axis fix** — "Full plan" range filter now caps data at `planEndYear` (max of both scenarios' last snap year). All `XAxis` elements use `type="number" domain={['dataMin', 'dataMax']}` to prevent Recharts adding padding beyond data range.
+- 316 tests passing. Build clean.
+
+**State at end of session:** Three UI polish fixes shipped — timeline labels visible, compare table shows winners/losers clearly, chart x-axis bounded to plan.
+
+---
 
 ### Session — 2026-03-23
 

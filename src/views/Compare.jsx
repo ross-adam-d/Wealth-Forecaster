@@ -56,9 +56,10 @@ const METRICS = [
   { key: 'cumulativeDeficit', label: 'Cumulative shortfall', format: v => v > 0 ? fmt$(v) : 'None', better: 'lower' },
 ]
 
-function WinIndicator({ isWinner }) {
-  if (!isWinner) return null
-  return <span className="ml-1.5 text-green-400 text-xs">&#x2713;</span>
+function WinIndicator({ isWinner, isLoser }) {
+  if (isWinner) return <span className="ml-1.5 text-green-400 text-xs">&#x2713;</span>
+  if (isLoser) return <span className="ml-1.5 text-red-400 text-xs">&#x2717;</span>
+  return null
 }
 
 function GuideBox({ children }) {
@@ -138,8 +139,15 @@ export default function Compare({ scenarios, displayReal = true }) {
     return Array.from(yearMap.values()).sort((a, b) => a.year - b.year)
   }, [resultA, resultB, displayReal, inflationRate, currentYear])
 
+  // Determine the plan end year (last year of the longer scenario)
+  const planEndYear = useMemo(() => {
+    const lastA = resultA?.snaps?.[resultA.snaps.length - 1]?.year ?? currentYear
+    const lastB = resultB?.snaps?.[resultB.snaps.length - 1]?.year ?? currentYear
+    return Math.max(lastA, lastB)
+  }, [resultA, resultB, currentYear])
+
   function rangeFilter(data) {
-    if (chartRange === 'full') return data
+    if (chartRange === 'full') return data.filter(d => d.year <= planEndYear)
     return data.filter(d => d.year <= currentYear + Number(chartRange))
   }
 
@@ -278,7 +286,7 @@ export default function Compare({ scenarios, displayReal = true }) {
             {chartView === 'networth' ? (
               <AreaChart data={rangeFilter(chartData)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
                 <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
                 <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
@@ -292,7 +300,7 @@ export default function Compare({ scenarios, displayReal = true }) {
             ) : chartView === 'liquidity' ? (
               <AreaChart data={rangeFilter(chartData)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
                 <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
                 <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
@@ -306,7 +314,7 @@ export default function Compare({ scenarios, displayReal = true }) {
             ) : (
               <AreaChart data={rangeFilter(chartData)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
+                <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
                 <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
                 <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
@@ -350,16 +358,21 @@ export default function Compare({ scenarios, displayReal = true }) {
               const valA = resultA?.[metric.key]
               const valB = resultB?.[metric.key]
               const [winA, winB] = isWinner(metric, valA, valB)
+              const isDeficitRow = ['deficitCount', 'firstDeficitYear', 'cumulativeDeficit'].includes(metric.key)
+              const hasDeficit = isDeficitRow && ((resultA?.deficitCount ?? 0) > 0 || (resultB?.deficitCount ?? 0) > 0)
               return (
-                <tr key={metric.key} className="border-b border-gray-800/50 hover:bg-gray-800/20">
-                  <td className="py-2.5 px-4 text-gray-400">{metric.label}</td>
-                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${winA ? 'text-green-400' : 'text-gray-200'}`}>
-                    {resultA ? metric.format(valA) : '—'}
-                    <WinIndicator isWinner={winA} />
+                <tr key={metric.key} className={`border-b border-gray-800/50 ${hasDeficit ? 'bg-red-900/20' : 'hover:bg-gray-800/20'}`}>
+                  <td className={`py-2.5 px-4 ${hasDeficit ? 'text-red-400 font-medium' : 'text-gray-400'}`}>
+                    {hasDeficit && <span className="mr-1.5">⚠</span>}
+                    {metric.label}
                   </td>
-                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${winB ? 'text-green-400' : 'text-gray-200'}`}>
+                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${winA ? 'text-green-400' : winB ? 'text-red-400' : 'text-gray-200'}`}>
+                    {resultA ? metric.format(valA) : '—'}
+                    <WinIndicator isWinner={winA} isLoser={winB} />
+                  </td>
+                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${winB ? 'text-green-400' : winA ? 'text-red-400' : 'text-gray-200'}`}>
                     {resultB ? metric.format(valB) : '—'}
-                    <WinIndicator isWinner={winB} />
+                    <WinIndicator isWinner={winB} isLoser={winA} />
                   </td>
                 </tr>
               )
