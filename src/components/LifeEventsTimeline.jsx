@@ -184,7 +184,7 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
                 <div
                   className="absolute flex flex-col items-center z-20"
                   style={{
-                    bottom: '22px',
+                    bottom: '30px',
                     left: '50%',
                     transform: 'translateX(-50%)',
                   }}

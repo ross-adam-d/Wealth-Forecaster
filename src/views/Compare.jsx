@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
 import { runSimulation, solveRetirementDate } from '../engine/simulationEngine.js'
@@ -56,10 +56,9 @@ const METRICS = [
   { key: 'cumulativeDeficit', label: 'Cumulative shortfall', format: v => v > 0 ? fmt$(v) : 'None', better: 'lower' },
 ]
 
-function WinIndicator({ isWinner, isLoser }) {
-  if (isWinner) return <span className="ml-1.5 text-green-400 text-xs">&#x2713;</span>
-  if (isLoser) return <span className="ml-1.5 text-red-400 text-xs">&#x2717;</span>
-  return null
+function NonViableIndicator({ show }) {
+  if (!show) return null
+  return <span className="ml-1.5 text-red-400 text-xs">&#x2717;</span>
 }
 
 function GuideBox({ children }) {
@@ -85,7 +84,7 @@ const COLOR_B = '#34d399'  // emerald-400
 export default function Compare({ scenarios, displayReal = true }) {
   const [idA, setIdA] = useState(scenarios[0]?.id || '')
   const [idB, setIdB] = useState(scenarios[1]?.id || scenarios[0]?.id || '')
-  const [chartView, setChartView] = useState('networth') // networth | liquidity | breakdown
+  const [chartView, setChartView] = useState('networth') // networth | liquidity
   const [chartRange, setChartRange] = useState('full')
 
   const scenarioA = scenarios.find(s => s.id === idA)
@@ -166,15 +165,6 @@ export default function Compare({ scenarios, displayReal = true }) {
     critical: 'Not Viable',
   }[v] || 'Not Viable')
 
-  function isWinner(metric, valA, valB) {
-    if (valA == null || valB == null) return [false, false]
-    const numA = typeof valA === 'number' ? valA : 0
-    const numB = typeof valB === 'number' ? valB : 0
-    if (numA === numB) return [false, false]
-    if (metric.better === 'higher') return [numA > numB, numB > numA]
-    if (metric.better === 'lower') return [numA < numB && numA !== 0, numB < numA && numB !== 0]
-    return [false, false]
-  }
 
   if (scenarios.length < 2) {
     return (
@@ -245,13 +235,12 @@ export default function Compare({ scenarios, displayReal = true }) {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-3">
               <h2 className="text-sm font-semibold text-gray-300">
-                {chartView === 'networth' ? 'Net Worth' : chartView === 'liquidity' ? 'Liquidity' : 'Breakdown'}
+                {chartView === 'networth' ? 'Net Worth' : 'Liquidity'}
               </h2>
               <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
                 {[
                   { id: 'networth', label: 'Net Worth' },
                   { id: 'liquidity', label: 'Liquidity' },
-                  { id: 'breakdown', label: 'Breakdown' },
                 ].map(({ id, label }) => (
                   <button
                     key={id}
@@ -283,63 +272,34 @@ export default function Compare({ scenarios, displayReal = true }) {
           </p>
 
           <ResponsiveContainer width="100%" height={320}>
-            {chartView === 'networth' ? (
-              <AreaChart data={rangeFilter(chartData)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                {resultA.retirementYear && <ReferenceLine x={resultA.retirementYear} stroke={COLOR_A} strokeDasharray="4 4" strokeOpacity={0.5} />}
-                {resultB.retirementYear && resultB.retirementYear !== resultA.retirementYear && (
-                  <ReferenceLine x={resultB.retirementYear} stroke={COLOR_B} strokeDasharray="4 4" strokeOpacity={0.5} />
-                )}
-                <Area type="monotone" dataKey="nwA" stroke={COLOR_A} fill={COLOR_A} fillOpacity={0.15} strokeWidth={2} name={nameA} dot={false} />
-                <Area type="monotone" dataKey="nwB" stroke={COLOR_B} fill={COLOR_B} fillOpacity={0.15} strokeWidth={2} name={nameB} dot={false} />
-              </AreaChart>
-            ) : chartView === 'liquidity' ? (
-              <AreaChart data={rangeFilter(chartData)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                {resultA.retirementYear && <ReferenceLine x={resultA.retirementYear} stroke={COLOR_A} strokeDasharray="4 4" strokeOpacity={0.5} />}
-                {resultB.retirementYear && resultB.retirementYear !== resultA.retirementYear && (
-                  <ReferenceLine x={resultB.retirementYear} stroke={COLOR_B} strokeDasharray="4 4" strokeOpacity={0.5} />
-                )}
-                <Area type="monotone" dataKey="liqA" stroke={COLOR_A} fill={COLOR_A} fillOpacity={0.15} strokeWidth={2} name={nameA} dot={false} />
-                <Area type="monotone" dataKey="liqB" stroke={COLOR_B} fill={COLOR_B} fillOpacity={0.15} strokeWidth={2} name={nameB} dot={false} />
-              </AreaChart>
-            ) : (
-              <AreaChart data={rangeFilter(chartData)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                {/* A — solid lines */}
-                <Area type="monotone" dataKey="cashA" stackId="a" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.4} name={`${nameA} Cash`} />
-                <Area type="monotone" dataKey="sharesA" stackId="a" stroke="#34d399" fill="#34d399" fillOpacity={0.4} name={`${nameA} Shares`} />
-                <Area type="monotone" dataKey="bondsA" stackId="a" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.4} name={`${nameA} Bonds`} />
-                <Area type="monotone" dataKey="otherA" stackId="a" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.4} name={`${nameA} Other`} />
-                <Area type="monotone" dataKey="superA" stackId="a" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.4} name={`${nameA} Super`} />
-                <Area type="monotone" dataKey="propA" stackId="a" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name={`${nameA} Property`} />
-                {/* B — dashed lines, lower opacity */}
-                <Area type="monotone" dataKey="cashB" stackId="b" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.15} strokeDasharray="4 4" name={`${nameB} Cash`} />
-                <Area type="monotone" dataKey="sharesB" stackId="b" stroke="#34d399" fill="#34d399" fillOpacity={0.15} strokeDasharray="4 4" name={`${nameB} Shares`} />
-                <Area type="monotone" dataKey="bondsB" stackId="b" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} strokeDasharray="4 4" name={`${nameB} Bonds`} />
-                <Area type="monotone" dataKey="otherB" stackId="b" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.15} strokeDasharray="4 4" name={`${nameB} Other`} />
-                <Area type="monotone" dataKey="superB" stackId="b" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.15} strokeDasharray="4 4" name={`${nameB} Super`} />
-                <Area type="monotone" dataKey="propB" stackId="b" stroke="#fb923c" fill="#fb923c" fillOpacity={0.15} strokeDasharray="4 4" name={`${nameB} Property`} />
-              </AreaChart>
-            )}
+            <LineChart data={rangeFilter(chartData)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              {resultA.retirementYear && <ReferenceLine x={resultA.retirementYear} stroke={COLOR_A} strokeDasharray="4 4" strokeOpacity={0.5} />}
+              {resultB.retirementYear && resultB.retirementYear !== resultA.retirementYear && (
+                <ReferenceLine x={resultB.retirementYear} stroke={COLOR_B} strokeDasharray="4 4" strokeOpacity={0.5} />
+              )}
+              <Line
+                type="monotone"
+                dataKey={chartView === 'networth' ? 'nwA' : 'liqA'}
+                stroke={COLOR_A}
+                strokeWidth={2.5}
+                name={nameA}
+                dot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey={chartView === 'networth' ? 'nwB' : 'liqB'}
+                stroke={COLOR_B}
+                strokeWidth={2.5}
+                name={nameB}
+                dot={false}
+              />
+            </LineChart>
           </ResponsiveContainer>
-          {chartView === 'breakdown' && (
-            <p className="mt-2 text-xs text-gray-600">
-              Solid fills = {nameA}. Dashed = {nameB}. Same colours per asset class.
-            </p>
-          )}
         </div>
       )}
 
@@ -357,22 +317,23 @@ export default function Compare({ scenarios, displayReal = true }) {
             {METRICS.map(metric => {
               const valA = resultA?.[metric.key]
               const valB = resultB?.[metric.key]
-              const [winA, winB] = isWinner(metric, valA, valB)
-              const isDeficitRow = ['deficitCount', 'firstDeficitYear', 'cumulativeDeficit'].includes(metric.key)
-              const hasDeficit = isDeficitRow && ((resultA?.deficitCount ?? 0) > 0 || (resultB?.deficitCount ?? 0) > 0)
+              // Only flag non-viable: deficit years > 0, or has a first deficit year, or has cumulative shortfall
+              const nonViableA = (metric.key === 'deficitCount' && valA > 0)
+                || (metric.key === 'firstDeficitYear' && valA != null)
+                || (metric.key === 'cumulativeDeficit' && valA > 0)
+              const nonViableB = (metric.key === 'deficitCount' && valB > 0)
+                || (metric.key === 'firstDeficitYear' && valB != null)
+                || (metric.key === 'cumulativeDeficit' && valB > 0)
               return (
-                <tr key={metric.key} className={`border-b border-gray-800/50 ${hasDeficit ? 'bg-red-900/20' : 'hover:bg-gray-800/20'}`}>
-                  <td className={`py-2.5 px-4 ${hasDeficit ? 'text-red-400 font-medium' : 'text-gray-400'}`}>
-                    {hasDeficit && <span className="mr-1.5">⚠</span>}
-                    {metric.label}
-                  </td>
-                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${winA ? 'text-green-400' : winB ? 'text-red-400' : 'text-gray-200'}`}>
+                <tr key={metric.key} className="border-b border-gray-800/50 hover:bg-gray-800/20">
+                  <td className="py-2.5 px-4 text-gray-400">{metric.label}</td>
+                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${nonViableA ? 'text-red-400' : 'text-gray-200'}`}>
                     {resultA ? metric.format(valA) : '—'}
-                    <WinIndicator isWinner={winA} isLoser={winB} />
+                    <NonViableIndicator show={nonViableA} />
                   </td>
-                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${winB ? 'text-green-400' : winA ? 'text-red-400' : 'text-gray-200'}`}>
+                  <td className={`py-2.5 px-4 text-right font-medium tabular-nums ${nonViableB ? 'text-red-400' : 'text-gray-200'}`}>
                     {resultB ? metric.format(valB) : '—'}
-                    <WinIndicator isWinner={winB} isLoser={winA} />
+                    <NonViableIndicator show={nonViableB} />
                   </td>
                 </tr>
               )
