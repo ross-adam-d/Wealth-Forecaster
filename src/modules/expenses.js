@@ -1,7 +1,7 @@
 /**
  * Expense Hierarchy Module
  * Three-level tree: Group → Category → Subcategory
- * Supports annual, monthly, and one-off amounts with optional date ranges.
+ * Supports annual, monthly, one-off, and recurring amounts with optional date ranges.
  * Fixed/discretionary tagging cascades down; children can override.
  */
 
@@ -22,6 +22,13 @@ export function resolveNodeAmount(node, year, currentYear, globalInflation, leve
 
   // One-off: only applies in its specific year
   if (node.amountType === 'one_off' && year !== node.activeFrom) return 0
+
+  // Recurring: fires every N years from activeFrom within the active window
+  if (node.amountType === 'recurring') {
+    const every = node.recurringEveryYears
+    if (!every || every < 1 || node.activeFrom == null) return 0
+    if ((year - node.activeFrom) % every !== 0) return 0
+  }
 
   if (node.amount == null || node.amount === 0) return 0
 

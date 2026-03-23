@@ -71,6 +71,7 @@
 - [x] **Timeline label fix** — added `z-20` to label container so labels render above dots (`z-10`)
 - [x] **Compare deficit visibility** — red Xs for losing metrics, red text for losers, red-highlighted deficit rows with warning icon
 - [x] **Compare chart x-axis fix** — "Full plan" range now caps at plan end year; `XAxis type="number" domain` prevents padding
+- [x] **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears` (e.g. buy car every 10 years from 2026 to 2070). Engine fires expense only in matching years within active window. UI: dropdown option + frequency input + summary hint. 7 new tests (323 total).
 - [ ] **Month precision across app** — extend year fields to "YYYY-MM" with month picker UI:
   - Expenses: start/end month, one-off date month
   - Property sale events: month (e.g. "Oct 2029")
@@ -110,9 +111,13 @@
 - **Timeline label z-index fix** — label container now `z-20` so level-0 labels render above dots (`z-10`) instead of behind them.
 - **Compare table deficit visibility** — `WinIndicator` now shows red X (`✗`) for losing scenario alongside green checkmark for winner. Losing values colored red. Deficit-related rows (`deficitCount`, `firstDeficitYear`, `cumulativeDeficit`) get `bg-red-900/20` highlight and `⚠` warning icon when either scenario has deficits.
 - **Compare chart x-axis fix** — "Full plan" range filter now caps data at `planEndYear` (max of both scenarios' last snap year). All `XAxis` elements use `type="number" domain={['dataMin', 'dataMax']}` to prevent Recharts adding padding beyond data range.
-- 316 tests passing. Build clean.
+- **Timeline label spacing** — increased label-to-dot gap (bottom 22px → 30px) for clearer separation.
+- **Compare chart → line charts** — switched from AreaChart to LineChart (no fill, strokeWidth 2.5). Removed breakdown view (too busy for comparison).
+- **Compare table toned down** — removed green/red win/lose coloring from all metrics. Only non-viable data points (deficit years > 0, first deficit year, cumulative shortfall) shown in red with ✗ indicator.
+- **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears`. Engine fires expense only when `(year - activeFrom) % every === 0` within active window, with inflation applied to firing year. UI: "Recurring (other)" dropdown option, "Every X years" input (defaults to 5), summary hint showing schedule. Schema: `recurringEveryYears` field added to expense nodes. 7 new tests.
+- 323 tests passing. Build clean.
 
-**State at end of session:** Three UI polish fixes shipped — timeline labels visible, compare table shows winners/losers clearly, chart x-axis bounded to plan.
+**State at end of session:** Compare page polish + recurring expense feature shipped.
 
 ---
 

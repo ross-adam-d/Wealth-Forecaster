@@ -127,8 +127,9 @@ export function createDefaultExpenseNode(label = '', type = 'group') {
     id: crypto.randomUUID(),
     label,
     type,                     // 'group' | 'category' | 'subcategory'
-    amountType: 'annual',     // 'annual' | 'monthly' | 'one_off'
+    amountType: 'annual',     // 'annual' | 'monthly' | 'one_off' | 'recurring'
     amount: 0,
+    recurringEveryYears: null, // only used when amountType === 'recurring'
     isDiscretionary: false,
     activeFrom: null,         // year or null
     activeTo: null,           // year or null

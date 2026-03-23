@@ -1042,6 +1042,7 @@ const AMOUNT_TYPE_LABELS = {
   annual: 'Annual',
   monthly: 'Monthly',
   one_off: 'One-off',
+  recurring: 'Recurring',
 }
 
 const EXPENSE_DEPTH_LABELS = ['group', 'category', 'subcategory']
@@ -1051,6 +1052,11 @@ function calcExpenseTotal(node) {
   const own = node.amountType === 'monthly' ? (node.amount || 0) * 12 : (node.amount || 0)
   const childTotal = (node.children || []).reduce((sum, c) => sum + calcExpenseTotal(c), 0)
   return own + childTotal
+}
+
+function recurringDisplayLabel(node) {
+  if (node.amountType !== 'recurring' || !node.recurringEveryYears) return ''
+  return `every ${node.recurringEveryYears} yr${node.recurringEveryYears > 1 ? 's' : ''}`
 }
 
 function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYear }) {
@@ -1111,14 +1117,14 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
         />
         {depth > 0 && (
           <span className="text-xs text-gray-600 shrink-0">
-            {AMOUNT_TYPE_LABELS[item.amountType] || 'Annual'}
+            {item.amountType === 'recurring' ? recurringDisplayLabel(item) : (AMOUNT_TYPE_LABELS[item.amountType] || 'Annual')}
           </span>
         )}
         {item.isDiscretionary && (
           <span className="text-xs text-amber-500 shrink-0">disc.</span>
         )}
         <span className={`text-xs font-mono shrink-0 ${hasChildren && ownAmt === 0 ? 'text-gray-500' : 'text-gray-400'}`}>
-          ${Math.round(totalAmt).toLocaleString()}/yr
+          ${Math.round(totalAmt).toLocaleString()}{item.amountType === 'recurring' ? '' : (item.amountType === 'one_off' ? '' : '/yr')}
         </span>
         <button
           className="text-gray-600 hover:text-red-400 text-sm shrink-0"
@@ -1147,15 +1153,38 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                     const newType = e.target.value
                     const patch = { amountType: newType }
                     if (newType === 'one_off') patch.activeTo = null
+                    if (newType === 'recurring' && !item.recurringEveryYears) patch.recurringEveryYears = 5
+                    if (newType !== 'recurring') patch.recurringEveryYears = null
                     onUpdate(patch)
                   }}
                 >
                   <option value="annual">Annual</option>
                   <option value="monthly">Monthly (×12)</option>
                   <option value="one_off">One-off</option>
+                  <option value="recurring">Recurring (other)</option>
                 </select>
               </div>
             </div>
+
+            {item.amountType === 'recurring' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Every X years</label>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={item.recurringEveryYears || ''}
+                    onChange={e => onUpdate({ recurringEveryYears: Number(e.target.value) || null })}
+                    placeholder="e.g. 10"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 self-end pb-2">
+                  Fires in {item.activeFrom || '?'}, then every {item.recurringEveryYears || '?'} years{item.activeTo ? ` until ${item.activeTo}` : ''}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <input

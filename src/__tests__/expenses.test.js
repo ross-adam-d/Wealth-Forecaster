@@ -55,6 +55,56 @@ describe('resolveNodeAmount', () => {
     })
   })
 
+  describe('recurring expenses', () => {
+    const recurring = {
+      amountType: 'recurring',
+      amount: 40_000,
+      recurringEveryYears: 10,
+      isDiscretionary: false,
+      activeFrom: CURRENT_YEAR,
+      activeTo: CURRENT_YEAR + 40,
+      inflationRate: null,
+    }
+
+    it('fires in the activeFrom year', () => {
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR, CURRENT_YEAR, INFLATION)).toBeCloseTo(40_000, 0)
+    })
+
+    it('fires every N years from activeFrom', () => {
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 10, CURRENT_YEAR, INFLATION)).toBeGreaterThan(0)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 20, CURRENT_YEAR, INFLATION)).toBeGreaterThan(0)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 30, CURRENT_YEAR, INFLATION)).toBeGreaterThan(0)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 40, CURRENT_YEAR, INFLATION)).toBeGreaterThan(0)
+    })
+
+    it('returns 0 in non-firing years', () => {
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 1, CURRENT_YEAR, INFLATION)).toBe(0)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 5, CURRENT_YEAR, INFLATION)).toBe(0)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 9, CURRENT_YEAR, INFLATION)).toBe(0)
+    })
+
+    it('returns 0 outside active window', () => {
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR - 1, CURRENT_YEAR, INFLATION)).toBe(0)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 41, CURRENT_YEAR, INFLATION)).toBe(0)
+    })
+
+    it('applies inflation to firing year', () => {
+      // Year +10: 40,000 * 1.025^10
+      const expected = 40_000 * Math.pow(1.025, 10)
+      expect(resolveNodeAmount(recurring, CURRENT_YEAR + 10, CURRENT_YEAR, INFLATION)).toBeCloseTo(expected, 0)
+    })
+
+    it('returns 0 when recurringEveryYears is missing', () => {
+      const noFreq = { ...recurring, recurringEveryYears: null }
+      expect(resolveNodeAmount(noFreq, CURRENT_YEAR, CURRENT_YEAR, INFLATION)).toBe(0)
+    })
+
+    it('returns 0 when activeFrom is missing', () => {
+      const noStart = { ...recurring, activeFrom: null }
+      expect(resolveNodeAmount(noStart, CURRENT_YEAR, CURRENT_YEAR, INFLATION)).toBe(0)
+    })
+  })
+
   describe('date-bounded expenses', () => {
     const timeBounded = {
       ...annualNode,
