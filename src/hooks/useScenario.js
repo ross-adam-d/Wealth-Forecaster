@@ -95,6 +95,26 @@ export function useScenario(userId) {
     setActiveId(duplicate.id)
   }, [scenarios, triggerAutoSave])
 
+  const deleteScenario = useCallback((id) => {
+    setScenarios(prev => {
+      if (prev.length <= 1) return prev
+      const updated = prev.filter(s => s.id !== id)
+      // If deleting active, switch to first remaining
+      if (id === activeId) setActiveId(updated[0].id)
+      // Delete from Supabase
+      if (userId) supabase.from('scenarios').delete().eq('id', id).then(() => {})
+      return updated
+    })
+  }, [activeId, userId])
+
+  const renameScenario = useCallback((id, newName) => {
+    setScenarios(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, name: newName } : s)
+      triggerAutoSave(updated)
+      return updated
+    })
+  }, [triggerAutoSave])
+
   return {
     scenarios,
     activeScenario,
@@ -103,5 +123,7 @@ export function useScenario(userId) {
     updateScenario,
     addScenario,
     duplicateScenario,
+    deleteScenario,
+    renameScenario,
   }
 }

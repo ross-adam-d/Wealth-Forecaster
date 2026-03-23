@@ -1,15 +1,17 @@
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
+import ScenarioCards from './ScenarioCards.jsx'
 
 const NAV = [
   { to: '/gap',        label: 'The Gap' },
   { to: '/projection', label: 'Projection' },
   { to: '/impact',     label: 'Impact' },
+  { to: '/compare',    label: 'Compare' },
   { to: '/household',  label: 'Household' },
   { to: '/assumptions',label: 'Assumptions' },
 ]
 
-export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, displayReal, setDisplayReal, snapshots }) {
+export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots }) {
   const deficitYears = snapshots?.deficitYears || []
   const firstDeficitYear = snapshots?.firstDeficitYear
   const cumulativeDeficit = snapshots?.cumulativeDeficit || 0
@@ -57,36 +59,19 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
           </nav>
         </div>
 
-        {/* Real/nominal toggle */}
-        {setDisplayReal && (
-          <label className="flex items-center gap-1.5 cursor-pointer mr-2">
-            <span className="text-xs text-gray-500">Today's $</span>
-            <button
-              onClick={() => setDisplayReal(r => !r)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${displayReal ? 'bg-brand-600' : 'bg-gray-700'}`}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${displayReal ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
-          </label>
-        )}
-
-        {/* Scenario switcher */}
-        <div className="flex items-center gap-2">
-          <select
-            className="input text-sm py-1.5"
-            value={activeId}
-            onChange={e => setActiveId(e.target.value)}
-          >
-            {scenarios.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <button className="btn-ghost text-sm" onClick={() => addScenario(`Scenario ${scenarios.length + 1}`)}>
-            + New
-          </button>
-          <button className="btn-ghost text-sm" onClick={() => duplicateScenario(activeId)}>
-            Duplicate
-          </button>
+        <div className="flex items-center gap-3">
+          {/* Real/nominal toggle */}
+          {setDisplayReal && (
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <span className="text-xs text-gray-500">Today's $</span>
+              <button
+                onClick={() => setDisplayReal(r => !r)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${displayReal ? 'bg-brand-600' : 'bg-gray-700'}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${displayReal ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+            </label>
+          )}
           <button
             className="btn-ghost text-sm"
             onClick={() => supabase.auth.signOut()}
@@ -95,6 +80,19 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
           </button>
         </div>
       </header>
+
+      {/* Scenario cards strip */}
+      <div className="bg-gray-950 border-b border-gray-800 px-6 py-3">
+        <ScenarioCards
+          scenarios={scenarios}
+          activeId={activeId}
+          setActiveId={setActiveId}
+          addScenario={addScenario}
+          duplicateScenario={duplicateScenario}
+          deleteScenario={deleteScenario}
+          renameScenario={renameScenario}
+        />
+      </div>
 
       {/* Main content */}
       <main className="flex-1 min-h-0 overflow-y-auto">

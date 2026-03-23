@@ -75,11 +75,11 @@
 - [ ] Impact Analyser: supporting metrics panel (net worth, liquidity runway, gap viability)
 
 ### Then — Scenario management UI
-- [ ] Named scenario cards with viability status
-- [ ] Side-by-side comparison view
+- [x] Named scenario cards with viability status
+- [x] Side-by-side comparison view
 
 ### Then — Output Views
-- [ ] One-off events timeline
+- [x] One-off events timeline
 - [ ] Rate period visualisation per asset
 
 ### Phase 2 (future)
@@ -93,6 +93,19 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-23
+
+**What was done:**
+- **Scenario cards with viability status** — replaced `<select>` dropdown in Layout with visual scenario cards strip. Each card shows: scenario name (double-click to rename), viability badge (Viable/At Risk/Not Viable based on deficit years), retirement year/age, end net worth, deficit year count. Active card highlighted with brand border/ring. Duplicate and delete actions on active card. Dashed "+ New Scenario" card. Each card runs its own simulation via `useScenarioSummary` hook (memoised). `deleteScenario` and `renameScenario` added to `useScenario` hook with Supabase sync.
+- **Side-by-side scenario comparison** — new `/compare` route and `Compare.jsx` view. Two scenario selectors, viability badges, 10-metric comparison table with green checkmark winners (retirement year, net worth at retirement/end, liquid assets, peak net worth, deficit years, first deficit, cumulative shortfall). Delta summary card (end net worth, liquid at retirement, deficit years — A vs B). Guide box. Graceful fallback when <2 scenarios exist.
+- **Life events timeline** — `LifeEventsTimeline` component on Projection page between controls and net worth chart. Extracts events from scenario config + simulation snapshots: retirement (A/B/both), super unlock, property sales, mortgage payoffs, debt payoffs, Age Pension start, novated lease end, downsizer contributions, first deficit year. Horizontal timeline with color-coded dots, alternating above/below labels to reduce overlap. Auto-hides when no events detected.
+- **Nav update** — "Compare" link added to top navigation bar.
+- 316 tests passing. Build clean.
+
+**State at end of session:** Three UI/UX features shipped — scenario cards, comparison view, life events timeline. All existing tests pass.
+
+---
 
 ### Session — 2026-03-22
 

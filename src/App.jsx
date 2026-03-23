@@ -9,6 +9,7 @@ import Projection from './views/Projection.jsx'
 import ImpactAnalyser from './views/ImpactAnalyser.jsx'
 import HouseholdProfile from './views/HouseholdProfile.jsx'
 import Assumptions from './views/Assumptions.jsx'
+import Compare from './views/Compare.jsx'
 import Login from './views/Login.jsx'
 
 export default function App() {
@@ -34,6 +35,8 @@ export default function App() {
     updateScenario,
     addScenario,
     duplicateScenario,
+    deleteScenario,
+    renameScenario,
   } = useScenario(user?.id)
 
   const { snapshots, retirementDate } = useSimulation(activeScenario)
@@ -61,6 +64,8 @@ export default function App() {
     setActiveId,
     addScenario,
     duplicateScenario,
+    deleteScenario,
+    renameScenario,
     displayReal,
     setDisplayReal,
   }
@@ -72,6 +77,7 @@ export default function App() {
         <Route path="/gap" element={<GapDashboard {...sharedProps} />} />
         <Route path="/projection" element={<Projection {...sharedProps} />} />
         <Route path="/impact" element={<ImpactAnalyser {...sharedProps} />} />
+        <Route path="/compare" element={<Compare {...sharedProps} />} />
         <Route path="/household" element={<HouseholdProfile {...sharedProps} />} />
         <Route path="/assumptions" element={<Assumptions {...sharedProps} />} />
       </Routes>

@@ -5,6 +5,7 @@ import {
 import { useState, useMemo } from 'react'
 import { ILLUSTRATIVE_AGE_THRESHOLD } from '../constants/index.js'
 import CashflowSankey from '../components/CashflowSankey.jsx'
+import LifeEventsTimeline from '../components/LifeEventsTimeline.jsx'
 
 function fmt$(n) {
   if (n == null) return '—'
@@ -308,6 +309,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
           {displayReal ? "Today's dollars (real)" : 'Nominal dollars'}
         </span>
       </div>
+
+      {/* Life events timeline */}
+      <LifeEventsTimeline scenario={scenario} snapshots={snapshots} />
 
       {/* Net worth / liquidity chart */}
       <div className="card">
