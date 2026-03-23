@@ -68,6 +68,15 @@
 - [x] **Projection chart view toggle** — main graph switchable between: net worth (current default), liquidity, liquidity breakdown (stacked columns)
 - [x] **Investment breakdown view** — year-by-year chart showing each investment asset growing/depleting over time
 - [x] **Cashflow chart overhaul** — replace current annual cashflow chart with toggle for: summary, income breakdown, expense breakdown (stacked column), surplus/deficit (+/- over/under x-axis)
+- [ ] **Timeline label fix** — level-0 labels behind dots; alternate above/below for non-callout items
+- [ ] **Compare deficit visibility** — red Xs for losing metrics (not just green ticks); red highlight rows for deficit/viability; make non-viable plans unmissable
+- [ ] **Month precision across app** — extend year fields to "YYYY-MM" with month picker UI:
+  - Expenses: start/end month, one-off date month
+  - Property sale events: month (e.g. "Oct 2029")
+  - Other income: activeFrom/activeTo with month
+  - Asset acquisition dates
+  - Engine: fractional-year pro-rating for month-precision
+  - Schema: backward compat with year-only values
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [ ] Impact Analyser: wire lever values into simulation overrides
@@ -99,11 +108,18 @@
 **What was done:**
 - **Scenario cards with viability status** — replaced `<select>` dropdown in Layout with visual scenario cards strip. Each card shows: scenario name (double-click to rename), viability badge (Viable/At Risk/Not Viable based on deficit years), retirement year/age, end net worth, deficit year count. Active card highlighted with brand border/ring. Duplicate and delete actions on active card. Dashed "+ New Scenario" card. Each card runs its own simulation via `useScenarioSummary` hook (memoised). `deleteScenario` and `renameScenario` added to `useScenario` hook with Supabase sync.
 - **Side-by-side scenario comparison** — new `/compare` route and `Compare.jsx` view. Two scenario selectors, viability badges, 10-metric comparison table with green checkmark winners (retirement year, net worth at retirement/end, liquid assets, peak net worth, deficit years, first deficit, cumulative shortfall). Delta summary card (end net worth, liquid at retirement, deficit years — A vs B). Guide box. Graceful fallback when <2 scenarios exist.
-- **Life events timeline** — `LifeEventsTimeline` component on Projection page between controls and net worth chart. Extracts events from scenario config + simulation snapshots: retirement (A/B/both), super unlock, property sales, mortgage payoffs, debt payoffs, Age Pension start, novated lease end, downsizer contributions, first deficit year. Horizontal timeline with color-coded dots, alternating above/below labels to reduce overlap. Auto-hides when no events detected.
+- **Life events timeline** — `LifeEventsTimeline` component on Projection page between controls and net worth chart. Extracts events from scenario config + simulation snapshots: retirement (A/B/both), super unlock, property sales, mortgage payoffs, debt payoffs, Age Pension start, novated lease end, downsizer contributions, first deficit year. Horizontal timeline with color-coded dots. Month-precision sorting (lease "2029-08" → sortKey 2029.58, displays "Aug 2029"). Staggered callout lines for dense events (within 2 years). Auto-hides when no events detected.
+- **Scenario cards auto-hide** — cards strip slides up with fade on scroll down (40px threshold), reappears on scroll to top.
+- **Compare overlay chart** — overlay AreaChart on Compare page with pill toggle: Net Worth (two overlapping areas), Liquidity (same), Breakdown (stacked areas per asset class — solid A, dashed B). Timeline range selector, retirement reference lines per scenario. Colour A = brand blue, B = emerald.
 - **Nav update** — "Compare" link added to top navigation bar.
 - 316 tests passing. Build clean.
 
-**State at end of session:** Three UI/UX features shipped — scenario cards, comparison view, life events timeline. All existing tests pass.
+**State at end of session:** UI/UX features shipped — scenario cards, comparison view with overlay chart, life events timeline. All existing tests pass.
+
+**Known issues for next session:**
+1. Timeline: level-0 labels sit behind dot row — need above/below alternation
+2. Compare: deficit years not visually prominent — needs red Xs (losing metric), red row highlights for deficit/viability
+3. Month precision needed app-wide — expenses start/end, one-off dates, property sale, other income activeFrom/activeTo, asset acquisition. Engine pro-rating for fractional years. Schema: year fields → "YYYY-MM" strings with backward compat.
 
 ---
 
