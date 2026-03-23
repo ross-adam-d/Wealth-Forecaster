@@ -12,7 +12,7 @@ const EVENT_COLORS = {
 
 /**
  * Extract life events from scenario config + simulation snapshots.
- * Returns sorted array of { year, label, color, icon }.
+ * Returns sorted array of { year, label, color }.
  */
 function extractEvents(scenario, snapshots) {
   const events = []
@@ -24,12 +24,11 @@ function extractEvents(scenario, snapshots) {
   // Retirement years
   const retireA = snapshots.find(s => s.retiredA && !snapshots.find(p => p.year === s.year - 1 && p.retiredA))
   const retireB = snapshots.find(s => s.retiredB && !snapshots.find(p => p.year === s.year - 1 && p.retiredB))
-  if (retireA) events.push({ year: retireA.year, label: `${personAName} retires`, color: EVENT_COLORS.retirement })
-  if (retireB && retireB.year !== retireA?.year) events.push({ year: retireB.year, label: `${personBName} retires`, color: EVENT_COLORS.retirement })
-  if (retireB && retireA && retireB.year === retireA.year) {
-    // Replace with combined event
-    events.pop() // remove A
+  if (retireA && retireB && retireA.year === retireB.year) {
     events.push({ year: retireA.year, label: 'Both retire', color: EVENT_COLORS.retirement })
+  } else {
+    if (retireA) events.push({ year: retireA.year, label: `${personAName} retires`, color: EVENT_COLORS.retirement })
+    if (retireB) events.push({ year: retireB.year, label: `${personBName} retires`, color: EVENT_COLORS.retirement })
   }
 
   // Super unlock (preservation age — when isLocked transitions to false)
@@ -57,7 +56,6 @@ function extractEvents(scenario, snapshots) {
       })
       if (payoffSnap) {
         const name = prop.isPrimaryResidence ? 'Home' : (prop.name || `Property ${i + 1}`)
-        // Don't add if same year as sale
         if (!prop.saleEvent || payoffSnap.year !== prop.saleEvent.year) {
           events.push({ year: payoffSnap.year, label: `${name} mortgage paid`, color: EVENT_COLORS.property })
         }
@@ -101,7 +99,6 @@ function extractEvents(scenario, snapshots) {
   const downsizerSnap = snapshots.find(s => (s.totalDownsizer ?? 0) > 0)
   if (downsizerSnap) events.push({ year: downsizerSnap.year, label: 'Downsizer contribution', color: EVENT_COLORS.super })
 
-  // Sort by year, deduplicate same year+label
   events.sort((a, b) => a.year - b.year)
   return events
 }
@@ -111,59 +108,32 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
 
   if (events.length === 0) return null
 
-  const startYear = events[0].year
-  const endYear = events[events.length - 1].year
-  const span = Math.max(endYear - startYear, 1)
-
   return (
-    <div className="card">
-      <h2 className="text-sm font-semibold text-gray-300 mb-4">Life Events</h2>
+    <div className="card overflow-x-auto">
+      <h2 className="text-sm font-semibold text-gray-300 mb-3">Life Events</h2>
 
-      {/* Timeline bar */}
-      <div className="relative">
-        {/* Track */}
-        <div className="h-0.5 bg-gray-700 rounded-full mx-4" />
-
-        {/* Events positioned along the track */}
-        <div className="relative h-20 mx-4">
-          {events.map((evt, i) => {
-            const pct = ((evt.year - startYear) / span) * 100
-            // Alternate above/below to avoid overlap
-            const isAbove = i % 2 === 0
-            return (
+      {/* Horizontal scrollable timeline */}
+      <div className="flex items-center gap-0 min-w-max px-2">
+        {events.map((evt, i) => (
+          <div key={`${evt.year}-${evt.label}`} className="flex items-center">
+            {/* Event node */}
+            <div className="flex flex-col items-center flex-shrink-0" style={{ minWidth: '80px' }}>
+              <p className="text-[10px] font-medium whitespace-nowrap mb-1" style={{ color: evt.color }}>
+                {evt.label}
+              </p>
               <div
-                key={`${evt.year}-${evt.label}`}
-                className="absolute flex flex-col items-center"
-                style={{
-                  left: `${pct}%`,
-                  transform: 'translateX(-50%)',
-                  top: isAbove ? '0px' : '40px',
-                }}
-              >
-                {/* Dot */}
-                <div
-                  className="w-2.5 h-2.5 rounded-full border-2 border-gray-900 flex-shrink-0"
-                  style={{ backgroundColor: evt.color, order: isAbove ? 2 : 0 }}
-                />
-                {/* Connector line */}
-                <div
-                  className="w-px h-2 flex-shrink-0"
-                  style={{ backgroundColor: evt.color, opacity: 0.4, order: 1 }}
-                />
-                {/* Label */}
-                <div
-                  className="text-center flex-shrink-0"
-                  style={{ order: isAbove ? 0 : 2 }}
-                >
-                  <p className="text-[10px] font-medium whitespace-nowrap" style={{ color: evt.color }}>
-                    {evt.label}
-                  </p>
-                  <p className="text-[9px] text-gray-500">{evt.year}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+                className="w-3 h-3 rounded-full border-2 border-gray-900 flex-shrink-0"
+                style={{ backgroundColor: evt.color }}
+              />
+              <p className="text-[10px] text-gray-500 mt-1">{evt.year}</p>
+            </div>
+
+            {/* Connector line between events */}
+            {i < events.length - 1 && (
+              <div className="h-px bg-gray-700 flex-shrink-0" style={{ width: '32px' }} />
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )

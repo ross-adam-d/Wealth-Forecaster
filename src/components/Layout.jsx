@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabase } from '../utils/supabase.js'
 import ScenarioCards from './ScenarioCards.jsx'
 
@@ -15,6 +16,23 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
   const deficitYears = snapshots?.deficitYears || []
   const firstDeficitYear = snapshots?.firstDeficitYear
   const cumulativeDeficit = snapshots?.cumulativeDeficit || 0
+
+  // Auto-hide scenario cards on scroll down, show on scroll to top
+  const [cardsVisible, setCardsVisible] = useState(true)
+  const mainRef = useRef(null)
+
+  const handleScroll = useCallback(() => {
+    const el = mainRef.current
+    if (!el) return
+    setCardsVisible(el.scrollTop < 40)
+  }, [])
+
+  useEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    el.addEventListener('scroll', handleScroll, { passive: true })
+    return () => el.removeEventListener('scroll', handleScroll)
+  }, [handleScroll])
 
   return (
     <div className="h-screen flex flex-col">
@@ -81,8 +99,17 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
         </div>
       </header>
 
-      {/* Scenario cards strip */}
-      <div className="bg-gray-950 border-b border-gray-800 px-6 py-3">
+      {/* Scenario cards strip — auto-hide on scroll, slide animation */}
+      <div
+        className="bg-gray-950 border-b border-gray-800 px-6 overflow-hidden transition-all duration-300 ease-in-out"
+        style={{
+          maxHeight: cardsVisible ? '200px' : '0px',
+          paddingTop: cardsVisible ? '12px' : '0px',
+          paddingBottom: cardsVisible ? '12px' : '0px',
+          opacity: cardsVisible ? 1 : 0,
+          borderBottomWidth: cardsVisible ? '1px' : '0px',
+        }}
+      >
         <ScenarioCards
           scenarios={scenarios}
           activeId={activeId}
@@ -95,7 +122,7 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
       </div>
 
       {/* Main content */}
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </main>
 
