@@ -1,0 +1,193 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Scenario validation — universal invariants > Aggressive Saver > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2080,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 22824116.89146895,
+  "liquidAtRetirement": 3549890.6588849938,
+  "netWorthAtEnd": 22824116.89146895,
+  "netWorthAtRetirement": 5990556.407481864,
+  "peakNetWorth": 22824116.89146895,
+  "startYear": 2026,
+  "totalYears": 55,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Debt Heavy > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2076,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 2708314.5774050737,
+  "liquidAtRetirement": 2442548.375065644,
+  "netWorthAtEnd": 2708314.5774050737,
+  "netWorthAtRetirement": 2442548.375065644,
+  "peakNetWorth": 2770750.403242862,
+  "startYear": 2026,
+  "totalYears": 51,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Downsizer > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2058,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 4740620.287932334,
+  "liquidAtRetirement": 874707.5288794751,
+  "netWorthAtEnd": 4740620.287932334,
+  "netWorthAtRetirement": 2710744.3298794744,
+  "peakNetWorth": 4743244.439635267,
+  "startYear": 2026,
+  "totalYears": 33,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Dual Income Family > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2075,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 8579078.285764566,
+  "liquidAtRetirement": 3269195.4650381077,
+  "netWorthAtEnd": 15330427.464728966,
+  "netWorthAtRetirement": 6216656.860071808,
+  "peakNetWorth": 15330427.464728966,
+  "startYear": 2026,
+  "totalYears": 50,
+}
+`;
+
+exports[`Scenario validation — universal invariants > High Earner Div293 > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2068,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 14326233.264939843,
+  "liquidAtRetirement": 1339887.0277580395,
+  "netWorthAtEnd": 26207322.853711188,
+  "netWorthAtRetirement": 7596359.77089882,
+  "peakNetWorth": 26207322.853711188,
+  "startYear": 2026,
+  "totalYears": 43,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Late Career Maximiser > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2060,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 7239583.653722161,
+  "liquidAtRetirement": 1913657.8808033904,
+  "netWorthAtEnd": 11906610.277913798,
+  "netWorthAtRetirement": 3576418.708709015,
+  "peakNetWorth": 11906610.277913798,
+  "startYear": 2026,
+  "totalYears": 35,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Novated Lease PBI > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2078,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 4250344.320979576,
+  "liquidAtRetirement": 2842161.7686902867,
+  "netWorthAtEnd": 4250344.320979576,
+  "netWorthAtRetirement": 2842161.7686902867,
+  "peakNetWorth": 4250344.320979576,
+  "startYear": 2026,
+  "totalYears": 53,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Property Investor > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2072,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 6265205.47198977,
+  "liquidAtRetirement": 2619206.753895117,
+  "netWorthAtEnd": 11635348.746498132,
+  "netWorthAtRetirement": 4941425.139319027,
+  "peakNetWorth": 11635348.746498132,
+  "startYear": 2026,
+  "totalYears": 47,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Recurring Expenses > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2073,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 6497311.827514531,
+  "liquidAtRetirement": 3072522.407320917,
+  "netWorthAtEnd": 11425208.008828085,
+  "netWorthAtRetirement": 4781598.458886985,
+  "peakNetWorth": 11425208.008828085,
+  "startYear": 2026,
+  "totalYears": 48,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Retiree Couple > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2053,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 125370.80064429383,
+  "liquidAtRetirement": null,
+  "netWorthAtEnd": 2184505.7088078302,
+  "netWorthAtRetirement": null,
+  "peakNetWorth": 2243858.875304738,
+  "startYear": 2026,
+  "totalYears": 28,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Single Parent Age Pension > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 87395.8455956431,
+  "deficitYears": 2,
+  "endYear": 2067,
+  "firstDeficitYear": 2066,
+  "liquidAtEnd": -87395.8455956431,
+  "liquidAtRetirement": 598150.5633654179,
+  "netWorthAtEnd": 1469917.3064936763,
+  "netWorthAtRetirement": 1341931.9978877062,
+  "peakNetWorth": 1539108.6819457328,
+  "startYear": 2026,
+  "totalYears": 42,
+}
+`;
+
+exports[`Scenario validation — universal invariants > Young Single Renter > golden metrics snapshot 1`] = `
+{
+  "cumulativeDeficit": 0,
+  "deficitYears": 0,
+  "endYear": 2088,
+  "firstDeficitYear": null,
+  "liquidAtEnd": 7165933.541454246,
+  "liquidAtRetirement": 4196510.456401684,
+  "netWorthAtEnd": 7165933.541454246,
+  "netWorthAtRetirement": 4196510.456401684,
+  "peakNetWorth": 7165933.541454246,
+  "startYear": 2026,
+  "totalYears": 63,
+}
+`;

@@ -115,9 +115,10 @@
 - **Compare chart → line charts** — switched from AreaChart to LineChart (no fill, strokeWidth 2.5). Removed breakdown view (too busy for comparison).
 - **Compare table toned down** — removed green/red win/lose coloring from all metrics. Only non-viable data points (deficit years > 0, first deficit year, cumulative shortfall) shown in red with ✗ indicator.
 - **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears`. Engine fires expense only when `(year - activeFrom) % every === 0` within active window, with inflation applied to firing year. UI: "Recurring (other)" dropdown option, "Every X years" input (defaults to 5), summary hint showing schedule. Schema: `recurringEveryYears` field added to expense nodes. 7 new tests.
-- 323 tests passing. Build clean.
+- **Scenario validation suite** — 12 archetype scenarios × 10 universal invariants + 35 behavioural assertions + 12 golden metric snapshots = 158 new tests. Archetypes: young single renter, dual income family, late career maximiser, single parent (Age Pension), high earner (Div293), retiree couple, property investor (neg gearing + sale), novated lease PBI, downsizer, aggressive saver, debt-heavy, recurring expenses. Universal invariants: cashflow reconciliation, no NaN/Infinity, salary-at-retirement, super pension phase timing, debt non-negative, expense non-negative, accumulation stop, warnings present.
+- 481 tests passing. Build clean.
 
-**State at end of session:** Compare page polish + recurring expense feature shipped.
+**State at end of session:** Compare page polish, recurring expenses, comprehensive scenario validation suite shipped.
 
 ---
 
