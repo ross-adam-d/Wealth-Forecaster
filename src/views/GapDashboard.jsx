@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import { applyRealNominal } from '../utils/format.js'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -84,21 +85,24 @@ function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
   return <span className="badge-at-risk">No gap data — enter household details</span>
 }
 
-function GuideBox({ children }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="card">
-      <button
-        className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className="text-xs">{open ? '▾' : '▸'}</span>
-        How this page works
-      </button>
-      {open && <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>}
-    </div>
-  )
-}
+const GAP_TUTORIAL = [
+  {
+    title: 'What is "The Gap"?',
+    body: 'The Gap is the period between your earliest retirement date and when super becomes accessible at preservation age (60). During this window you rely entirely on non-super liquid assets — cash, shares, and investment bonds — to fund living expenses.',
+  },
+  {
+    title: 'Viability badge',
+    body: 'The badge at the top right shows whether your liquid assets last the entire gap period. Green = viable with buffer, amber = tight, red = liquid assets exhausted before super unlocks.',
+  },
+  {
+    title: 'Stress testing',
+    body: 'Use the Stress Test sliders to see how rising expenses or falling returns affect your position. This helps you plan for worst-case scenarios without changing your saved data.',
+  },
+  {
+    title: 'Retirement age sliders',
+    body: 'Drag the retirement age sliders to find the earliest viable date. Each change re-runs the simulation instantly so you can see the impact in real time.',
+  },
+]
 
 const AREA_COLORS = {
   cash: '#60a5fa',
@@ -150,6 +154,7 @@ function buildStressedScenario(scenario, stressReturn) {
 }
 
 export default function GapDashboard({ snapshots, scenario, updateScenario, displayReal = true }) {
+  const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('gapTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [stressExpenses, setStressExpenses] = useState(0)   // fractional: -0.20 to +0.30
   const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
   const [showPartTime, setShowPartTime] = useState(false)
@@ -220,11 +225,15 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      {showTutorial && <Tutorial steps={GAP_TUTORIAL} onClose={closeTutorial} />}
 
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">The Gap</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">The Gap</h1>
+            <TutorialButton onClick={() => setShowTutorial(true)} />
+          </div>
           <p className="text-gray-400 text-sm mt-1">
             {gapStart && gapEnd
               ? `${gapStart} — ${gapEnd} · ${gapEnd - gapStart} years before super unlocks`
@@ -261,11 +270,6 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
           </div>
         )
       })()}
-
-      {/* Guide */}
-      <GuideBox>
-        The Gap is the period between your earliest retirement date and when super becomes accessible at preservation age (60). During this window you rely entirely on non-super liquid assets — cash, shares, and investment bonds — to fund living expenses. The viability badge shows whether your runway lasts the full gap. Use the Stress Test below to see how rising expenses or falling returns affect your position, and adjust retirement ages with the sliders to find the earliest viable date.
-      </GuideBox>
 
       {/* Runway chart */}
       <div className="card">

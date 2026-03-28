@@ -81,9 +81,13 @@
   - Schema: backward compat with year-only values
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
-- [ ] Impact Analyser: wire lever values into simulation overrides
-- [ ] Impact Analyser: base vs adjusted diff columns with headline metric (retirement date delta)
-- [ ] Impact Analyser: supporting metrics panel (net worth, liquidity runway, gap viability)
+- [x] Impact Analyser: wire lever values into simulation overrides
+- [x] Impact Analyser: base vs adjusted diff columns with headline metric (retirement date delta)
+- [x] Impact Analyser: supporting metrics panel (net worth, liquidity runway, gap viability)
+- [x] **Retirement Goal Planner** — reverse engine: set target retirement age, manipulate expense/income/return sliders to make it viable. $/% toggle, baseline scenario selector, hero age with viability badge, supporting metrics grid.
+- [x] **Per-page tutorials** — shared Tutorial component with step-through overlay, localStorage persistence, "?" re-open button. Tutorials on all 7 views + global welcome tutorial (fires first, pages wait).
+- [x] **Scenario cards pin/hide** — replaced scroll-based auto-hide with manual toggle button in header.
+- [x] **Engine pre/post-retirement lever splits** — `leverAdjustments.expenses` and `leverAdjustments.returns` support `{ preRetirement, postRetirement }` with per-year resolution based on retirement state.
 
 ### Then — Scenario management UI
 - [x] Named scenario cards with viability status
@@ -104,6 +108,22 @@
 ---
 
 ## Session Log
+
+### Session — 2026-03-28
+
+**What was done:**
+- **Retirement Goal Planner** (`/goal` route, `RetirementGoal.jsx`) — reverse engine tool. User sets target retirement age (hero number, +/- buttons, slider 40-70), then adjusts lever sliders to make it viable. Levers: pre/post-retirement expenses, pre-retirement income, pre/post-retirement returns. Expenses and income support $/% toggle. Baseline scenario selector dropdown. Supporting metrics: liquid assets at retirement, net worth, min liquidity, deficit years, peak net worth. Real-time simulation via `useMemo`. Viability badge (green/red). Baseline retirement age comparison text.
+- **Engine pre/post-retirement lever splits** — `simulationEngine.js` extended: `leverAdjustments.expenses` and `leverAdjustments.returns` now support `{ preRetirement: {}, postRetirement: {} }` structure. Per-year resolution inside simulation loop based on whether all persons have retired. Backward-compatible — falls back to original behavior when no split provided. All 481 tests passing.
+- **Income lever fix** — dollar-mode income now adds flat amount to Person A's salary only (was converting to % applied to both, causing non-monotonic viability from tax bracket distortion).
+- **Per-page tutorials** — extracted shared `Tutorial.jsx` component (step-through overlay, progress bar, Back/Next/Skip, localStorage persistence, `useTutorial` hook, `TutorialButton` component). Added tutorials to all 7 views: Assumptions (4 steps), Household (5), The Gap (4), Projection (4), Impact (4), Compare (3), Goal (5). Each page has "?" button to re-open.
+- **Global welcome tutorial** — 4-step onboarding in Layout. Fires once on first visit. Directs users to start with Assumptions then Household. Page tutorials wait until welcome is dismissed (`waitFor` option on `useTutorial`).
+- **Scenario cards pin/hide** — replaced scroll-based auto-hide with manual toggle button in header. Blue-tinted when pinned, grey when collapsed.
+- **Old GuideBox components removed** — all inline collapsible guide boxes replaced by the tutorial system.
+- 481 tests passing. Build clean. Deployed to Vercel.
+
+**State at end of session:** Goal Planner feature complete, full tutorial system across all pages, scenario cards UX improved. Deployed.
+
+---
 
 ### Session — 2026-03-24
 

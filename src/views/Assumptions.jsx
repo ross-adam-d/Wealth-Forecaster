@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import {
   INFLATION_RATE, WAGE_GROWTH_RATE, SUPER_ACCUMULATION_RATE, SUPER_PENSION_RATE,
   SHARES_RETURN_RATE, PROPERTY_GROWTH_RATE, DIVIDEND_YIELD, DEFAULT_FRANKING_PCT,
@@ -45,35 +46,40 @@ function SectionHeader({ label }) {
   )
 }
 
-function GuideBox({ children }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="card">
-      <button
-        className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className="text-xs">{open ? '▾' : '▸'}</span>
-        How this page works
-      </button>
-      {open && <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>}
-    </div>
-  )
-}
+const ASSUMPTIONS_TUTORIAL = [
+  {
+    title: 'Start here: Assumptions',
+    body: 'These assumptions drive every projection in the tool. Before exploring other pages, review the defaults here and adjust anything that doesn\'t match your situation — especially inflation, return rates, and simulation end age.',
+  },
+  {
+    title: 'Conservative defaults',
+    body: 'The defaults are aligned with long-run historical averages and ASIC guidance. You should only change them if you have a specific reason to — e.g., you expect higher growth or want to model a downturn.',
+  },
+  {
+    title: 'Rate overrides',
+    body: 'These rates apply globally across all assets. If you need a different rate for a specific asset or time period, you can set rate period overrides on the individual asset pages (Household tab).',
+  },
+  {
+    title: 'Simulation end age',
+    body: 'This controls how far out the projection runs. Lower it to focus on the period you care about, or raise it to test longevity risk. Values beyond age 100 are labelled illustrative.',
+  },
+]
 
 export default function Assumptions({ scenario, updateScenario }) {
+  const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('assumptionsTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const a = scenario.assumptions
   const update = (updates) => updateScenario({ assumptions: { ...a, ...updates } })
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-8">
-      <GuideBox>
-        Assumptions drive every projection in the tool. The defaults are conservative and aligned with long-run historical averages — you should only change them if you have a specific reason to. Rate assumptions apply globally unless overridden by a rate period on a specific asset. The simulation end age controls how far out the projection runs; lower it to focus on the period you care about, or raise it to test longevity risk.
-      </GuideBox>
+      {showTutorial && <Tutorial steps={ASSUMPTIONS_TUTORIAL} onClose={closeTutorial} />}
 
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Assumptions</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">Assumptions</h1>
+            <TutorialButton onClick={() => setShowTutorial(true)} />
+          </div>
           <p className="text-sm text-gray-400 mt-1">
             All assumptions are overridable per scenario. Defaults align with ASIC guidance.
           </p>

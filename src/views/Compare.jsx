@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine,
@@ -61,27 +62,27 @@ function NonViableIndicator({ show }) {
   return <span className="ml-1.5 text-red-400 text-xs">&#x2717;</span>
 }
 
-function GuideBox({ children }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="card">
-      <button
-        className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className="text-xs">{open ? '▾' : '▸'}</span>
-        How this page works
-      </button>
-      {open && <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>}
-    </div>
-  )
-}
+const COMPARE_TUTORIAL = [
+  {
+    title: 'Compare Scenarios',
+    body: 'This page lets you compare two saved scenarios side by side. Select one scenario in each column to see how they stack up on key metrics.',
+  },
+  {
+    title: 'Metric comparison',
+    body: 'Green checkmarks highlight which scenario performs better for each metric — retirement age, net worth, liquidity, and deficit years.',
+  },
+  {
+    title: 'Overlay chart',
+    body: 'The chart at the bottom overlays both scenarios on the same axes. Toggle between net worth, liquidity, and breakdown views to compare trends over time.',
+  },
+]
 
 // Colours: A = brand blue, B = emerald
 const COLOR_A = '#0ea5e9'  // brand-500
 const COLOR_B = '#34d399'  // emerald-400
 
 export default function Compare({ scenarios, displayReal = true }) {
+  const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('compareTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [idA, setIdA] = useState(scenarios[0]?.id || '')
   const [idB, setIdB] = useState(scenarios[1]?.id || scenarios[0]?.id || '')
   const [chartView, setChartView] = useState('networth') // networth | liquidity
@@ -187,13 +188,12 @@ export default function Compare({ scenarios, displayReal = true }) {
 
   return (
     <div className="px-4 py-4 space-y-4">
-      <GuideBox>
-        Compare two scenarios head to head. Select a scenario in each column and see key metrics side by side.
-        Green checkmarks indicate which scenario performs better for each metric. The overlay chart shows both
-        plans on the same axes — toggle between net worth, liquidity, and breakdown views.
-      </GuideBox>
+      {showTutorial && <Tutorial steps={COMPARE_TUTORIAL} onClose={closeTutorial} />}
 
-      <h1 className="text-2xl font-bold text-white">Compare Scenarios</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-white">Compare Scenarios</h1>
+        <TutorialButton onClick={() => setShowTutorial(true)} />
+      </div>
 
       {/* Scenario selectors */}
       <div className="grid grid-cols-2 gap-4">

@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
 import { useState, useMemo } from 'react'
+import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import { ILLUSTRATIVE_AGE_THRESHOLD } from '../constants/index.js'
 import CashflowSankey from '../components/CashflowSankey.jsx'
 import LifeEventsTimeline from '../components/LifeEventsTimeline.jsx'
@@ -21,23 +22,27 @@ function applyRealNominal(value, year, currentYear, inflationRate, isReal) {
   return value / Math.pow(1 + inflationRate, years)
 }
 
-function GuideBox({ children }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="card">
-      <button
-        className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className="text-xs">{open ? '▾' : '▸'}</span>
-        How this page works
-      </button>
-      {open && <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>}
-    </div>
-  )
-}
+const PROJECTION_TUTORIAL = [
+  {
+    title: 'Your full projection',
+    body: 'This page shows your complete financial picture from today through to simulation end age — net worth, cashflow, and a detailed year-by-year table.',
+  },
+  {
+    title: 'Net worth chart',
+    body: 'The stacked area chart breaks down your assets (super, shares, property equity, bonds, cash) and liabilities (mortgage) by year. Hover for exact figures.',
+  },
+  {
+    title: 'Today\'s dollars toggle',
+    body: 'Use the "Today\'s $" toggle in the top bar to strip out inflation and see values in real purchasing power. This makes it easier to compare future amounts to what they\'d buy today.',
+  },
+  {
+    title: 'Cashflow & table',
+    body: 'Scroll down for the annual cashflow breakdown and the full liquidity table. Red-highlighted years indicate deficit — where liquid assets are exhausted.',
+  },
+]
 
 export default function Projection({ snapshots, scenario, retirementDate, displayReal = true }) {
+  const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('projectionTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [showAllYears, setShowAllYears] = useState(false)
   const [cashflowDetailOpen, setCashflowDetailOpen] = useState(false)
   const [sankeyOpen, setSankeyOpen] = useState(false)
@@ -288,15 +293,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         )
       })()}
 
-      {/* Guide */}
-      <GuideBox>
-        Projection shows your full financial picture from today to simulation end age — net worth, cashflow, and a detailed liquidity table. The net worth chart tracks all assets (super, shares, property equity) and liabilities (mortgage) year by year. Toggle "Today's dollars" to strip out inflation and see values in real purchasing power terms. Years beyond age 100 are illustrative. The estimated retirement year is the earliest age at which your plan remains solvent through to the end of the simulation.
-      </GuideBox>
+      {showTutorial && <Tutorial steps={PROJECTION_TUTORIAL} onClose={closeTutorial} />}
 
       {/* Controls */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Projection</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">Projection</h1>
+            <TutorialButton onClick={() => setShowTutorial(true)} />
+          </div>
           {retireYear && (
             <p className="text-gray-400 text-sm mt-1">
               Estimated retirement: <span className="text-white font-medium">{retireYear}</span>

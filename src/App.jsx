@@ -10,6 +10,7 @@ import ImpactAnalyser from './views/ImpactAnalyser.jsx'
 import HouseholdProfile from './views/HouseholdProfile.jsx'
 import Assumptions from './views/Assumptions.jsx'
 import Compare from './views/Compare.jsx'
+import RetirementGoal from './views/RetirementGoal.jsx'
 import Login from './views/Login.jsx'
 
 export default function App() {
@@ -78,6 +79,7 @@ export default function App() {
         <Route path="/projection" element={<Projection {...sharedProps} />} />
         <Route path="/impact" element={<ImpactAnalyser {...sharedProps} />} />
         <Route path="/compare" element={<Compare {...sharedProps} />} />
+        <Route path="/goal" element={<RetirementGoal {...sharedProps} />} />
         <Route path="/household" element={<HouseholdProfile {...sharedProps} />} />
         <Route path="/assumptions" element={<Assumptions {...sharedProps} />} />
       </Routes>

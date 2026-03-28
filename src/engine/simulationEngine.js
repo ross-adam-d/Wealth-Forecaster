@@ -209,9 +209,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const retiredA = hasRetired(personA, year)
     const retiredB = hasRetired(personB, year)
 
+    // Resolve per-year assumptions — support pre/post-retirement return overrides
+    const returnsAdj = leverAdjustments.returns || {}
+    const allRetiredForReturns = retiredA && (personB.dateOfBirth ? retiredB : true)
+    const returnOverride = returnsAdj.preRetirement || returnsAdj.postRetirement
+      ? (allRetiredForReturns ? returnsAdj.postRetirement || {} : returnsAdj.preRetirement || {})
+      : returnsAdj
+    const yearAssumptions = Object.keys(returnOverride).length > 0
+      ? { ...assumptions, ...returnOverride }
+      : assumptions
+
     // ── Step 1: Resolve salaries ──────────────────────────────────────────
-    const salaryA = retiredA ? 0 : growSalary(personA.currentSalary, personA.wageGrowthRate || assumptions.wageGrowthRate, yearsElapsed)
-    const salaryB = retiredB ? 0 : growSalary(personB.currentSalary, personB.wageGrowthRate || assumptions.wageGrowthRate, yearsElapsed)
+    const salaryA = retiredA ? 0 : growSalary(personA.currentSalary, personA.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed)
+    const salaryB = retiredB ? 0 : growSalary(personB.currentSalary, personB.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed)
 
     const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, salaryA)
     const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, salaryB)
@@ -246,7 +256,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       year,
       personAge: ageA || 0,
       retirementYear: personA.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() + personA.retirementAge : null,
-      assumptions,
+      assumptions: yearAssumptions,
     })
 
     const superB_result = growSuperBalance({
@@ -256,7 +266,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       year,
       personAge: ageB || 0,
       retirementYear: personB.dateOfBirth ? new Date(personB.dateOfBirth).getFullYear() + personB.retirementAge : null,
-      assumptions,
+      assumptions: yearAssumptions,
     })
 
     // ── Step 6: Property ──────────────────────────────────────────────────
@@ -308,11 +318,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       personAge: Math.max(ageA || 0, ageB || 0),
       drawdownNeeded: 0,
       resolvedContribution: 0,  // no contribution in growth pass — resolved after cashflow
-      assumptions,
+      assumptions: yearAssumptions,
     })
 
     // ── Other income sources ──────────────────────────────────────────────
-    const otherIncomeResult = processOtherIncome(otherIncomeInput, year, currentYear, assumptions.inflationRate)
+    const otherIncomeResult = processOtherIncome(otherIncomeInput, year, currentYear, yearAssumptions.inflationRate)
 
     // Recalculate tax with dividends + property (CGT split by ownership %) + other income
     const taxAFinal = calcPersonTax({
@@ -397,7 +407,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     // Bond growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0
     const bondGrowthResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions })
+      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions: yearAssumptions })
     )
 
     // Other asset growth phase: fixed-mode assets get their contribution now; surplus-mode get 0
@@ -406,12 +416,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     )
 
     // ── Step 9: Expenses ──────────────────────────────────────────────────
+    // Resolve expense lever adjustments — support pre/post-retirement splits
+    const rawExpAdj = leverAdjustments.expenses || {}
+    const allRetiredForExpenses = retiredA && (personB.dateOfBirth ? retiredB : true)
+    const resolvedExpAdj = rawExpAdj.preRetirement || rawExpAdj.postRetirement
+      ? (allRetiredForExpenses ? rawExpAdj.postRetirement || {} : rawExpAdj.preRetirement || {})
+      : rawExpAdj
     const expenseTree = resolveExpenseTree(
       expenses,
       year,
       currentYear,
-      assumptions.inflationRate,
-      leverAdjustments.expenses || {},
+      yearAssumptions.inflationRate,
+      resolvedExpAdj,
     )
     const totalExpenses = expenseTree.total
 
@@ -741,7 +757,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       fixedBondContributions[i] + surplusBondContributions[i] + routedBondContributions[i]
     )
     const bondResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions })
+      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions: yearAssumptions })
     )
     const totalBondContributions = finalBondContributions.reduce((sum, c) => sum + c, 0)
     const totalSurplusBondContributions = surplusBondContributions.reduce((sum, c) => sum + c, 0)

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import {
   CONCESSIONAL_CAP,
   NON_CONCESSIONAL_CAP,
@@ -1642,8 +1643,31 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 
 // ── Main view ─────────────────────────────────────────────────────────────
 
+const HOUSEHOLD_TUTORIAL = [
+  {
+    title: 'Your household data',
+    body: 'This is the foundation for every projection. Start with People (dates of birth and planned retirement ages), then work through Super, Property, Shares, Investment Bonds, and Expenses.',
+  },
+  {
+    title: 'People section',
+    body: 'Enter dates of birth, current salaries, and planned retirement ages for Person A and (optionally) Person B. Preservation age is auto-set to 60 for anyone born after 1 July 1964.',
+  },
+  {
+    title: 'Assets',
+    body: 'Fill in current balances for super, property, shares, and investment bonds. The more accurately you enter each section, the more meaningful the projections will be.',
+  },
+  {
+    title: 'Expenses',
+    body: 'Add your expense categories with amounts, frequencies, and date ranges. Tag expenses as fixed or discretionary — this affects how the Impact Analyser and Goal Planner adjust them.',
+  },
+  {
+    title: 'Salary packaging',
+    body: 'If you salary package, enter the details here. Packaging and novated lease amounts feed directly into the tax engine and can significantly affect your projections.',
+  },
+]
+
 export default function HouseholdProfile({ scenario, updateScenario }) {
-  const [guideOpen, setGuideOpen] = useState(false)
+  const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('householdTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [lastAddedIncomeId, setLastAddedIncomeId] = useState(null)
   const { personA, personB } = scenario.household
   const superA = scenario.super.find(s => s.personLabel === 'A') || {}
@@ -1764,21 +1788,10 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
   return (
     <div className="px-6 py-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-lg font-semibold text-white">Household Profile</h1>
-
-      <div className="card">
-        <button
-          className="w-full flex items-center gap-1.5 text-left text-sm text-gray-500 hover:text-gray-300"
-          onClick={() => setGuideOpen(o => !o)}
-        >
-          <span className="text-xs">{guideOpen ? '▾' : '▸'}</span>
-          How this page works
-        </button>
-        {guideOpen && (
-          <p className="mt-3 text-sm text-gray-400 leading-relaxed">
-            Enter your household details here — this is the foundation for every projection in the tool. Start with People (dates of birth and planned retirement ages), then work through Super, Property, Shares, Investment Bonds, and Expenses in order. The more accurately you fill in each section, the more meaningful the projections will be. Salary packaging and novated lease details feed directly into the tax calculations.
-          </p>
-        )}
+      {showTutorial && <Tutorial steps={HOUSEHOLD_TUTORIAL} onClose={closeTutorial} />}
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold text-white">Household Profile</h1>
+        <TutorialButton onClick={() => setShowTutorial(true)} />
       </div>
 
       <Section title="People">

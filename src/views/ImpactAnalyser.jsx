@@ -1,22 +1,26 @@
 import { useState, useMemo } from 'react'
 import { useSimulation } from '../hooks/useSimulation.js'
 import { solveRetirementDate } from '../engine/simulationEngine.js'
+import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 
-function GuideBox({ children }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="border-b border-gray-800 px-4 py-3">
-      <button
-        className="w-full flex items-center gap-1.5 text-left text-xs text-gray-500 hover:text-gray-300"
-        onClick={() => setOpen(o => !o)}
-      >
-        <span>{open ? '▾' : '▸'}</span>
-        How this page works
-      </button>
-      {open && <p className="mt-2 text-xs text-gray-400 leading-relaxed">{children}</p>}
-    </div>
-  )
-}
+const IMPACT_TUTORIAL = [
+  {
+    title: 'Impact Analyser',
+    body: 'This is a live scratchpad that lets you explore "what if" scenarios without changing your saved data. Adjust the levers on the left and watch the results update instantly on the right.',
+  },
+  {
+    title: 'How levers work',
+    body: 'Each slider adjusts a single variable — interest rates, expenses, returns, income, or contributions. The change is expressed as a delta from your base scenario.',
+  },
+  {
+    title: 'Reading the results',
+    body: 'The headline metric shows how many months earlier or later you could retire compared to your base scenario. Below that you\'ll see key financial metrics at retirement and end of simulation.',
+  },
+  {
+    title: 'Combine multiple changes',
+    body: 'Adjust several levers at once to model compound effects — e.g., cutting expenses while boosting contributions. Hit "Reset" to return all levers to zero.',
+  },
+]
 
 const LEVER_GROUPS = [
   {
@@ -102,6 +106,7 @@ function MonthsDelta({ baseYear, adjustedYear }) {
 }
 
 export default function ImpactAnalyser({ scenario, snapshots, retirementDate }) {
+  const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('impactTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [levers, setLevers] = useState(() => {
     const defaults = {}
     LEVER_GROUPS.forEach(g => g.levers.forEach(l => { defaults[l.id] = l.default }))
@@ -157,16 +162,17 @@ export default function ImpactAnalyser({ scenario, snapshots, retirementDate }) 
 
   return (
     <div className="flex h-[calc(100vh-8rem)]">
+      {showTutorial && <Tutorial steps={IMPACT_TUTORIAL} onClose={closeTutorial} />}
 
       {/* Left: lever panel */}
       <div className="w-80 bg-gray-900 border-r border-gray-800 overflow-y-auto flex-shrink-0">
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Levers</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-white">Levers</h2>
+            <TutorialButton onClick={() => setShowTutorial(true)} />
+          </div>
           <button onClick={resetLevers} className="btn-ghost text-xs">Reset</button>
         </div>
-        <GuideBox>
-          Adjust the levers to see how changes affect your retirement date and wealth outcomes. The results panel on the right updates in real time. The headline metric shows how many months earlier or later you could retire. This is a live scratchpad — your base scenario is unchanged.
-        </GuideBox>
 
         <div className="p-4 space-y-6">
           {LEVER_GROUPS.map(group => (
