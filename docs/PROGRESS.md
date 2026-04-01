@@ -129,8 +129,12 @@
 - Constants: `TREASURY_BONDS_RETURN_RATE=0.04`, `TREASURY_BONDS_COUPON_RATE=0.03`, `COMMODITIES_RETURN_RATE=0.05`. Updated surplus destinations, drawdown sources, default drawdown order.
 - Schema: new `createDefaultTreasuryBonds()`, `createDefaultCommodities()`, `createDefaultShareHolding()`, `createDefaultSuperHolding()`, `createDefaultTreasuryBondHolding()`, `createDefaultCommodityHolding()`.
 - Backward compat: `useScenario` hydration merges defaults for missing fields. Legacy scenarios work unchanged.
+- **Net worth figure alignment fix** — three issues causing discrepancies between screens:
+  1. Net worth chart used gross property value + separate mortgage debt instead of property equity; also missing other assets. Now uses `propertyEquity` and includes all asset classes.
+  2. ScenarioCards, ImpactAnalyser, RetirementGoal showed raw nominal values while Projection/GapDashboard applied real/nominal transform. All views now respect the global `displayReal` toggle.
+  3. Chart label updated: "Property (gross)" → "Property (equity)".
 
-**State at end of session:** Full investment holdings + two new asset categories feature complete. 521 tests passing, build clean. Not yet deployed.
+**State at end of session:** Full investment holdings + two new asset categories + net worth consistency fix. 521 tests passing, build clean. Deployed.
 
 ---
 
