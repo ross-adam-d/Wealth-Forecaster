@@ -11,12 +11,15 @@ import { calcECM, calcStatutory } from '../modules/fbt.js'
 import { processContributions, growSuperBalance, hasReachedPreservationAge, calcDownsizerContribution } from '../modules/super.js'
 import { processPropertyYear } from '../modules/property.js'
 import { processSharesYear } from '../modules/shares.js'
+import { processTreasuryBondsYear } from '../modules/treasuryBonds.js'
+import { processCommoditiesYear } from '../modules/commodities.js'
 import { processBondYear } from '../modules/investmentBonds.js'
 import { resolveExpenseTree } from '../modules/expenses.js'
 import { processOtherAssetYear } from '../modules/otherAssets.js'
 import { processOtherIncome } from '../modules/otherIncome.js'
 import { processAllDebts } from '../modules/debts.js'
 import { calcAgePension } from '../modules/agePension.js'
+import { aggregateHoldings, distributeProportionally } from '../utils/holdings.js'
 import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE, DRAWDOWN_SOURCES, DEFAULT_DRAWDOWN_ORDER } from '../constants/index.js'
 
 /**
@@ -162,6 +165,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     super: superAccounts,
     properties,
     shares,
+    treasuryBonds: treasuryBondsInput,
+    commodities: commoditiesInput,
     investmentBonds,
     otherAssets: otherAssetsInput = [],
     otherIncome: otherIncomeInput = [],
@@ -192,6 +197,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let superA = { ...superProfileA, currentBalance: superProfileA.currentBalance || 0 }
   let superB = { ...superProfileB, currentBalance: superProfileB.currentBalance || 0 }
   let currentShares = { ...shares }
+  let currentTreasuryBonds = { ...(treasuryBondsInput || { currentValue: 0, holdings: [], annualContribution: 0, contributionMode: 'fixed', annualIncreaseRate: 0, couponRate: 0, preserveCapital: false, preserveCapitalFromAge: null, ratePeriods: [] }) }
+  let currentCommodities = { ...(commoditiesInput || { currentValue: 0, holdings: [], annualContribution: 0, contributionMode: 'fixed', annualIncreaseRate: 0, ratePeriods: [] }) }
   let currentBonds = investmentBonds.map(b => ({ ...b }))
   let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))
   let currentProperties = properties.map(p => ({ ...p }))
@@ -311,9 +318,26 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     }
     const totalDownsizer = downsizerA.amount + downsizerB.amount
 
+    // ── Holdings aggregation — override category-level values from individual holdings ──
+    // Shares holdings
+    const sharesAgg = aggregateHoldings(currentShares.holdings)
+    const effectiveShares = sharesAgg
+      ? { ...currentShares, currentValue: sharesAgg.currentValue, dividendYield: sharesAgg.dividendYield, frankingPct: sharesAgg.frankingPct, ratePeriods: [{ fromYear: year, toYear: year, rate: sharesAgg.returnRate }] }
+      : currentShares
+    // Treasury bonds holdings
+    const tbAgg = aggregateHoldings(currentTreasuryBonds.holdings)
+    const effectiveTB = tbAgg
+      ? { ...currentTreasuryBonds, currentValue: tbAgg.currentValue, couponRate: tbAgg.couponRate, ratePeriods: [{ fromYear: year, toYear: year, rate: tbAgg.returnRate }] }
+      : currentTreasuryBonds
+    // Commodities holdings
+    const commAgg = aggregateHoldings(currentCommodities.holdings)
+    const effectiveComm = commAgg
+      ? { ...currentCommodities, currentValue: commAgg.currentValue, ratePeriods: [{ fromYear: year, toYear: year, rate: commAgg.returnRate }] }
+      : currentCommodities
+
     // ── Step 7: Shares — growth phase only (contribution resolved after cashflow) ──
     const sharesResult = processSharesYear({
-      shares: currentShares,
+      shares: effectiveShares,
       year,
       personAge: Math.max(ageA || 0, ageB || 0),
       drawdownNeeded: 0,
@@ -321,10 +345,31 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       assumptions: yearAssumptions,
     })
 
+    // ── Step 7b: Treasury bonds — growth phase ──
+    const tbResult = processTreasuryBondsYear({
+      bonds: effectiveTB,
+      year,
+      personAge: Math.max(ageA || 0, ageB || 0),
+      drawdownNeeded: 0,
+      resolvedContribution: 0,
+      assumptions: yearAssumptions,
+    })
+
+    // ── Step 7c: Commodities — growth phase ──
+    const commResult = processCommoditiesYear({
+      commodities: effectiveComm,
+      year,
+      drawdownNeeded: 0,
+      resolvedContribution: 0,
+      assumptions: yearAssumptions,
+    })
+
     // ── Other income sources ──────────────────────────────────────────────
     const otherIncomeResult = processOtherIncome(otherIncomeInput, year, currentYear, yearAssumptions.inflationRate)
 
-    // Recalculate tax with dividends + property (CGT split by ownership %) + other income
+    // Recalculate tax with dividends + coupon income + property (CGT split by ownership %) + other income
+    // Treasury bond coupon income split 50/50 between persons (taxed as ordinary income, no franking)
+    const tbCouponHalf = tbResult.couponIncome * 0.5
     const taxAFinal = calcPersonTax({
       grossSalary: salaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
@@ -334,17 +379,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       dividendIncome: sharesResult.cashDividend * 0.5,
       frankingCredit: sharesResult.frankingCredit * 0.5,
       capitalGain: propertyCGT_A,
-      otherIncome: otherIncomeResult.taxableA,
+      otherIncome: otherIncomeResult.taxableA + tbCouponHalf,
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
     })
 
-    const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0) ? calcPersonTax({
+    const hasTBCoupon = tbResult.couponIncome > 0
+    const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon) ? calcPersonTax({
       grossSalary: salaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
       capitalGain: propertyCGT_B,
-      otherIncome: otherIncomeResult.taxableB,
+      otherIncome: otherIncomeResult.taxableB + tbCouponHalf,
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
     }) : taxB
 
@@ -402,8 +448,24 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     )
     const totalFixedOtherAssetContributions = fixedOtherAssetContributions.reduce((sum, c) => sum + c, 0)
 
+    // --- Treasury bonds ---
+    const tbMode = currentTreasuryBonds.contributionMode || BOND_CONTRIBUTION_MODES.FIXED
+    const tbTarget = resolveTargetContribution(
+      currentTreasuryBonds.annualContribution, currentTreasuryBonds.annualIncreaseRate || 0,
+      currentTreasuryBonds.priorYearContribution || 0, false
+    )
+    let fixedTBContribution = tbMode === BOND_CONTRIBUTION_MODES.FIXED ? tbTarget : 0
+
+    // --- Commodities ---
+    const commMode = currentCommodities.contributionMode || BOND_CONTRIBUTION_MODES.FIXED
+    const commTarget = resolveTargetContribution(
+      currentCommodities.annualContribution, currentCommodities.annualIncreaseRate || 0,
+      currentCommodities.priorYearContribution || 0, false
+    )
+    let fixedCommContribution = commMode === BOND_CONTRIBUTION_MODES.FIXED ? commTarget : 0
+
     // Total fixed contributions across all asset types
-    const totalFixedContributions = fixedSharesContribution + totalFixedBondContributions + totalFixedOtherAssetContributions
+    const totalFixedContributions = fixedSharesContribution + fixedTBContribution + fixedCommContribution + totalFixedBondContributions + totalFixedOtherAssetContributions
 
     // Bond growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0
     const bondGrowthResults = currentBonds.map((bond, i) =>
@@ -454,6 +516,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       superBBalance: superB.currentBalance,
       superBInPension: superB_result.inPensionPhase,
       sharesValue: currentShares.currentValue,
+      treasuryBondsValue: currentTreasuryBonds.currentValue,
+      commoditiesValue: currentCommodities.currentValue,
       bondLiquidity: currentBonds.reduce((s, b) => s + (b.currentBalance || 0), 0),
       otherAssetsValue: currentOtherAssets.reduce((s, a) => s + (a.currentValue || 0), 0),
       cashBuffer: Math.max(0, cashBuffer),
@@ -468,6 +532,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       taxBFinal.netTakeHome +
       (totalNetRentalIncomeLoss > 0 ? totalNetRentalIncomeLoss : 0) +
       sharesResult.cashDividend +
+      tbResult.couponIncome +           // Treasury bond coupon (already taxed via otherIncome in calcPersonTax)
       taxAFinal.frankingRefund +
       superA_result.drawdown +
       superB_result.drawdown +
@@ -495,6 +560,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     if (cappedFixedContributions < totalFixedContributions && totalFixedContributions > 0) {
       const contribScale = cappedFixedContributions / totalFixedContributions
       fixedSharesContribution *= contribScale
+      fixedTBContribution *= contribScale
+      fixedCommContribution *= contribScale
       for (let i = 0; i < fixedBondContributions.length; i++) {
         fixedBondContributions[i] *= contribScale
       }
@@ -512,6 +579,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // to specific vehicles. The gross amount already flowed through tax; now
     // allocate it as a contribution to the target vehicle (reducing cashflow).
     let routedSharesContribution = 0
+    let routedTBContribution = 0
+    let routedCommContribution = 0
     let routedCashContribution = 0
     const routedBondContributions = currentBonds.map(() => 0)
     const routedOtherAssetContributions = currentOtherAssets.map(() => 0)
@@ -524,6 +593,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         const routeAmount = item.amount  // gross amount (tax already deducted in netTakeHome)
         if (source.routeTo === 'shares') {
           routedSharesContribution += routeAmount
+        } else if (source.routeTo === 'treasuryBonds') {
+          routedTBContribution += routeAmount
+        } else if (source.routeTo === 'commodities') {
+          routedCommContribution += routeAmount
         } else if (source.routeTo === 'bonds') {
           // Spread across bonds equally (or first bond if only one)
           if (currentBonds.length > 0) {
@@ -544,7 +617,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         }
       }
     }
-    const totalRoutedContributions = routedSharesContribution +
+    const totalRoutedContributions = routedSharesContribution + routedTBContribution + routedCommContribution +
       routedBondContributions.reduce((s, c) => s + c, 0) +
       routedOtherAssetContributions.reduce((s, c) => s + c, 0)
     // Note: routedCashContribution is NOT subtracted — it stays in cashflow and
@@ -558,6 +631,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     let surplus = 0
     let sharesAdjustment = 0
     let surplusSharesContribution = 0
+    let tbAdjustment = 0
+    let surplusTBContribution = 0
+    let commAdjustment = 0
+    let surplusCommContribution = 0
     let cashDrawdown = 0
     let superAExtra = 0
     let superBExtra = 0
@@ -579,9 +656,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       const hasSurplusBonds = bondTargetContributions.some(b => b.mode === BOND_CONTRIBUTION_MODES.SURPLUS)
       const hasSurplusOtherAssets = otherAssetTargetContributions.some(a => a.mode === BOND_CONTRIBUTION_MODES.SURPLUS)
       const hasSurplusShares = sharesMode === BOND_CONTRIBUTION_MODES.SURPLUS
+      const hasSurplusTB = tbMode === BOND_CONTRIBUTION_MODES.SURPLUS
+      const hasSurplusComm = commMode === BOND_CONTRIBUTION_MODES.SURPLUS
       if (hasSurplusShares && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.SHARES)) {
         const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
         effectiveRoutingOrder.splice(cashIdx >= 0 ? cashIdx : effectiveRoutingOrder.length, 0, SURPLUS_DESTINATIONS.SHARES)
+      }
+      if (hasSurplusTB && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.TREASURY_BONDS)) {
+        const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
+        effectiveRoutingOrder.splice(cashIdx >= 0 ? cashIdx : effectiveRoutingOrder.length, 0, SURPLUS_DESTINATIONS.TREASURY_BONDS)
+      }
+      if (hasSurplusComm && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.COMMODITIES)) {
+        const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
+        effectiveRoutingOrder.splice(cashIdx >= 0 ? cashIdx : effectiveRoutingOrder.length, 0, SURPLUS_DESTINATIONS.COMMODITIES)
       }
       if (hasSurplusBonds && !effectiveRoutingOrder.includes(SURPLUS_DESTINATIONS.BONDS)) {
         const cashIdx = effectiveRoutingOrder.indexOf(SURPLUS_DESTINATIONS.CASH)
@@ -618,6 +705,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
           }
           // If no target set (annualContribution=0), shares don't absorb surplus —
           // remaining flows to the next destination in the waterfall
+        } else if (dest === SURPLUS_DESTINATIONS.TREASURY_BONDS) {
+          if (tbMode === BOND_CONTRIBUTION_MODES.SURPLUS && tbTarget > 0) {
+            const allocated = Math.min(remaining, tbTarget)
+            surplusTBContribution = allocated
+            remaining -= allocated
+          }
+        } else if (dest === SURPLUS_DESTINATIONS.COMMODITIES) {
+          if (commMode === BOND_CONTRIBUTION_MODES.SURPLUS && commTarget > 0) {
+            const allocated = Math.min(remaining, commTarget)
+            surplusCommContribution = allocated
+            remaining -= allocated
+          }
         } else if (dest === SURPLUS_DESTINATIONS.BONDS) {
           // Allocate surplus to surplus-mode bonds (capped at 125% of prior year)
           for (let i = 0; i < currentBonds.length; i++) {
@@ -658,7 +757,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         if (!p.payOffWhenAble || p.mortgageBalance <= 0) continue
         const netMortgage = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
         if (netMortgage <= 0) continue
-        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution)
+        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution) + Math.max(0, tbResult.closingValue + tbAdjustment) + Math.max(0, commResult.closingValue + commAdjustment)
         if (availableLiquidity >= netMortgage) {
           let toPay = netMortgage
           const fromCashPay = Math.min(toPay, Math.max(0, cashBuffer))
@@ -696,6 +795,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             sharesAdjustment -= fromShares
             remaining -= fromShares
           }
+
+        } else if (source === DRAWDOWN_SOURCES.TREASURY_BONDS) {
+          if (!currentTreasuryBonds.preserveCapital) {
+            const fromTB = Math.min(remaining, tbResult.closingValue + Math.max(0, tbAdjustment))
+            tbAdjustment -= fromTB
+            remaining -= fromTB
+          }
+
+        } else if (source === DRAWDOWN_SOURCES.COMMODITIES) {
+          const fromComm = Math.min(remaining, commResult.closingValue + Math.max(0, commAdjustment))
+          commAdjustment -= fromComm
+          remaining -= fromComm
 
         } else if (source === DRAWDOWN_SOURCES.BONDS) {
           // Tax-free bonds first, then pre-10yr bonds
@@ -748,9 +859,15 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     // Shares: total contribution = fixed + surplus + routed income
     const finalSharesContribution = fixedSharesContribution + surplusSharesContribution + routedSharesContribution
-    // sharesAdjustment tracks drawdowns (negative) from deficit path; contributions are separate
-    // Combine: positive contribution adds to value, negative adjustment subtracts
     const sharesNetAdjustment = finalSharesContribution + sharesAdjustment
+
+    // Treasury bonds: total contribution = fixed + surplus + routed income
+    const finalTBContribution = fixedTBContribution + surplusTBContribution + routedTBContribution
+    const tbNetAdjustment = finalTBContribution + tbAdjustment
+
+    // Commodities: total contribution = fixed + surplus + routed income
+    const finalCommContribution = fixedCommContribution + surplusCommContribution + routedCommContribution
+    const commNetAdjustment = finalCommContribution + commAdjustment
 
     // Bonds: total contribution = fixed + surplus + routed income
     const finalBondContributions = currentBonds.map((_, i) =>
@@ -772,16 +889,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalOtherAssetContributions = finalOtherAssetContributions.reduce((sum, c) => sum + c, 0)
 
     // Aggregate contributions for snapshot
-    const totalInvestmentContributions = finalSharesContribution + totalBondContributions + totalOtherAssetContributions
+    const totalInvestmentContributions = finalSharesContribution + finalTBContribution + finalCommContribution + totalBondContributions + totalOtherAssetContributions
 
     const totalBondWithdrawals = bondResults.reduce((sum, r) => sum + r.withdrawal, 0)
     const totalOtherAssetWithdrawals = otherAssetResults.reduce((sum, r) => sum + r.withdrawal, 0)
-    // sharesDrawdown is positive when shares are sold to cover a deficit
     const sharesDrawdown = Math.max(0, -sharesAdjustment)
-    // Include all asset drawdowns in income so netCashflow and isDeficit
-    // reflect the true funded position — isDeficit only fires when ALL
-    // liquid sources (cash + shares + bonds + other assets + pension-phase super) are exhausted
-    const totalIncome = totalIncomePreBond + totalBondWithdrawals + totalOtherAssetWithdrawals + sharesDrawdown + cashDrawdown + superAExtra + superBExtra
+    const tbDrawdown = Math.max(0, -tbAdjustment)
+    const commDrawdown = Math.max(0, -commAdjustment)
+    const totalIncome = totalIncomePreBond + totalBondWithdrawals + totalOtherAssetWithdrawals + sharesDrawdown + tbDrawdown + commDrawdown + cashDrawdown + superAExtra + superBExtra
     const netCashflow = totalIncome - totalOutflows
     // Tolerance: sub-$100 rounding errors from floating point are not real deficits
     const isDeficit = netCashflow < -100
@@ -803,10 +918,34 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra + downsizerA.amount) }
     superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra + downsizerB.amount) }
     // Apply shares growth + resolved contributions + deficit drawdowns
+    const newSharesValue = Math.max(0, sharesResult.closingValue + sharesNetAdjustment)
     currentShares = {
       ...currentShares,
-      currentValue: Math.max(0, sharesResult.closingValue + sharesNetAdjustment),
-      priorYearContribution: finalSharesContribution,  // Track actual for annual increase ratchet
+      currentValue: newSharesValue,
+      priorYearContribution: finalSharesContribution,
+      holdings: currentShares.holdings?.length > 0
+        ? distributeProportionally(currentShares.holdings, newSharesValue).map((v, i) => ({ ...currentShares.holdings[i], currentValue: Math.max(0, v) }))
+        : currentShares.holdings,
+    }
+    // Treasury bonds
+    const newTBValue = Math.max(0, tbResult.closingValue + tbNetAdjustment)
+    currentTreasuryBonds = {
+      ...currentTreasuryBonds,
+      currentValue: newTBValue,
+      priorYearContribution: finalTBContribution,
+      holdings: currentTreasuryBonds.holdings?.length > 0
+        ? distributeProportionally(currentTreasuryBonds.holdings, newTBValue).map((v, i) => ({ ...currentTreasuryBonds.holdings[i], currentValue: Math.max(0, v) }))
+        : currentTreasuryBonds.holdings,
+    }
+    // Commodities
+    const newCommValue = Math.max(0, commResult.closingValue + commNetAdjustment)
+    currentCommodities = {
+      ...currentCommodities,
+      currentValue: newCommValue,
+      priorYearContribution: finalCommContribution,
+      holdings: currentCommodities.holdings?.length > 0
+        ? distributeProportionally(currentCommodities.holdings, newCommValue).map((v, i) => ({ ...currentCommodities.holdings[i], currentValue: Math.max(0, v) }))
+        : currentCommodities.holdings,
     }
     currentBonds = currentBonds.map((bond, i) => ({
       ...bond,
@@ -849,6 +988,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalLiquidAssets =
       cashBuffer +
       currentShares.currentValue +
+      currentTreasuryBonds.currentValue +
+      currentCommodities.currentValue +
       bondLiquidity +
       totalOtherAssetsDrawdownable +
       (superA_result.inPensionPhase ? superA.currentBalance : 0) +
@@ -910,6 +1051,16 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       sharesResult,
       sharesContribution: finalSharesContribution,
       sharesDrawdown,
+      // Treasury bonds
+      treasuryBondsValue: currentTreasuryBonds.currentValue,
+      tbResult,
+      tbContribution: finalTBContribution,
+      tbDrawdown,
+      // Commodities
+      commoditiesValue: currentCommodities.currentValue,
+      commResult,
+      commContribution: finalCommContribution,
+      commDrawdown,
       cashDrawdown,
       superAExtra,
       superBExtra,

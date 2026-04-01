@@ -9,6 +9,12 @@ import {
   QLD_HEALTH_MEAL_ENTERTAINMENT_CAP,
 } from '../constants/index.js'
 import { calcStatutory, calcECM } from '../modules/fbt.js'
+import {
+  createDefaultShareHolding,
+  createDefaultSuperHolding,
+  createDefaultTreasuryBondHolding,
+  createDefaultCommodityHolding,
+} from '../utils/schema.js'
 
 // ── Shared primitives ─────────────────────────────────────────────────────
 
@@ -549,6 +555,13 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
           Transition to Retirement (TTR) income stream active
         </label>
       </div>
+      <HoldingsSubForm
+        holdings={s.holdings}
+        fields={['pensionReturnRate']}
+        createDefault={createDefaultSuperHolding}
+        label="fund allocation"
+        onUpdate={holdings => onUpdate({ holdings })}
+      />
     </div>
   )
 }
@@ -896,6 +909,326 @@ function SharesForm({ shares, onUpdate }) {
           />
         </div>
       )}
+      <HoldingsSubForm
+        holdings={s.holdings}
+        fields={['dividendYield']}
+        createDefault={createDefaultShareHolding}
+        label="share holding"
+        onUpdate={holdings => onUpdate({ holdings })}
+      />
+    </div>
+  )
+}
+
+// ── Holdings sub-form (reusable for shares, treasury bonds, commodities, super) ──
+
+function HoldingCard({ holding, fields, onUpdate, onRemove }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="border border-gray-700 rounded-lg overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-800/40 text-left"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="text-sm text-gray-300">
+          {holding.name || 'Unnamed holding'}
+        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
+          <button
+            className="text-xs text-red-400 hover:text-red-300"
+            onClick={e => { e.stopPropagation(); onRemove() }}
+          >
+            Remove
+          </button>
+        </div>
+      </button>
+      {open && (
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="label">Name</label>
+            <input
+              className="input w-full"
+              value={holding.name || ''}
+              onChange={e => onUpdate({ name: e.target.value })}
+              placeholder="e.g. VAS, BHP, Gold ETF"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <CurrencyInput
+              label="Current value"
+              value={holding.currentValue}
+              onChange={v => onUpdate({ currentValue: v })}
+            />
+            <PctInput
+              label="Return rate"
+              value={holding.returnRate}
+              onChange={v => onUpdate({ returnRate: v })}
+              min={-20}
+              max={50}
+              step={0.5}
+            />
+          </div>
+          {fields.includes('dividendYield') && (
+            <div className="grid grid-cols-2 gap-3">
+              <PctInput
+                label="Dividend yield"
+                value={holding.dividendYield}
+                onChange={v => onUpdate({ dividendYield: v })}
+              />
+              <PctInput
+                label="Franking %"
+                value={holding.frankingPct}
+                onChange={v => onUpdate({ frankingPct: v })}
+                step={5}
+              />
+            </div>
+          )}
+          {fields.includes('couponRate') && (
+            <PctInput
+              label="Coupon rate"
+              value={holding.couponRate}
+              onChange={v => onUpdate({ couponRate: v })}
+              hint="Annual coupon payment as % of face value"
+            />
+          )}
+          {fields.includes('pensionReturnRate') && (
+            <PctInput
+              label="Pension phase return"
+              value={holding.pensionReturnRate}
+              onChange={v => onUpdate({ pensionReturnRate: v })}
+              min={-10}
+              max={30}
+              step={0.5}
+              hint="Rate used once in pension phase"
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HoldingsSubForm({ holdings, fields, createDefault, label, onUpdate }) {
+  const totalValue = (holdings || []).reduce((s, h) => s + (h.currentValue || 0), 0)
+  const [expanded, setExpanded] = useState((holdings || []).length > 0)
+
+  return (
+    <div className="border border-gray-700/50 rounded-lg p-3 mt-3">
+      <button
+        className="w-full flex items-center justify-between text-left"
+        onClick={() => setExpanded(o => !o)}
+      >
+        <span className="text-xs font-medium text-gray-400">
+          Individual Holdings ({(holdings || []).length})
+          {totalValue > 0 && ` — $${Math.round(totalValue).toLocaleString()}`}
+        </span>
+        <span className="text-gray-500 text-xs">{expanded ? '▾' : '▸'}</span>
+      </button>
+      {expanded && (
+        <div className="mt-3 space-y-2">
+          {(holdings || []).map((h, i) => (
+            <HoldingCard
+              key={h.id}
+              holding={h}
+              fields={fields}
+              onUpdate={patch => {
+                const updated = [...holdings]
+                updated[i] = { ...updated[i], ...patch }
+                onUpdate(updated)
+              }}
+              onRemove={() => onUpdate(holdings.filter((_, idx) => idx !== i))}
+            />
+          ))}
+          <button
+            className="btn-ghost w-full py-2 border border-dashed border-gray-700 rounded-lg text-xs"
+            onClick={() => onUpdate([...(holdings || []), createDefault()])}
+          >
+            + Add {label}
+          </button>
+          {(holdings || []).length > 0 && (
+            <p className="text-xs text-gray-600">
+              When holdings exist, the category uses weighted-average rates from holdings.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Treasury/Corporate Bonds form ────────────────────────────────────────
+
+function TreasuryBondsForm({ bonds, onUpdate }) {
+  const b = bonds || {}
+  const mode = b.contributionMode || 'fixed'
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <CurrencyInput
+          label="Current portfolio value"
+          value={b.currentValue}
+          onChange={v => onUpdate({ currentValue: v })}
+        />
+        <CurrencyInput
+          label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
+          value={b.annualContribution}
+          onChange={v => onUpdate({ annualContribution: v })}
+        />
+      </div>
+      <div>
+        <label className="label">Contribution mode</label>
+        <div className="flex gap-2 mt-1">
+          <button
+            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+              mode === 'fixed'
+                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => onUpdate({ contributionMode: 'fixed' })}
+          >
+            Fixed expense
+          </button>
+          <button
+            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+              mode === 'surplus'
+                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => onUpdate({ contributionMode: 'surplus' })}
+          >
+            From surplus
+          </button>
+        </div>
+        <p className="text-xs text-gray-600 mt-1.5">
+          {mode === 'fixed'
+            ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
+            : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <PctInput
+          label="Annual increase"
+          value={b.annualIncreaseRate || 0}
+          onChange={v => onUpdate({ annualIncreaseRate: v })}
+          min={0}
+          max={50}
+          step={1}
+          hint="Contribution grows by this % each year"
+        />
+        <PctInput
+          label="Coupon rate"
+          value={b.couponRate}
+          onChange={v => onUpdate({ couponRate: v })}
+          hint="Annual coupon income — taxed as ordinary income"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="tb-preserve-capital"
+          checked={!!b.preserveCapital}
+          onChange={e => onUpdate({ preserveCapital: e.target.checked })}
+        />
+        <label htmlFor="tb-preserve-capital" className="text-sm text-gray-400">
+          Preserve capital — no drawdown from bond portfolio
+        </label>
+      </div>
+      {b.preserveCapital && (
+        <div>
+          <label className="label">Preserve capital from age</label>
+          <input
+            className="input w-48"
+            type="number"
+            min={40}
+            max={100}
+            value={b.preserveCapitalFromAge || ''}
+            onChange={e => onUpdate({ preserveCapitalFromAge: Number(e.target.value) })}
+            placeholder="e.g. 65"
+          />
+        </div>
+      )}
+      <HoldingsSubForm
+        holdings={b.holdings}
+        fields={['couponRate']}
+        createDefault={createDefaultTreasuryBondHolding}
+        label="bond holding"
+        onUpdate={holdings => onUpdate({ holdings })}
+      />
+    </div>
+  )
+}
+
+// ── Commodities form ─────────────────────────────────────────────────────
+
+function CommoditiesForm({ commodities, onUpdate }) {
+  const c = commodities || {}
+  const mode = c.contributionMode || 'fixed'
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <CurrencyInput
+          label="Current portfolio value"
+          value={c.currentValue}
+          onChange={v => onUpdate({ currentValue: v })}
+        />
+        <CurrencyInput
+          label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
+          value={c.annualContribution}
+          onChange={v => onUpdate({ annualContribution: v })}
+        />
+      </div>
+      <div>
+        <label className="label">Contribution mode</label>
+        <div className="flex gap-2 mt-1">
+          <button
+            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+              mode === 'fixed'
+                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => onUpdate({ contributionMode: 'fixed' })}
+          >
+            Fixed expense
+          </button>
+          <button
+            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
+              mode === 'surplus'
+                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
+                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
+            }`}
+            onClick={() => onUpdate({ contributionMode: 'surplus' })}
+          >
+            From surplus
+          </button>
+        </div>
+        <p className="text-xs text-gray-600 mt-1.5">
+          {mode === 'fixed'
+            ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
+            : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <PctInput
+          label="Annual increase"
+          value={c.annualIncreaseRate || 0}
+          onChange={v => onUpdate({ annualIncreaseRate: v })}
+          min={0}
+          max={50}
+          step={1}
+          hint="Contribution grows by this % each year"
+        />
+      </div>
+      <p className="text-xs text-gray-500">
+        Pure capital growth — no income component. Includes forex, metals, oil, and other commodity investments.
+      </p>
+      <HoldingsSubForm
+        holdings={c.holdings}
+        fields={[]}
+        createDefault={createDefaultCommodityHolding}
+        label="commodity holding"
+        onUpdate={holdings => onUpdate({ holdings })}
+      />
     </div>
   )
 }
@@ -1441,7 +1774,9 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
             >
               <option value="cashflow">General cashflow</option>
               <option value="shares">Direct to shares</option>
-              <option value="bonds">Direct to investment bonds</option>
+              <option value="treasuryBonds">Direct to treasury bonds</option>
+              <option value="commodities">Direct to commodities</option>
+              <option value="bonds">Direct to tax-deferred bonds</option>
               <option value="otherAssets">Direct to other assets</option>
               <option value="cash">Direct to cash buffer</option>
             </select>
@@ -1646,7 +1981,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 const HOUSEHOLD_TUTORIAL = [
   {
     title: 'Your household data',
-    body: 'This is the foundation for every projection. Start with People (dates of birth and planned retirement ages), then work through Super, Property, Shares, Investment Bonds, and Expenses.',
+    body: 'This is the foundation for every projection. Start with People (dates of birth and planned retirement ages), then work through Super, Property, Shares, Bonds, Commodities, and Expenses.',
   },
   {
     title: 'People section',
@@ -1729,6 +2064,12 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
   const updateShares = patch =>
     updateScenario({ shares: { ...scenario.shares, ...patch } })
+
+  const updateTreasuryBonds = patch =>
+    updateScenario({ treasuryBonds: { ...(scenario.treasuryBonds || {}), ...patch } })
+
+  const updateCommodities = patch =>
+    updateScenario({ commodities: { ...(scenario.commodities || {}), ...patch } })
 
   const addBond = () =>
     updateScenario({
@@ -1850,7 +2191,15 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <SharesForm shares={scenario.shares} onUpdate={updateShares} />
       </Section>
 
-      <Section title={`Investment Bonds (${scenario.investmentBonds.length})`} defaultOpen={false}>
+      <Section title="Treasury / Corporate Bonds" defaultOpen={false}>
+        <TreasuryBondsForm bonds={scenario.treasuryBonds} onUpdate={updateTreasuryBonds} />
+      </Section>
+
+      <Section title="Commodities" defaultOpen={false}>
+        <CommoditiesForm commodities={scenario.commodities} onUpdate={updateCommodities} />
+      </Section>
+
+      <Section title={`Tax-Deferred Bonds — 10yr (${scenario.investmentBonds.length})`} defaultOpen={false}>
         <div className="space-y-3">
           {scenario.investmentBonds.map((b, i) => (
             <BondForm
@@ -1864,11 +2213,11 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm"
             onClick={addBond}
           >
-            + Add investment bond
+            + Add tax-deferred bond
           </button>
           {scenario.investmentBonds.length === 0 && (
             <p className="text-sm text-gray-500 mt-1">
-              Investment bonds offer tax-free withdrawals after 10 years — useful for high-income earners.
+              Tax-deferred bonds offer tax-free withdrawals after 10 years — useful for high-income earners.
             </p>
           )}
         </div>
@@ -2168,6 +2517,8 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           const hasSurplusShares = (scenario.shares?.contributionMode || 'surplus') === 'surplus'
           const hasSurplusBonds = (scenario.investmentBonds || []).some(b => b.contributionMode === 'surplus')
           const hasSurplusOtherAssets = (scenario.otherAssets || []).some(a => a.contributionMode === 'surplus')
+          const hasSurplusTB = (scenario.treasuryBonds?.contributionMode) === 'surplus'
+          const hasSurplusComm = (scenario.commodities?.contributionMode) === 'surplus'
 
           const defaultOrder = ['offset', 'shares', 'cash']
           let order = [...(scenario.surplusRoutingOrder || defaultOrder)]
@@ -2175,6 +2526,10 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           // Auto-add/remove surplus destinations based on which assets are in surplus mode
           if (hasSurplusShares && !order.includes('shares')) order.splice(order.indexOf('cash'), 0, 'shares')
           if (!hasSurplusShares) order = order.filter(d => d !== 'shares')
+          if (hasSurplusTB && !order.includes('treasuryBonds')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'treasuryBonds')
+          if (!hasSurplusTB) order = order.filter(d => d !== 'treasuryBonds')
+          if (hasSurplusComm && !order.includes('commodities')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'commodities')
+          if (!hasSurplusComm) order = order.filter(d => d !== 'commodities')
           if (hasSurplusBonds && !order.includes('bonds')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'bonds')
           if (!hasSurplusBonds) order = order.filter(d => d !== 'bonds')
           if (hasSurplusOtherAssets && !order.includes('otherAssets')) order.splice(Math.max(0, order.indexOf('cash')), 0, 'otherAssets')
@@ -2186,7 +2541,9 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           const destLabels = {
             offset: 'Mortgage offset accounts',
             shares: 'Share portfolio',
-            bonds: 'Investment bonds',
+            treasuryBonds: 'Treasury / corporate bonds',
+            commodities: 'Commodities',
+            bonds: 'Tax-deferred bonds',
             otherAssets: 'Other assets',
             cash: 'Cash buffer',
           }
@@ -2212,6 +2569,8 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   >
                     <option value="offset">{destLabels.offset}</option>
                     {(hasSurplusShares || dest === 'shares') && <option value="shares">{destLabels.shares}</option>}
+                    {(hasSurplusTB || dest === 'treasuryBonds') && <option value="treasuryBonds">{destLabels.treasuryBonds}</option>}
+                    {(hasSurplusComm || dest === 'commodities') && <option value="commodities">{destLabels.commodities}</option>}
                     {(hasSurplusBonds || dest === 'bonds') && <option value="bonds">{destLabels.bonds}</option>}
                     {(hasSurplusOtherAssets || dest === 'otherAssets') && <option value="otherAssets">{destLabels.otherAssets}</option>}
                     <option value="cash">{destLabels.cash}</option>
@@ -2243,13 +2602,15 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           When expenses exceed income (post-retirement), which assets should be sold first to cover the shortfall?
         </p>
         {(() => {
-          const defaultOrder = ['cash', 'shares', 'bonds', 'otherAssets', 'super']
+          const defaultOrder = ['cash', 'shares', 'treasuryBonds', 'commodities', 'bonds', 'otherAssets', 'super']
           const order = [...(scenario.drawdownOrder || defaultOrder)]
 
           const destLabels = {
             cash: 'Cash buffer',
             shares: 'Share portfolio',
-            bonds: 'Investment bonds',
+            treasuryBonds: 'Treasury / corporate bonds',
+            commodities: 'Commodities',
+            bonds: 'Tax-deferred bonds',
             otherAssets: 'Other assets',
             super: 'Super (pension phase)',
           }
@@ -2295,7 +2656,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           )
         })()}
         <p className="text-xs text-gray-600 mt-3">
-          Assets are drawn in this order until the shortfall is covered. Super is only available in pension phase. Bonds draw tax-free tranches first.
+          Assets are drawn in this order until the shortfall is covered. Super is only available in pension phase. Tax-deferred bonds draw tax-free tranches first.
         </p>
       </Section>
     </div>

@@ -14,6 +14,9 @@ import {
   DIVIDEND_YIELD,
   DEFAULT_FRANKING_PCT,
   INVESTMENT_BOND_RETURN_RATE,
+  TREASURY_BONDS_RETURN_RATE,
+  TREASURY_BONDS_COUPON_RATE,
+  COMMODITIES_RETURN_RATE,
   BOND_CONTRIBUTION_MODES,
 } from '../constants/index.js'
 
@@ -49,10 +52,21 @@ export function createDefaultNovatedLease() {
   }
 }
 
+export function createDefaultSuperHolding() {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    currentValue: 0,
+    returnRate: SUPER_ACCUMULATION_RATE,    // accumulation phase rate (default 7%)
+    pensionReturnRate: SUPER_PENSION_RATE,  // pension phase rate (default 6%)
+  }
+}
+
 export function createDefaultSuper(personLabel = 'A') {
   return {
     personLabel,
     currentBalance: 0,
+    holdings: [],              // optional individual fund allocations
     employerScheme: 'sg',     // 'sg' | 'match' | 'fixed_pct'
     employerMatchCapPct: null,
     employerFixedPct: null,
@@ -91,9 +105,21 @@ export function createDefaultProperty(isPrimary = false) {
   }
 }
 
+export function createDefaultShareHolding() {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    currentValue: 0,
+    returnRate: SHARES_RETURN_RATE,
+    dividendYield: DIVIDEND_YIELD,
+    frankingPct: DEFAULT_FRANKING_PCT,
+  }
+}
+
 export function createDefaultShares() {
   return {
     currentValue: 0,
+    holdings: [],              // optional individual share holdings
     annualContribution: 0,
     contributionMode: BOND_CONTRIBUTION_MODES.SURPLUS,  // 'fixed' | 'surplus' — default surplus (legacy compat)
     annualIncreaseRate: 0,           // % annual increase in contribution (e.g. 0.05 = 5%/yr)
@@ -118,6 +144,54 @@ export function createDefaultInvestmentBond() {
     inceptionDate: null,      // ISO date string — for 10-year clock
     ratePeriods: [
       { fromYear: new Date().getFullYear(), toYear: 2090, rate: 0.07 },
+    ],
+  }
+}
+
+export function createDefaultTreasuryBondHolding() {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    currentValue: 0,
+    returnRate: TREASURY_BONDS_RETURN_RATE,
+    couponRate: TREASURY_BONDS_COUPON_RATE,
+  }
+}
+
+export function createDefaultTreasuryBonds() {
+  return {
+    currentValue: 0,
+    holdings: [],              // optional individual bond holdings
+    annualContribution: 0,
+    contributionMode: BOND_CONTRIBUTION_MODES.FIXED,
+    annualIncreaseRate: 0,
+    couponRate: TREASURY_BONDS_COUPON_RATE,
+    preserveCapital: false,
+    preserveCapitalFromAge: null,
+    ratePeriods: [
+      { fromYear: new Date().getFullYear(), toYear: 2090, rate: TREASURY_BONDS_RETURN_RATE },
+    ],
+  }
+}
+
+export function createDefaultCommodityHolding() {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    currentValue: 0,
+    returnRate: COMMODITIES_RETURN_RATE,
+  }
+}
+
+export function createDefaultCommodities() {
+  return {
+    currentValue: 0,
+    holdings: [],              // optional individual commodity holdings
+    annualContribution: 0,
+    contributionMode: BOND_CONTRIBUTION_MODES.FIXED,
+    annualIncreaseRate: 0,
+    ratePeriods: [
+      { fromYear: new Date().getFullYear(), toYear: 2090, rate: COMMODITIES_RETURN_RATE },
     ],
   }
 }
@@ -154,6 +228,9 @@ export function createDefaultAssumptions() {
     dividendYield: DIVIDEND_YIELD,
     frankingPct: DEFAULT_FRANKING_PCT,
     investmentBondRate: INVESTMENT_BOND_RETURN_RATE,
+    treasuryBondsReturnRate: TREASURY_BONDS_RETURN_RATE,
+    treasuryBondsCouponRate: TREASURY_BONDS_COUPON_RATE,
+    commoditiesReturnRate: COMMODITIES_RETURN_RATE,
   }
 }
 
@@ -222,7 +299,7 @@ export function createDefaultOtherIncomeSource() {
     isTaxable: true,              // included in assessable income for tax calc
     person: 'A',                  // 'A' | 'B' | 'household' — determines whose tax return
     notes: '',
-    routeTo: 'cashflow',            // 'cashflow' | 'shares' | 'bonds' | 'otherAssets' | 'cash' — where to direct funds post-retirement
+    routeTo: 'cashflow',            // 'cashflow' | 'shares' | 'treasuryBonds' | 'commodities' | 'bonds' | 'otherAssets' | 'cash' — where to direct funds post-retirement
   }
 }
 
@@ -242,13 +319,15 @@ export function createDefaultScenario(name = 'Base Plan') {
     ],
     properties: [],
     shares: createDefaultShares(),
+    treasuryBonds: createDefaultTreasuryBonds(),
+    commodities: createDefaultCommodities(),
     investmentBonds: [],
     otherAssets: [],
     expenses: createDefaultExpenseHierarchy(),
     otherIncome: [],
     debts: [],
     events: [],
-    surplusRoutingOrder: ['offset', 'shares', 'cash'],
-    drawdownOrder: ['cash', 'shares', 'bonds', 'otherAssets', 'super'],
+    surplusRoutingOrder: ['offset', 'shares', 'treasuryBonds', 'commodities', 'cash'],
+    drawdownOrder: ['cash', 'shares', 'treasuryBonds', 'commodities', 'bonds', 'otherAssets', 'super'],
   }
 }

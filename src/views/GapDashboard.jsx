@@ -207,6 +207,8 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
     // Breakdown view
     cash: Math.max(0, transform(s.cashBuffer, s.year)),
     shares: Math.max(0, transform(s.sharesValue, s.year)),
+    treasuryBonds: Math.max(0, transform(s.treasuryBondsValue ?? 0, s.year)),
+    commodities: Math.max(0, transform(s.commoditiesValue ?? 0, s.year)),
     bonds: Math.max(0, transform(s.bondLiquidity + s.bondPreTenYr, s.year)),
     superA: s.superAUnlocked ? Math.max(0, transform(s.superABalance, s.year)) : 0,
     superB: s.superBUnlocked ? Math.max(0, transform(s.superBBalance, s.year)) : 0,
@@ -330,9 +332,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                 <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                 <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
                 <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
-                <Area type="monotone" dataKey="cash"   stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
-                <Area type="monotone" dataKey="shares" stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
-                <Area type="monotone" dataKey="bonds"  stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Bonds" />
+                <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
+                <Area type="monotone" dataKey="shares"         stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
+                <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
+                <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
+                <Area type="monotone" dataKey="bonds"          stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Tax-Def. Bonds" />
                 <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
                 <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
                 {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}

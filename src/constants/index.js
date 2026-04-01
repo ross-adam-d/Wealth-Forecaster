@@ -16,6 +16,9 @@ export const PROPERTY_GROWTH_RATE = 0.04    // 4.0% p.a.
 export const DIVIDEND_YIELD = 0.035         // 3.5% p.a.
 export const DEFAULT_FRANKING_PCT = 0.70    // 70% franked
 export const INVESTMENT_BOND_RETURN_RATE = 0.07  // 7.0% gross return (before 30% internal tax)
+export const TREASURY_BONDS_RETURN_RATE = 0.04   // 4.0% p.a. capital growth
+export const TREASURY_BONDS_COUPON_RATE = 0.03   // 3.0% p.a. coupon (income)
+export const COMMODITIES_RETURN_RATE = 0.05      // 5.0% p.a. capital growth, no income
 
 // --- Superannuation ---
 export const PRESERVATION_AGE = 60          // For those born after 1 July 1964 — hardcoded
@@ -124,6 +127,8 @@ export const BOND_CONTRIBUTION_MODES = {
 export const SURPLUS_DESTINATIONS = {
   OFFSET: 'offset',
   SHARES: 'shares',
+  TREASURY_BONDS: 'treasuryBonds',
+  COMMODITIES: 'commodities',
   CASH: 'cash',
   SUPER: 'super',
   BONDS: 'bonds',
@@ -134,9 +139,11 @@ export const SURPLUS_DESTINATIONS = {
 export const DRAWDOWN_SOURCES = {
   CASH: 'cash',
   SHARES: 'shares',
+  TREASURY_BONDS: 'treasuryBonds',
+  COMMODITIES: 'commodities',
   BONDS: 'bonds',
   OTHER_ASSETS: 'otherAssets',
   SUPER: 'super',
 }
 
-export const DEFAULT_DRAWDOWN_ORDER = ['cash', 'shares', 'bonds', 'otherAssets', 'super']
+export const DEFAULT_DRAWDOWN_ORDER = ['cash', 'shares', 'treasuryBonds', 'commodities', 'bonds', 'otherAssets', 'super']

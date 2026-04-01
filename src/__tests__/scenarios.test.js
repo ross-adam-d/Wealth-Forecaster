@@ -27,6 +27,9 @@ import {
   createDefaultInvestmentBond,
   createDefaultOtherAsset,
   createDefaultDebt,
+  createDefaultTreasuryBonds,
+  createDefaultCommodities,
+  createDefaultShareHolding,
 } from '../utils/schema.js'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -1067,6 +1070,120 @@ describe('Scenario-specific behaviour', () => {
       const yr8Expense = snaps[8].totalExpenses
       // Both years have car + living, but yr8 should be inflated
       expect(yr8Expense).toBeGreaterThan(yr0Expense)
+    })
+  })
+
+  // ── 13. Diversified Portfolio — treasury bonds, commodities, share holdings ──
+
+  function diversifiedPortfolioScenario() {
+    const s = createDefaultScenario()
+    s.personA = { ...s.personA, dob: '1980-01-01', currentSalary: 150_000, retirementAge: 65 }
+    s.personB = null
+
+    s.shares = {
+      ...s.shares,
+      currentValue: 200_000,
+      annualContribution: 10_000,
+      contributionMode: 'fixed',
+      dividendYield: 0.04,
+      frankingPct: 0.70,
+      holdings: [
+        { ...createDefaultShareHolding(), name: 'VAS', currentValue: 120_000, returnRate: 0.07, dividendYield: 0.04, frankingPct: 0.80 },
+        { ...createDefaultShareHolding(), name: 'VGS', currentValue: 80_000, returnRate: 0.09, dividendYield: 0.02, frankingPct: 0 },
+      ],
+    }
+
+    s.treasuryBonds = {
+      ...createDefaultTreasuryBonds(),
+      currentValue: 100_000,
+      annualContribution: 5_000,
+      contributionMode: 'fixed',
+      couponRate: 0.035,
+    }
+
+    s.commodities = {
+      ...createDefaultCommodities(),
+      currentValue: 50_000,
+      annualContribution: 0,
+      contributionMode: 'surplus',
+    }
+
+    s.drawdownOrder = ['cash', 'shares', 'treasuryBonds', 'commodities', 'bonds', 'otherAssets', 'super']
+    s.surplusRoutingOrder = ['offset', 'shares', 'commodities', 'cash']
+    s.cashBuffer = 20_000
+
+    return s
+  }
+
+  describe('Diversified Portfolio', () => {
+    const scenario = diversifiedPortfolioScenario()
+    const snaps = runSimulation(scenario)
+
+    it('snapshot count matches projection horizon', () => {
+      expect(snaps.length).toBeGreaterThan(30)
+    })
+
+    it('treasury bonds grow over time', () => {
+      expect(snaps[10].treasuryBondsValue).toBeGreaterThan(100_000)
+    })
+
+    it('commodities appear in net worth', () => {
+      expect(snaps[0].commoditiesValue).toBeGreaterThanOrEqual(50_000)
+    })
+
+    it('treasury bond coupon income flows to tax', () => {
+      // couponIncome = 100k * 0.035 = $3,500 in year 0
+      const yr0 = snaps[0]
+      expect(yr0.tbResult?.couponIncome).toBeGreaterThan(0)
+    })
+
+    it('shares use weighted average from holdings', () => {
+      // Weighted: (120k * 0.07 + 80k * 0.09) / 200k = 0.078
+      const yr0 = snaps[0]
+      expect(yr0.sharesResult?.rate).toBeCloseTo(0.078, 2)
+    })
+
+    it('net worth includes all asset classes', () => {
+      const yr0 = snaps[0]
+      expect(yr0.totalNetWorth).toBeGreaterThan(
+        200_000 + 100_000 + 50_000 + 20_000 // shares + TB + commodities + cash
+      )
+    })
+
+    it('no NaN in any snapshot field', () => {
+      for (const snap of snaps) {
+        for (const [key, val] of Object.entries(snap)) {
+          if (typeof val === 'number') {
+            expect(val, `${key} at year ${snap.year}`).not.toBeNaN()
+          }
+        }
+      }
+    })
+  })
+
+  // ── 14. Backward compatibility — scenario without new fields ──
+
+  describe('Backward Compatibility', () => {
+    it('scenario without treasuryBonds/commodities runs identically', () => {
+      const s = createDefaultScenario()
+      s.personA = { ...s.personA, dob: '1985-01-01', currentSalary: 100_000, retirementAge: 67 }
+      s.personB = null
+      // Explicitly delete new fields to simulate legacy data
+      delete s.treasuryBonds
+      delete s.commodities
+      const snaps = runSimulation(s)
+      expect(snaps.length).toBeGreaterThan(20)
+      // TB and commodities should default to 0
+      expect(snaps[0].treasuryBondsValue).toBe(0)
+      expect(snaps[0].commoditiesValue).toBe(0)
+      // No NaN
+      for (const snap of snaps) {
+        for (const [key, val] of Object.entries(snap)) {
+          if (typeof val === 'number') {
+            expect(val, `${key} at year ${snap.year}`).not.toBeNaN()
+          }
+        }
+      }
     })
   })
 })

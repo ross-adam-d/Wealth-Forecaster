@@ -109,6 +109,8 @@ export function calcIncomeTestPension(assessableIncome, isSingle) {
  * @param {number} params.otherAssetsValue - other drawable asset values
  * @param {number} params.cashBuffer - cash/offset balances
  * @param {number} params.investmentPropertyEquity - non-primary-residence property equity
+ * @param {number} params.treasuryBondsValue - treasury/corporate bonds value
+ * @param {number} params.commoditiesValue - commodities portfolio value
  * @param {number} params.otherIncome - non-employment income (rental, dividends, etc.)
  * @returns {{ pensionA: number, pensionB: number, totalPension: number, assetTestPension: number, incomeTestPension: number, deemedIncome: number, assessableAssets: number }}
  */
@@ -127,6 +129,8 @@ export function calcAgePension({
   otherAssetsValue,
   cashBuffer,
   investmentPropertyEquity,
+  treasuryBondsValue = 0,
+  commoditiesValue = 0,
   otherIncome = 0,
 }) {
   const noResult = { pensionA: 0, pensionB: 0, totalPension: 0, assetTestPension: 0, incomeTestPension: 0, deemedIncome: 0, assessableAssets: 0 }
@@ -148,7 +152,9 @@ export function calcAgePension({
     bondLiquidity +
     otherAssetsValue +
     Math.max(0, cashBuffer) +
-    investmentPropertyEquity
+    investmentPropertyEquity +
+    treasuryBondsValue +
+    commoditiesValue
 
   // ── Financial assets for deeming ──
   // Same as assessable assets minus investment property (property income is actual, not deemed)

@@ -11,6 +11,7 @@ function fmt$(n) {
 
 /** Compute summary stats for a scenario (cheap — one simulation run). */
 function useScenarioSummary(scenario) {
+  const scenarioKey = JSON.stringify(scenario)
   return useMemo(() => {
     if (!scenario) return null
     try {
@@ -38,7 +39,7 @@ function useScenarioSummary(scenario) {
     } catch {
       return { netWorthAtEnd: 0, retirementYear: null, deficitCount: 0, viability: 'critical' }
     }
-  }, [scenario])
+  }, [scenarioKey])
 }
 
 function ScenarioCard({ scenario, isActive, onSelect, onDuplicate, onDelete, onRename, canDelete }) {

@@ -115,6 +115,8 @@ export default function Compare({ scenarios, displayReal = true }) {
         // Breakdown components for A
         cashA: transform(Math.max(0, s.cashBuffer), s.year),
         sharesA: transform(Math.max(0, s.sharesValue), s.year),
+        tbA: transform(Math.max(0, s.treasuryBondsValue ?? 0), s.year),
+        commA: transform(Math.max(0, s.commoditiesValue ?? 0), s.year),
         bondsA: transform(Math.max(0, (s.bondLiquidity ?? 0) + (s.bondPreTenYr ?? 0)), s.year),
         otherA: transform(Math.max(0, s.totalOtherAssetsValue ?? 0), s.year),
         superA: transform(Math.max(0, s.superABalance + s.superBBalance), s.year),
@@ -129,6 +131,8 @@ export default function Compare({ scenarios, displayReal = true }) {
       // Breakdown components for B
       existing.cashB = transform(Math.max(0, s.cashBuffer), s.year)
       existing.sharesB = transform(Math.max(0, s.sharesValue), s.year)
+      existing.tbB = transform(Math.max(0, s.treasuryBondsValue ?? 0), s.year)
+      existing.commB = transform(Math.max(0, s.commoditiesValue ?? 0), s.year)
       existing.bondsB = transform(Math.max(0, (s.bondLiquidity ?? 0) + (s.bondPreTenYr ?? 0)), s.year)
       existing.otherB = transform(Math.max(0, s.totalOtherAssetsValue ?? 0), s.year)
       existing.superB = transform(Math.max(0, s.superABalance + s.superBBalance), s.year)

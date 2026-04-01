@@ -128,7 +128,17 @@ export default function Assumptions({ scenario, updateScenario }) {
             <Row label="Property growth" value={a.propertyGrowthRate} field="propertyGrowthRate" onUpdate={update} min={0.01} max={0.10} step={0.005}
               hint="Annual capital growth. Rental income is entered per property." />
 
-            <SectionHeader label="Investment Bonds" />
+            <SectionHeader label="Treasury / Corporate Bonds" />
+            <Row label="Capital growth" value={a.treasuryBondsReturnRate} field="treasuryBondsReturnRate" onUpdate={update} min={0} max={0.10} step={0.005}
+              hint="Bond price appreciation. Coupon income is added separately." />
+            <Row label="Coupon rate" value={a.treasuryBondsCouponRate} field="treasuryBondsCouponRate" onUpdate={update} min={0} max={0.08} step={0.005}
+              hint="Annual coupon payment taxed as ordinary income (no franking)." />
+
+            <SectionHeader label="Commodities" />
+            <Row label="Return rate" value={a.commoditiesReturnRate} field="commoditiesReturnRate" onUpdate={update} min={-0.05} max={0.15} step={0.005}
+              hint="Pure capital growth — no income component." />
+
+            <SectionHeader label="Tax-Deferred Bonds (10yr)" />
             <Row label="Gross return rate" value={a.investmentBondRate ?? 0.07} field="investmentBondRate" onUpdate={update} min={0.02} max={0.12} step={0.005}
               hint="Gross return before 30% internal tax. Net return ≈ rate × 0.70." />
           </tbody>

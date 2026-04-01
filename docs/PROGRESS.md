@@ -54,6 +54,7 @@
 - [x] **Novated lease UX** — auto-expand on add, ECM offset checkbox with auto-calc, FBT breakdown panel, start/end year wired into simulation. 255 tests passing.
 
 ### Up Next (prioritised)
+- [x] **Investment holdings + new asset categories** — individual holdings (shares, super, TB, commodities) with weighted-average aggregation. Treasury/corporate bonds and commodities as new asset categories. Investment pie chart. 521 tests.
 - [x] **End-to-end model validation** — 25-test suite covering: mortgage offset waterfall, surplus routing priority, shares/bonds contributions, super pension phase transition, salary retirement cutoff, debt payoff, other income windows, novated lease FBT pro-rating, deficit detection, retirement age proportionality, NaN/Infinity guards, cashflow reconciliation, net worth consistency, custom drawdown order, post-retirement income routing, accumulation cessation.
 - [x] **Novated lease in charts** — lease reduction stored in snapshot; shown as expense in Sankey ("Novated lease (net)") and included in cashflow chart outflows. Detail table has "Novated lease" column.
 - [x] **Other income in Sankey** — `totalOtherIncome` now appears as income node in cashflow flow diagram.
@@ -108,6 +109,30 @@
 ---
 
 ## Session Log
+
+### Session 16 — 2026-04-01
+
+**What was done:**
+- **Scenario card stale values fix** — `useMemo` dependency changed from `[scenario]` (reference equality) to `[JSON.stringify(scenario)]` for content-based comparison. End values now update dynamically when scenario data changes.
+- **Treasury/Corporate Bonds** — new asset category. Capital growth + coupon income (taxed as ordinary income, no franking). CGT discount on drawdown. Preserve capital mode with age gating. Module: `src/modules/treasuryBonds.js`, tests: `src/__tests__/treasuryBonds.test.js` (9 tests).
+- **Commodities** — new asset category for forex, metals, oil. Pure capital growth, no income. CGT on drawdown. Module: `src/modules/commodities.js`, tests: `src/__tests__/commodities.test.js` (7 tests).
+- **Individual holdings** — shares, treasury bonds, commodities, and super now support individual holdings (e.g. VAS, VGS, BHP). Holdings aggregate to weighted-average rates at category level. Surplus/drawdown distributed proportionally. New utility: `src/utils/holdings.js` with `aggregateHoldings()`, `distributeProportionally()`, `projectHoldings()` (16 tests).
+- **Super holdings** — separate accumulation (`returnRate`, default 7%) and pension phase (`pensionReturnRate`, default 6%) return rates per holding. Weighted average replaces flat rate.
+- **Investment Bonds renamed** — "Investment Bonds" → "Tax-Deferred Bonds — 10yr" throughout UI.
+- **Engine integration** — full integration of treasury bonds and commodities into simulation engine: growth, tax, contributions, surplus waterfall, drawdown waterfall, balance updates, holdings redistribution, snapshots.
+- **Age pension update** — `treasuryBondsValue` and `commoditiesValue` added to asset test and deeming calculations.
+- **UI forms** — HouseholdProfile: new Treasury/Corporate Bonds and Commodities sections, HoldingsSubForm component (reusable across shares/super/TB/commodities), surplus/drawdown strategy updated with new categories, other income `routeTo` updated.
+- **Assumptions panel** — new sections for treasury bonds (growth + coupon) and commodities return rate.
+- **Charts updated** — Projection, GapDashboard, Compare all include treasury bonds (#22d3ee) and commodities (#f472b6) in stacked area/bar charts. Detailed table has new columns.
+- **Investment pie chart** — new `InvestmentPieChart` component with year slider. Donut chart showing distribution across all asset classes. Integrated into Projection page.
+- **Scenario tests** — new "Diversified Portfolio" archetype (shares with holdings, treasury bonds, commodities, surplus routing) + backward compatibility test. 521 tests passing (up from 513).
+- Constants: `TREASURY_BONDS_RETURN_RATE=0.04`, `TREASURY_BONDS_COUPON_RATE=0.03`, `COMMODITIES_RETURN_RATE=0.05`. Updated surplus destinations, drawdown sources, default drawdown order.
+- Schema: new `createDefaultTreasuryBonds()`, `createDefaultCommodities()`, `createDefaultShareHolding()`, `createDefaultSuperHolding()`, `createDefaultTreasuryBondHolding()`, `createDefaultCommodityHolding()`.
+- Backward compat: `useScenario` hydration merges defaults for missing fields. Legacy scenarios work unchanged.
+
+**State at end of session:** Full investment holdings + two new asset categories feature complete. 521 tests passing, build clean. Not yet deployed.
+
+---
 
 ### Session — 2026-03-28
 

@@ -7,6 +7,7 @@ import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.js
 import { ILLUSTRATIVE_AGE_THRESHOLD } from '../constants/index.js'
 import CashflowSankey from '../components/CashflowSankey.jsx'
 import LifeEventsTimeline from '../components/LifeEventsTimeline.jsx'
+import InvestmentPieChart from '../components/InvestmentPieChart.jsx'
 
 function fmt$(n) {
   if (n == null) return '—'
@@ -70,6 +71,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       super: transform(s.superABalance + s.superBBalance, s.year),
       property: transform(s.totalPropertyValue, s.year),
       shares: transform(s.sharesValue, s.year),
+      treasuryBonds: transform(s.treasuryBondsValue ?? 0, s.year),
+      commodities: transform(s.commoditiesValue ?? 0, s.year),
       bonds: transform(s.bondLiquidity + s.bondPreTenYr, s.year),
       cash: transform(s.cashBuffer, s.year),
       mortgage: transform(-s.totalMortgageBalance, s.year),
@@ -80,6 +83,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       superA: s.superA && !s.superA.isLocked ? Math.max(0, transform(s.superABalance, s.year)) : 0,
       superB: s.superB && !s.superB.isLocked ? Math.max(0, transform(s.superBBalance, s.year)) : 0,
       liqShares: Math.max(0, transform(s.sharesValue, s.year)),
+      liqTB: Math.max(0, transform(s.treasuryBondsValue ?? 0, s.year)),
+      liqComm: Math.max(0, transform(s.commoditiesValue ?? 0, s.year)),
       liqBonds: Math.max(0, transform(s.bondLiquidity, s.year)),
       liqOther: Math.max(0, transform(s.totalOtherAssetsValue, s.year)),
       liqCash: Math.max(0, transform(s.cashBuffer, s.year)),
@@ -161,7 +166,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'superABal',     label: `Super A` },
     { key: 'superBBal',     label: `Super B` },
     { key: 'sharesBal',     label: 'Shares' },
-    { key: 'bondsBal',      label: 'Bonds' },
+    { key: 'tbBal',         label: 'Treasury Bonds' },
+    { key: 'commBal',       label: 'Commodities' },
+    { key: 'bondsBal',      label: 'Tax-Def. Bonds' },
     { key: 'otherAssetsBal', label: 'Other assets' },
     { key: 'cashBal',       label: 'Cash' },
     { key: 'liquidAssets',  label: 'Liquid assets', isTotal: true },
@@ -219,6 +226,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       superABal:       s.superABalance ?? 0,
       superBBal:       s.superBBalance ?? 0,
       sharesBal:       s.sharesValue ?? 0,
+      tbBal:           s.treasuryBondsValue ?? 0,
+      commBal:         s.commoditiesValue ?? 0,
       bondsBal:        (s.bondLiquidity ?? 0) + (s.bondPreTenYr ?? 0),
       otherAssetsBal:  s.totalOtherAssetsValue ?? 0,
       cashBal:         s.cashBuffer ?? 0,
@@ -235,7 +244,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       totalLiabilities: (s.totalMortgageBalance ?? 0) + (s.totalDebtBalance ?? 0),
       // Net
       netCashflow:     s.netCashflow,
-      assetDrawdowns:  (s.sharesDrawdown ?? 0) + bondW + (s.cashDrawdown ?? 0) + (s.superAExtra ?? 0) + (s.superBExtra ?? 0),
+      assetDrawdowns:  (s.sharesDrawdown ?? 0) + (s.tbDrawdown ?? 0) + (s.commDrawdown ?? 0) + bondW + (s.cashDrawdown ?? 0) + (s.superAExtra ?? 0) + (s.superBExtra ?? 0),
     }
   }), [snapshots])
 
@@ -374,9 +383,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
               <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
               <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
-              <Area type="monotone" dataKey="cash"     stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
-              <Area type="monotone" dataKey="bonds"    stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds" />
-              <Area type="monotone" dataKey="shares"   stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
+              <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
+              <Area type="monotone" dataKey="bonds"          stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Tax-Def. Bonds" />
+              <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
+              <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
+              <Area type="monotone" dataKey="shares"         stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
               <Area type="monotone" dataKey="property" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (gross)" />
               <Area type="monotone" dataKey="super"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
             </AreaChart>
@@ -407,8 +418,10 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
               {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
               <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
-              <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Bonds (tax-free)" />
+              <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Tax-Def. Bonds" />
               <Area type="monotone" dataKey="liqOther"  stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.5} name="Other assets" />
+              <Area type="monotone" dataKey="liqComm"   stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
+              <Area type="monotone" dataKey="liqTB"     stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
               <Area type="monotone" dataKey="liqShares" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
               <Area type="monotone" dataKey="superA"    stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Super A (unlocked)" />
               <Area type="monotone" dataKey="superB"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super B (unlocked)" />
@@ -559,8 +572,10 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
             {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
             <Bar dataKey="liqCash"       stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
-            <Bar dataKey="liqBonds"      stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Bonds (liquid)" />
+            <Bar dataKey="liqBonds"      stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Tax-Def. Bonds" />
             <Bar dataKey="liqOther"      stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other assets" />
+            <Bar dataKey="liqComm"       stackId="1" fill="#f472b6" fillOpacity={0.7} name="Commodities" />
+            <Bar dataKey="liqTB"         stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Treasury Bonds" />
             <Bar dataKey="liqShares"     stackId="1" fill="#34d399" fillOpacity={0.7} name="Shares" />
             <Bar dataKey="superA"        stackId="1" fill="#f59e0b" fillOpacity={0.7} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
             <Bar dataKey="superB"        stackId="1" fill="#fb923c" fillOpacity={0.7} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
@@ -574,6 +589,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
           Solid = liquid / accessible. Faded = illiquid (locked super, pre-10yr bonds, property equity).
         </p>
       </div>
+
+      {/* Investment pie chart */}
+      <InvestmentPieChart snapshots={snapshots} scenario={scenario} />
 
       {/* Liquidity table */}
       <div className="card overflow-x-auto">

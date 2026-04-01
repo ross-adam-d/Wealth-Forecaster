@@ -32,10 +32,12 @@ export function useScenario(userId) {
           super: row.data.super ?? defaults.super,
           properties: row.data.properties ?? defaults.properties,
           shares: row.data.shares ?? defaults.shares,
+          treasuryBonds: row.data.treasuryBonds ?? defaults.treasuryBonds,
+          commodities: row.data.commodities ?? defaults.commodities,
           investmentBonds: row.data.investmentBonds ?? defaults.investmentBonds,
           expenses: row.data.expenses ?? defaults.expenses,
           household: row.data.household ?? defaults.household,
-          assumptions: row.data.assumptions ?? defaults.assumptions,
+          assumptions: { ...defaults.assumptions, ...(row.data.assumptions ?? {}) },
         }))
         setScenarios(loaded)
         setActiveId(loaded[0].id)
