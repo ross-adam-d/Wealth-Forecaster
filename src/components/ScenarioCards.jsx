@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { runSimulation, solveRetirementDate } from '../engine/simulationEngine.js'
+import { applyRealNominal } from '../utils/format.js'
 
 function fmt$(n) {
   if (n == null) return '—'
@@ -28,7 +29,10 @@ function useScenarioSummary(scenario) {
 
       return {
         netWorthAtEnd: last?.totalNetWorth ?? 0,
+        endYear: last?.year ?? null,
         liquidAtRetirement: retireSnap?.totalLiquidAssets ?? null,
+        retireYear: retireSnap?.year ?? null,
+        inflationRate: scenario.assumptions?.inflationRate ?? 0.025,
         retirementYear: rd?.retirementYear ?? null,
         retirementAge: rd?.retirementAge ?? null,
         deficitCount: deficitYears.length,
@@ -42,8 +46,10 @@ function useScenarioSummary(scenario) {
   }, [scenarioKey])
 }
 
-function ScenarioCard({ scenario, isActive, onSelect, onDuplicate, onDelete, onRename, canDelete }) {
+function ScenarioCard({ scenario, isActive, onSelect, onDuplicate, onDelete, onRename, canDelete, displayReal }) {
   const summary = useScenarioSummary(scenario)
+  const currentYear = new Date().getFullYear()
+  const tfm = (value, year) => summary ? applyRealNominal(value, year, currentYear, summary.inflationRate, displayReal) : value
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(scenario.name)
   const inputRef = useRef(null)
@@ -122,7 +128,7 @@ function ScenarioCard({ scenario, isActive, onSelect, onDuplicate, onDelete, onR
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-500">End net worth</span>
           <span className={`text-xs font-medium ${summary?.netWorthAtEnd < 0 ? 'text-red-400' : 'text-gray-300'}`}>
-            {fmt$(summary?.netWorthAtEnd)}
+            {fmt$(summary?.endYear ? tfm(summary.netWorthAtEnd, summary.endYear) : summary?.netWorthAtEnd)}
           </span>
         </div>
         {summary?.deficitCount > 0 && (
@@ -159,7 +165,7 @@ function ScenarioCard({ scenario, isActive, onSelect, onDuplicate, onDelete, onR
   )
 }
 
-export default function ScenarioCards({ scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario }) {
+export default function ScenarioCards({ scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal }) {
   return (
     <div className="flex items-stretch gap-3 overflow-x-auto pb-2 scrollbar-thin">
       {scenarios.map(s => (
@@ -172,6 +178,7 @@ export default function ScenarioCards({ scenarios, activeId, setActiveId, addSce
           onDelete={deleteScenario}
           onRename={renameScenario}
           canDelete={scenarios.length > 1}
+          displayReal={displayReal}
         />
       ))}
 

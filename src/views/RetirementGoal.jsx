@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { runSimulation } from '../engine/simulationEngine.js'
 import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
+import { applyRealNominal } from '../utils/format.js'
 
 function fmt$(n) {
   if (n == null) return '—'
@@ -69,7 +70,7 @@ const LEVER_DEFS = [
   },
 ]
 
-export default function RetirementGoal({ scenarios, scenario }) {
+export default function RetirementGoal({ scenarios, scenario, displayReal = true }) {
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('goalTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
 
   // Baseline scenario selector
@@ -221,11 +222,16 @@ export default function RetirementGoal({ scenarios, scenario }) {
     ? Math.min(...adjustedSnapshots.map(s => s.totalLiquidAssets ?? 0))
     : 0
 
+  // Real/nominal transform
+  const currentYear = new Date().getFullYear()
+  const inflationRate = baselineScenario?.assumptions?.inflationRate ?? 0.025
+  const tfm = (value, year) => applyRealNominal(value, year, currentYear, inflationRate, displayReal)
+
   // Supporting metrics
   const retireSnap = adjustedSnapshots.find(s => s.year === (birthYearA ? birthYearA + targetAge : null))
   const lastSnap = adjustedSnapshots[adjustedSnapshots.length - 1]
   const peakNetWorth = adjustedSnapshots.length > 0
-    ? Math.max(...adjustedSnapshots.map(s => s.totalNetWorth || 0))
+    ? Math.max(...adjustedSnapshots.map(s => tfm(s.totalNetWorth || 0, s.year)))
     : 0
 
   // Baseline retirement solve for comparison
@@ -405,12 +411,12 @@ export default function RetirementGoal({ scenarios, scenario }) {
           <div className="grid grid-cols-2 gap-4">
             <MetricCard
               label="Liquid assets at retirement"
-              value={fmt$(retireSnap?.totalLiquidAssets)}
+              value={fmt$(retireSnap ? tfm(retireSnap.totalLiquidAssets, retireSnap.year) : null)}
               status={retireSnap?.totalLiquidAssets > 0 ? 'good' : 'bad'}
             />
             <MetricCard
               label="Net worth at retirement"
-              value={fmt$(retireSnap?.totalNetWorth)}
+              value={fmt$(retireSnap ? tfm(retireSnap.totalNetWorth, retireSnap.year) : null)}
               status={retireSnap?.totalNetWorth > 0 ? 'good' : 'bad'}
             />
             <MetricCard
@@ -420,7 +426,7 @@ export default function RetirementGoal({ scenarios, scenario }) {
             />
             <MetricCard
               label="Net worth at end"
-              value={fmt$(lastSnap?.totalNetWorth)}
+              value={fmt$(lastSnap ? tfm(lastSnap.totalNetWorth, lastSnap.year) : null)}
               status={lastSnap?.totalNetWorth > 0 ? 'good' : 'bad'}
             />
             <MetricCard

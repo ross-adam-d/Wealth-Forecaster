@@ -67,15 +67,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     const isIllustrative = s.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
     return {
       year: s.year,
-      // Net worth view
+      // Net worth view — must match engine totalNetWorth exactly
       super: transform(s.superABalance + s.superBBalance, s.year),
-      property: transform(s.totalPropertyValue, s.year),
+      property: transform(s.propertyEquity ?? 0, s.year),
       shares: transform(s.sharesValue, s.year),
       treasuryBonds: transform(s.treasuryBondsValue ?? 0, s.year),
       commodities: transform(s.commoditiesValue ?? 0, s.year),
-      bonds: transform(s.bondLiquidity + s.bondPreTenYr, s.year),
+      bonds: transform((s.bondLiquidity ?? 0) + (s.bondPreTenYr ?? 0), s.year),
+      otherAssets: transform(s.totalOtherAssetsValue ?? 0, s.year),
       cash: transform(s.cashBuffer, s.year),
-      mortgage: transform(-s.totalMortgageBalance, s.year),
       debts: transform(-(s.totalDebtBalance || 0), s.year),
       // Liquidity view
       totalLiquid: Math.max(0, transform(s.totalLiquidAssets, s.year)),
@@ -381,15 +381,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               />
               <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
               {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-              <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
-              <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
+              <Area type="monotone" dataKey="debts"          stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
               <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
               <Area type="monotone" dataKey="bonds"          stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Tax-Def. Bonds" />
+              <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.5} name="Other Assets" />
               <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
               <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
               <Area type="monotone" dataKey="shares"         stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
-              <Area type="monotone" dataKey="property" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (gross)" />
-              <Area type="monotone" dataKey="super"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
+              <Area type="monotone" dataKey="property"       stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (equity)" />
+              <Area type="monotone" dataKey="super"          stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
             </AreaChart>
           ) : netWorthView === 'liquidity' ? (
             <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useSimulation } from '../hooks/useSimulation.js'
 import { solveRetirementDate } from '../engine/simulationEngine.js'
 import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
+import { applyRealNominal } from '../utils/format.js'
 
 const IMPACT_TUTORIAL = [
   {
@@ -105,7 +106,7 @@ function MonthsDelta({ baseYear, adjustedYear }) {
   )
 }
 
-export default function ImpactAnalyser({ scenario, snapshots, retirementDate }) {
+export default function ImpactAnalyser({ scenario, snapshots, retirementDate, displayReal = true }) {
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('impactTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [levers, setLevers] = useState(() => {
     const defaults = {}
@@ -145,12 +146,17 @@ export default function ImpactAnalyser({ scenario, snapshots, retirementDate }) 
     expenses: { discretionary: (levers.discretionary || 0) / 100, fixed: (levers.fixed || 0) / 100 },
   })
 
+  // Real/nominal transform
+  const currentYear = new Date().getFullYear()
+  const inflationRate = scenario?.assumptions?.inflationRate ?? 0.025
+  const tfm = (value, year) => applyRealNominal(value, year, currentYear, inflationRate, displayReal)
+
   // Summary metrics comparison
   const baseLastSnap = snapshots[snapshots.length - 1]
   const adjLastSnap = adjustedSnapshots[adjustedSnapshots.length - 1]
 
-  const basePeakNetWorth = Math.max(...snapshots.map(s => s.totalNetWorth || 0))
-  const adjPeakNetWorth = Math.max(...adjustedSnapshots.map(s => s.totalNetWorth || 0))
+  const basePeakNetWorth = Math.max(...snapshots.map(s => tfm(s.totalNetWorth || 0, s.year)))
+  const adjPeakNetWorth = Math.max(...adjustedSnapshots.map(s => tfm(s.totalNetWorth || 0, s.year)))
 
   const setLever = (id, value) => setLevers(prev => ({ ...prev, [id]: value }))
 
@@ -243,8 +249,8 @@ export default function ImpactAnalyser({ scenario, snapshots, retirementDate }) 
               {[
                 { label: 'Retirement year', base: retirementDate?.retirementYear, adj: adjustedRetirementDate?.retirementYear, format: v => v ?? '—' },
                 { label: 'Peak net worth', base: basePeakNetWorth, adj: adjPeakNetWorth, format: fmt$ },
-                { label: 'Super A at retirement', base: snapshots.find(s => s.retiredA)?.superABalance, adj: adjustedSnapshots.find(s => s.retiredA)?.superABalance, format: fmt$ },
-                { label: 'Super B at retirement', base: snapshots.find(s => s.retiredB)?.superBBalance, adj: adjustedSnapshots.find(s => s.retiredB)?.superBBalance, format: fmt$ },
+                { label: 'Super A at retirement', base: (() => { const s = snapshots.find(s => s.retiredA); return s ? tfm(s.superABalance, s.year) : null })(), adj: (() => { const s = adjustedSnapshots.find(s => s.retiredA); return s ? tfm(s.superABalance, s.year) : null })(), format: fmt$ },
+                { label: 'Super B at retirement', base: (() => { const s = snapshots.find(s => s.retiredB); return s ? tfm(s.superBBalance, s.year) : null })(), adj: (() => { const s = adjustedSnapshots.find(s => s.retiredB); return s ? tfm(s.superBBalance, s.year) : null })(), format: fmt$ },
               ].map(row => (
                 <tr key={row.label}>
                   <td className="py-2 text-gray-400">{row.label}</td>

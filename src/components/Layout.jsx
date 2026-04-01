@@ -141,6 +141,7 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
           duplicateScenario={duplicateScenario}
           deleteScenario={deleteScenario}
           renameScenario={renameScenario}
+          displayReal={displayReal}
         />
       </div>
 
