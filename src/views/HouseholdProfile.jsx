@@ -11,6 +11,7 @@ import {
 import { calcStatutory, calcECM } from '../modules/fbt.js'
 import { calcStampDuty, calcLandTax } from '../modules/property.js'
 import { DEFAULT_SELLING_COSTS_PCT } from '../constants/index.js'
+import MonthYearInput from '../components/MonthYearInput.jsx'
 import {
   createDefaultShareHolding,
   createDefaultSuperHolding,
@@ -710,17 +711,12 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                 <option value="cash">Purchased with cash</option>
               </select>
             </div>
-            <div>
-              <label className="label">Future purchase year</label>
-              <input
-                className="input w-full"
-                type="number"
-                placeholder="Already owned"
-                value={numVal(p.futurePurchaseYear)}
-                onChange={e => onUpdate({ futurePurchaseYear: e.target.value === '' ? null : Number(e.target.value) })}
-              />
-              {p.futurePurchaseYear && <span className="text-xs text-gray-500 mt-1 block">Acquired in {p.futurePurchaseYear}</span>}
-            </div>
+            <MonthYearInput
+              label="Future purchase date"
+              value={p.futurePurchaseYear}
+              onChange={v => onUpdate({ futurePurchaseYear: v })}
+              placeholder="Already owned"
+            />
           </div>
 
           {!p.purchasedCash && (
@@ -876,17 +872,13 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
             {p.saleEvent && (
               <div className="space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Sale year</label>
-                    <input
-                      className="input w-full"
-                      type="number"
-                      min={2024}
-                      max={2070}
-                      value={p.saleEvent.year || ''}
-                      onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, year: numVal(e.target.value) } })}
-                    />
-                  </div>
+                  <MonthYearInput
+                    label="Sale date"
+                    value={p.saleEvent.year}
+                    onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, year: v } })}
+                    placeholder="Year"
+                    nullable={false}
+                  />
                   <div>
                     <label className="label">Route proceeds to</label>
                     <select

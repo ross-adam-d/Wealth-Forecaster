@@ -10,6 +10,7 @@ import {
   LAND_TAX,
   DEFAULT_SELLING_COSTS_PCT,
 } from '../constants/index.js'
+import { extractYear } from '../utils/format.js'
 
 /**
  * Calculate amount from progressive brackets (used for stamp duty and land tax).
@@ -135,7 +136,7 @@ export function processPropertyYear(property, year) {
   const loanTermYearsRemaining = _loanTerm || 0
 
   // Future purchase — property not yet acquired
-  const futurePurchaseYear = property.futurePurchaseYear || null
+  const futurePurchaseYear = extractYear(property.futurePurchaseYear) || null
   if (futurePurchaseYear && year < futurePurchaseYear) {
     return {
       openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
@@ -168,8 +169,11 @@ export function processPropertyYear(property, year) {
     }
   }
 
+  // Resolve sale event year (supports "YYYY-MM" strings and plain year numbers)
+  const saleYear = saleEvent ? extractYear(saleEvent.year) : null
+
   // Property already sold in a prior year — nothing left to calculate
-  if (saleEvent && saleEvent.year < year) {
+  if (saleYear && saleYear < year) {
     return {
       openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
       annualInterest: 0, annualRepayment: 0, principalRepayment: 0,
@@ -235,8 +239,8 @@ export function processPropertyYear(property, year) {
   let cgtAmount = null
   let sellingCosts = 0
 
-  if (saleEvent && saleEvent.year === year) {
-    const salePrice = saleEvent.netProceeds || newPropertyValue
+  if (saleYear && saleYear === year) {
+    const salePrice = saleEvent.netProceeds || currentValue
     const costsPct = saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT
     sellingCosts = Math.round(salePrice * costsPct)
     const netSalePrice = salePrice - sellingCosts
@@ -251,15 +255,15 @@ export function processPropertyYear(property, year) {
       cgtAmount = discountedGain  // added to assessable income in tax engine
     }
 
-    saleProceeds = netSalePrice - newMortgageBalance
+    saleProceeds = netSalePrice - mortgageBalance
   }
 
   return {
     openingValue: currentValue,
-    closingValue: saleEvent?.year === year ? 0 : newPropertyValue,
-    mortgageBalance: saleEvent?.year === year ? 0 : newMortgageBalance,
-    offsetBalance: saleEvent?.year === year ? 0 : newOffsetBalance,
-    loanTermYearsRemaining: saleEvent?.year === year ? 0 : Math.max(0, loanTermYearsRemaining - 1),
+    closingValue: saleYear === year ? 0 : newPropertyValue,
+    mortgageBalance: saleYear === year ? 0 : newMortgageBalance,
+    offsetBalance: saleYear === year ? 0 : newOffsetBalance,
+    loanTermYearsRemaining: saleYear === year ? 0 : Math.max(0, loanTermYearsRemaining - 1),
     annualInterest,
     annualRepayment,
     principalRepayment,

@@ -73,7 +73,7 @@
 - [x] **Compare deficit visibility** — red Xs for losing metrics, red text for losers, red-highlighted deficit rows with warning icon
 - [x] **Compare chart x-axis fix** — "Full plan" range now caps at plan end year; `XAxis type="number" domain` prevents padding
 - [x] **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears` (e.g. buy car every 10 years from 2026 to 2070). Engine fires expense only in matching years within active window. UI: dropdown option + frequency input + summary hint. 7 new tests.
-- [x] **Month precision across app** — `yearFraction()` and `extractYear()` utilities support "YYYY-MM" strings. Expenses and other income modules pro-rate amounts for partial years. 19 new format utility tests.
+- [x] **Month precision across app** — `yearFraction()` and `extractYear()` utilities support "YYYY-MM" strings. Expenses and other income modules pro-rate amounts for partial years. Property purchase/sale dates use MonthYearInput component. 19 new format utility tests.
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [x] Impact Analyser: wire lever values into simulation overrides
@@ -85,7 +85,7 @@
 - [x] **Engine pre/post-retirement lever splits** — `leverAdjustments.expenses` and `leverAdjustments.returns` support `{ preRetirement, postRetirement }` with per-year resolution based on retirement state.
 
 ### Backlog (prioritised)
-0. [ ] **Month picker UI** — add "YYYY-MM" inputs for expense activeFrom/activeTo, other income date fields, property sale event date. Engine already supports month precision.
+0. [ ] **Month picker UI for expenses/income** — extend MonthYearInput to expense activeFrom/activeTo and other income date fields. Property purchase/sale already done.
 1. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
 2. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
 3. [ ] **Mobile optimisation** — responsive layout for phone screens. Collapsible sections, stacked grids, touch-friendly inputs, chart sizing.
@@ -115,6 +115,17 @@
 ---
 
 ## Session Log
+
+### Session 18 — 2026-04-04
+
+**What was done:**
+- **Month precision utilities** — `parseYearMonth()`, `yearFraction()`, `extractYear()` in `format.js` for "YYYY-MM" string support. Expenses and other income modules pro-rate amounts for partial start/end years.
+- **Future property purchase** — `futurePurchaseYear` field. Property returns zeros before purchase year; stamp duty + deposit as cash outflow in purchase year. Wired into engine `essentialOutflows`.
+- **Property sale proceeds fix** — sale now uses `currentValue` (not grown) and opening `mortgageBalance` (not post-repayment). Previously overstated proceeds by ~$37K on a $950K property.
+- **MonthYearInput component** — reusable month/year picker. Property purchase and sale dates now support month precision (e.g. "Jun 2028"). Backward compatible with year-only data.
+- **Property module month support** — all year comparisons use `extractYear()` so "YYYY-MM" works throughout.
+- **Timeline** — property purchases shown as "Buy" events. Fixed windfall income bug (`frequency` → `amountType`).
+- 24 new tests (19 format + 5 future purchase). **567 tests passing.**
 
 ### Session 17 — 2026-04-04
 
