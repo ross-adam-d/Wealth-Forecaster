@@ -9,6 +9,8 @@ import {
   QLD_HEALTH_MEAL_ENTERTAINMENT_CAP,
 } from '../constants/index.js'
 import { calcStatutory, calcECM } from '../modules/fbt.js'
+import { calcStampDuty, calcLandTax } from '../modules/property.js'
+import { DEFAULT_SELLING_COSTS_PCT } from '../constants/index.js'
 import {
   createDefaultShareHolding,
   createDefaultSuperHolding,
@@ -617,6 +619,40 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">State / Territory</label>
+              <select
+                className="input w-full"
+                value={p.state || ''}
+                onChange={e => onUpdate({ state: e.target.value || null })}
+              >
+                <option value="">Select state</option>
+                <option value="NSW">NSW</option>
+                <option value="VIC">VIC</option>
+                <option value="QLD">QLD</option>
+                <option value="SA">SA</option>
+                <option value="WA">WA</option>
+                <option value="TAS">TAS</option>
+                <option value="NT">NT</option>
+                <option value="ACT">ACT</option>
+              </select>
+            </div>
+            {p.isPrimaryResidence && (
+              <div className="flex items-end pb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!p.isFirstHomeBuyer}
+                    onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })}
+                    className="accent-brand-500"
+                  />
+                  <span className="text-sm text-gray-400">First home buyer</span>
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <CurrencyInput
               label="Current value"
               value={p.currentValue}
@@ -628,6 +664,24 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
               onChange={v => onUpdate({ purchasePrice: v })}
             />
           </div>
+
+          {p.state && p.purchasePrice > 0 && (() => {
+            const duty = calcStampDuty(p.purchasePrice, p.state, !!p.isFirstHomeBuyer, !!p.isPrimaryResidence)
+            const landTaxAmt = !p.isPrimaryResidence ? calcLandTax(p.currentValue || p.purchasePrice, p.state) : 0
+            return (
+              <div className="flex flex-wrap gap-4 text-xs">
+                <span className="text-gray-400">
+                  Stamp duty: <span className="text-white font-medium">${duty.toLocaleString()}</span>
+                  {p.isFirstHomeBuyer && p.isPrimaryResidence && duty === 0 && <span className="text-green-400 ml-1">(FHB exempt)</span>}
+                </span>
+                {landTaxAmt > 0 && (
+                  <span className="text-gray-400">
+                    Land tax: <span className="text-white font-medium">${landTaxAmt.toLocaleString()}/yr</span>
+                  </span>
+                )}
+              </div>
+            )
+          })()}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -809,35 +863,44 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
               )}
             </div>
             {p.saleEvent && (
-              <div className="grid grid-cols-2 gap-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                <div>
-                  <label className="label">Sale year</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    min={2024}
-                    max={2070}
-                    value={p.saleEvent.year || ''}
-                    onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, year: numVal(e.target.value) } })}
-                  />
+              <div className="space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Sale year</label>
+                    <input
+                      className="input w-full"
+                      type="number"
+                      min={2024}
+                      max={2070}
+                      value={p.saleEvent.year || ''}
+                      onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, year: numVal(e.target.value) } })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Route proceeds to</label>
+                    <select
+                      className="input w-full"
+                      value={p.saleEvent.destination || 'cash'}
+                      onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}
+                    >
+                      <option value="cash">Cash buffer</option>
+                      <option value="shares">Share portfolio</option>
+                      <option value="super">Super (downsizer)</option>
+                      <option value="offset">Mortgage offset</option>
+                      <option value="treasuryBonds">Treasury / Corporate Bonds</option>
+                      <option value="commodities">Commodities</option>
+                      <option value="bonds">Tax-Deferred Bonds</option>
+                      <option value="otherAssets">Other Assets</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="label">Route proceeds to</label>
-                  <select
-                    className="input w-full"
-                    value={p.saleEvent.destination || 'cash'}
-                    onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}
-                  >
-                    <option value="cash">Cash buffer</option>
-                    <option value="shares">Share portfolio</option>
-                    <option value="super">Super (downsizer)</option>
-                    <option value="offset">Mortgage offset</option>
-                    <option value="treasuryBonds">Treasury / Corporate Bonds</option>
-                    <option value="commodities">Commodities</option>
-                    <option value="bonds">Tax-Deferred Bonds</option>
-                    <option value="otherAssets">Other Assets</option>
-                  </select>
-                </div>
+                <PctInput
+                  label="Selling costs (agent, conveyancing, marketing)"
+                  value={p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT}
+                  onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, sellingCostsPct: v } })}
+                  min={0} max={15} step={0.1}
+                  hint={`Estimated ${((p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT) * (p.currentValue || 0)).toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })} at current value`}
+                />
               </div>
             )}
           </div>

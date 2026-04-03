@@ -8,6 +8,8 @@ const EVENT_COLORS = {
   debt:       '#fb923c',  // orange-400
   deficit:    '#f87171',  // red-400
   lease:      '#94a3b8',  // slate-400
+  expense:    '#fb7185',  // rose-400
+  income:     '#a78bfa',  // violet-400
 }
 
 /**
@@ -125,6 +127,36 @@ function extractEvents(scenario, snapshots) {
   // Downsizer contributions
   const downsizerSnap = snapshots.find(s => (s.totalDownsizer ?? 0) > 0)
   if (downsizerSnap) push(downsizerSnap.year, 'Downsizer contribution', EVENT_COLORS.super)
+
+  // One-off and large recurring expenses
+  const LARGE_EXPENSE_THRESHOLD = 10_000
+  function walkExpenses(items) {
+    if (!items) return
+    for (const item of items) {
+      if (item.children?.length > 0) {
+        walkExpenses(item.children)
+        continue
+      }
+      const amt = item.amount || 0
+      if (item.amountType === 'one_off' && amt >= LARGE_EXPENSE_THRESHOLD) {
+        const yr = item.activeFrom || item.startYear
+        if (yr) push(yr, item.label || 'One-off expense', EVENT_COLORS.expense)
+      } else if (item.amountType === 'recurring' && amt >= LARGE_EXPENSE_THRESHOLD) {
+        const yr = item.activeFrom || item.startYear
+        if (yr) push(yr, `${item.label || 'Recurring'} (every ${item.recurringEveryYears || '?'}yr)`, EVENT_COLORS.expense)
+      }
+    }
+  }
+  walkExpenses(scenario.expenses?.children)
+
+  // Windfall / large one-off income sources
+  ;(scenario.otherIncome || []).forEach(inc => {
+    if (!inc.activeFrom) return
+    const amt = inc.amount || 0
+    if (inc.frequency === 'one_off' && amt >= LARGE_EXPENSE_THRESHOLD) {
+      push(inc.activeFrom, inc.name || 'Windfall', EVENT_COLORS.income)
+    }
+  })
 
   events.sort((a, b) => a.sortKey - b.sortKey)
   return events

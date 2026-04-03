@@ -3,7 +3,72 @@
  * Handles P&I / IO mortgages, offset accounts, negative gearing, and CGT on sale.
  */
 
-import { CGT_DISCOUNT } from '../constants/index.js'
+import {
+  CGT_DISCOUNT,
+  STAMP_DUTY,
+  FIRST_HOME_BUYER_EXEMPTION,
+  LAND_TAX,
+  DEFAULT_SELLING_COSTS_PCT,
+} from '../constants/index.js'
+
+/**
+ * Calculate amount from progressive brackets (used for stamp duty and land tax).
+ */
+function calcFromBrackets(brackets, value) {
+  if (!brackets || brackets.length === 0) return 0
+  let tax = 0
+  for (const b of brackets) {
+    if (value <= b.lower) break
+    const taxable = Math.min(value, b.upper) - b.lower
+    tax = b.base + taxable * b.rate
+    if (value <= b.upper) break
+  }
+  return tax
+}
+
+/**
+ * Calculate stamp duty for a property purchase.
+ * @param {number} purchasePrice
+ * @param {string} state - 'NSW', 'VIC', etc.
+ * @param {boolean} isFirstHomeBuyer
+ * @param {boolean} isPrimaryResidence
+ * @returns {number}
+ */
+export function calcStampDuty(purchasePrice, state, isFirstHomeBuyer = false, isPrimaryResidence = false) {
+  if (!purchasePrice || purchasePrice <= 0 || !state) return 0
+  const brackets = STAMP_DUTY[state]
+  if (!brackets) return 0
+
+  const fullDuty = calcFromBrackets(brackets, purchasePrice)
+
+  if (!isFirstHomeBuyer || !isPrimaryResidence) return Math.round(fullDuty)
+
+  const fhb = FIRST_HOME_BUYER_EXEMPTION[state]
+  if (!fhb) return Math.round(fullDuty)
+
+  if (fhb.exemptUpTo > 0 && purchasePrice <= fhb.exemptUpTo) return 0
+  if (fhb.concessionUpTo > 0 && purchasePrice <= fhb.concessionUpTo) {
+    // Linear phase-out between exempt and concession thresholds
+    const range = fhb.concessionUpTo - fhb.exemptUpTo
+    const excess = purchasePrice - fhb.exemptUpTo
+    return Math.round(fullDuty * (excess / range))
+  }
+
+  return Math.round(fullDuty)
+}
+
+/**
+ * Calculate annual land tax for an investment property.
+ * @param {number} landValue - current property value (approximation: using full property value)
+ * @param {string} state
+ * @returns {number}
+ */
+export function calcLandTax(landValue, state) {
+  if (!landValue || landValue <= 0 || !state) return 0
+  const brackets = LAND_TAX[state]
+  if (!brackets || brackets.length === 0) return 0
+  return Math.round(calcFromBrackets(brackets, landValue))
+}
 
 /**
  * Calculate annual mortgage repayment.
@@ -74,7 +139,7 @@ export function processPropertyYear(property, year) {
     return {
       openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
       annualInterest: 0, annualRepayment: 0, principalRepayment: 0,
-      netRentalIncomeLoss: 0, ioStepUpThisYear: false,
+      netRentalIncomeLoss: 0, landTax: 0, sellingCosts: 0, ioStepUpThisYear: false,
       saleProceeds: null, capitalGain: null, cgtAmount: null, equity: 0,
       loanTermYearsRemaining: 0,
     }
@@ -114,10 +179,15 @@ export function processPropertyYear(property, year) {
 
   const principalRepayment = Math.max(0, annualRepayment - annualInterest)
 
+  // Land tax — investment properties only (PPOR exempt)
+  const state = property.state || null
+  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) : 0
+
   // Net rental position (negative = negatively geared)
+  // Land tax is a deductible property expense for investment properties
   const netRentalIncomeLoss = isPrimaryResidence
     ? 0
-    : annualRentalIncome - annualPropertyExpenses - annualInterest
+    : annualRentalIncome - annualPropertyExpenses - annualInterest - landTax
 
   // Update balances
   const newMortgageBalance = Math.max(0, mortgageBalance - principalRepayment)
@@ -128,10 +198,16 @@ export function processPropertyYear(property, year) {
   let saleProceeds = null
   let capitalGain = null
   let cgtAmount = null
+  let sellingCosts = 0
 
   if (saleEvent && saleEvent.year === year) {
     const salePrice = saleEvent.netProceeds || newPropertyValue
-    capitalGain = salePrice - property.purchasePrice
+    const costsPct = saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT
+    sellingCosts = Math.round(salePrice * costsPct)
+    const netSalePrice = salePrice - sellingCosts
+
+    // CGT: selling costs reduce the capital gain
+    capitalGain = netSalePrice - property.purchasePrice
 
     if (!isPrimaryResidence && capitalGain > 0) {
       const purchaseYear = property.purchaseDate ? new Date(property.purchaseDate).getFullYear() : year - 1
@@ -140,7 +216,7 @@ export function processPropertyYear(property, year) {
       cgtAmount = discountedGain  // added to assessable income in tax engine
     }
 
-    saleProceeds = salePrice - newMortgageBalance
+    saleProceeds = netSalePrice - newMortgageBalance
   }
 
   return {
@@ -153,6 +229,8 @@ export function processPropertyYear(property, year) {
     annualRepayment,
     principalRepayment,
     netRentalIncomeLoss,
+    landTax,
+    sellingCosts,
     ioStepUpThisYear,
     saleProceeds,
     capitalGain,

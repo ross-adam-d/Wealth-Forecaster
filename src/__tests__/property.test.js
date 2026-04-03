@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcAnnualRepayment, calcAnnualInterest, processPropertyYear } from '../modules/property.js'
+import { calcAnnualRepayment, calcAnnualInterest, processPropertyYear, calcStampDuty, calcLandTax } from '../modules/property.js'
 
 // ── calcAnnualRepayment ────────────────────────────────────────────────────
 
@@ -254,5 +254,140 @@ describe('processPropertyYear', () => {
       expect(result.annualInterest).toBe(0)
       expect(result.saleProceeds).toBeNull()
     })
+
+    it('deducts selling costs from proceeds', () => {
+      const withSale = {
+        ...investmentProperty,
+        saleEvent: { year: 2026, destination: 'cash', sellingCostsPct: 0.03 },
+      }
+      const result = processPropertyYear(withSale, 2026)
+      expect(result.sellingCosts).toBeGreaterThan(0)
+      // Net sale proceeds should be less than property value minus mortgage
+      const grossValue = investmentProperty.currentValue * (1 + investmentProperty.growthRate)
+      const grossProceeds = grossValue - investmentProperty.mortgageBalance + (grossValue - investmentProperty.mortgageBalance) * 0 // approximation
+      expect(result.saleProceeds).toBeLessThan(grossValue - investmentProperty.mortgageBalance)
+    })
+
+    it('uses default selling costs when not specified', () => {
+      const withSale = {
+        ...investmentProperty,
+        saleEvent: { year: 2026, destination: 'cash' },
+      }
+      const result = processPropertyYear(withSale, 2026)
+      expect(result.sellingCosts).toBeGreaterThan(0) // default 2.5%
+    })
+  })
+
+  describe('land tax', () => {
+    it('calculates land tax for investment property with state', () => {
+      const ip = { ...investmentProperty, state: 'NSW' }
+      const result = processPropertyYear(ip, 2026)
+      // NSW threshold is $1,075,000 — $600k property should be below threshold
+      expect(result.landTax).toBe(0)
+    })
+
+    it('applies land tax above state threshold', () => {
+      const ip = { ...investmentProperty, currentValue: 1_500_000, state: 'NSW' }
+      const result = processPropertyYear(ip, 2026)
+      expect(result.landTax).toBeGreaterThan(0)
+    })
+
+    it('no land tax for primary residence', () => {
+      const ppor = { ...investmentProperty, isPrimaryResidence: true, state: 'VIC' }
+      const result = processPropertyYear(ppor, 2026)
+      expect(result.landTax).toBe(0)
+    })
+
+    it('no land tax without state set', () => {
+      const ip = { ...investmentProperty, state: null }
+      const result = processPropertyYear(ip, 2026)
+      expect(result.landTax).toBe(0)
+    })
+
+    it('land tax reduces net rental income', () => {
+      const ip = { ...investmentProperty, currentValue: 1_500_000, state: 'NSW' }
+      const withoutState = { ...investmentProperty, currentValue: 1_500_000, state: null }
+      const resultWithTax = processPropertyYear(ip, 2026)
+      const resultWithout = processPropertyYear(withoutState, 2026)
+      expect(resultWithTax.netRentalIncomeLoss).toBeLessThan(resultWithout.netRentalIncomeLoss)
+    })
+  })
+})
+
+// ── Stamp duty ────────────────────────────────────────────────────────────
+
+describe('calcStampDuty', () => {
+  it('calculates NSW stamp duty for $800k property', () => {
+    const duty = calcStampDuty(800_000, 'NSW')
+    expect(duty).toBeGreaterThan(20_000)
+    expect(duty).toBeLessThan(40_000)
+  })
+
+  it('returns 0 with no state', () => {
+    expect(calcStampDuty(800_000, null)).toBe(0)
+  })
+
+  it('returns 0 for zero purchase price', () => {
+    expect(calcStampDuty(0, 'NSW')).toBe(0)
+  })
+
+  it('FHB exemption in NSW under $800k', () => {
+    const fullDuty = calcStampDuty(700_000, 'NSW')
+    const fhbDuty = calcStampDuty(700_000, 'NSW', true, true)
+    expect(fhbDuty).toBe(0)
+    expect(fullDuty).toBeGreaterThan(0)
+  })
+
+  it('FHB partial concession between exempt and concession thresholds', () => {
+    // NSW: exempt up to $800k, concession up to $1M
+    const duty = calcStampDuty(900_000, 'NSW', true, true)
+    const fullDuty = calcStampDuty(900_000, 'NSW')
+    expect(duty).toBeGreaterThan(0)
+    expect(duty).toBeLessThan(fullDuty)
+  })
+
+  it('no FHB concession for investment property', () => {
+    const investorDuty = calcStampDuty(700_000, 'NSW', true, false)
+    const normalDuty = calcStampDuty(700_000, 'NSW')
+    expect(investorDuty).toBe(normalDuty)
+  })
+
+  it('VIC stamp duty for $600k property', () => {
+    const duty = calcStampDuty(600_000, 'VIC')
+    expect(duty).toBeGreaterThan(15_000)
+    expect(duty).toBeLessThan(40_000)
+  })
+
+  it('QLD stamp duty for $500k property', () => {
+    const duty = calcStampDuty(500_000, 'QLD')
+    expect(duty).toBeGreaterThan(5_000)
+    expect(duty).toBeLessThan(20_000)
+  })
+})
+
+// ── Land tax ──────────────────────────────────────────────────────────────
+
+describe('calcLandTax', () => {
+  it('NSW: no tax below threshold', () => {
+    expect(calcLandTax(800_000, 'NSW')).toBe(0)
+  })
+
+  it('NSW: tax above threshold', () => {
+    const tax = calcLandTax(1_500_000, 'NSW')
+    expect(tax).toBeGreaterThan(0)
+  })
+
+  it('VIC: tax from $50k threshold', () => {
+    expect(calcLandTax(30_000, 'VIC')).toBe(0)
+    expect(calcLandTax(200_000, 'VIC')).toBeGreaterThan(0)
+  })
+
+  it('NT: no land tax', () => {
+    expect(calcLandTax(5_000_000, 'NT')).toBe(0)
+  })
+
+  it('returns 0 for invalid input', () => {
+    expect(calcLandTax(0, 'NSW')).toBe(0)
+    expect(calcLandTax(500_000, null)).toBe(0)
   })
 })

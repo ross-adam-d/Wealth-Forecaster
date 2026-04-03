@@ -100,6 +100,8 @@
 7. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
 8. [ ] **Stamp duty on property purchase** — state/territory selector, first home buyer exemption toggle. Calculate stamp duty from purchase price using state-specific thresholds and rates. Show as upfront cost reducing cash/increasing mortgage.
 9. [ ] **Land tax** — annual land tax based on state thresholds. Applies to investment properties (PPOR exempt). Multi-property aggregation where applicable.
+10. [ ] **Property purchase as outflow** — buying a property should show as a cash outflow (deposit/full purchase) in cashflow and charts. Currently only ongoing mortgage repayments are tracked, not the initial purchase event.
+11. [ ] **One-off/large expenses and windfalls on timeline** — show one-off expenses, large recurring expenses, and windfall income events on the Projection life events timeline. Currently only property sales, retirement, and pension are shown.
 
 ### Previously completed
 - [x] Named scenario cards with viability status

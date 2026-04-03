@@ -281,6 +281,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalNetRentalIncomeLoss = propertyResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
     const totalMortgageRepayments = propertyResults.reduce((sum, r) => sum + r.annualRepayment, 0)
     const propertySaleProceeds = propertyResults.reduce((sum, r) => sum + (r.saleProceeds || 0), 0)
+    const totalLandTax = propertyResults.reduce((sum, r) => sum + (r.landTax || 0), 0)
+    const totalSellingCosts = propertyResults.reduce((sum, r) => sum + (r.sellingCosts || 0), 0)
     // Split CGT between A and B based on property ownership percentage
     const propertyCGT_A = propertyResults.reduce((sum, r, i) => {
       const pct = (currentProperties[i].ownershipPctA ?? 100) / 100
@@ -1114,6 +1116,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       propertyEquity,
       totalPropertyValue,
       totalMortgageBalance,
+      totalLandTax,
+      totalSellingCosts,
       // Shares
       sharesValue: currentShares.currentValue,
       sharesResult,
