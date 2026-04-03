@@ -623,9 +623,57 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Note: routedCashContribution is NOT subtracted — it stays in cashflow and
     // gets added to cashBuffer after the surplus/deficit path
 
+    // ── Sale proceeds routing — direct to chosen investment vehicle ────────
+    // Proceeds are already in totalIncomePreBond; subtract directed amounts so
+    // they bypass the surplus waterfall and land in the target asset instead.
+    let saleProceedsSharesContribution = 0
+    let saleProceedsTBContribution = 0
+    let saleProceedsCommContribution = 0
+    let saleProceedsCashContribution = 0
+    const saleProceedsBondContributions = currentBonds.map(() => 0)
+    const saleProceedsOtherAssetContributions = currentOtherAssets.map(() => 0)
+    let saleProceedsOffsetContribution = 0
+
+    for (let i = 0; i < propertyResults.length; i++) {
+      const proceeds = propertyResults[i].saleProceeds || 0
+      if (proceeds <= 0) continue
+      const dest = currentProperties[i].saleEvent?.destination || 'cash'
+      if (dest === 'shares') {
+        saleProceedsSharesContribution += proceeds
+      } else if (dest === 'treasuryBonds') {
+        saleProceedsTBContribution += proceeds
+      } else if (dest === 'commodities') {
+        saleProceedsCommContribution += proceeds
+      } else if (dest === 'bonds') {
+        if (currentBonds.length > 0) {
+          const perBond = proceeds / currentBonds.length
+          for (let j = 0; j < currentBonds.length; j++) saleProceedsBondContributions[j] += perBond
+        } else {
+          saleProceedsCashContribution += proceeds
+        }
+      } else if (dest === 'otherAssets') {
+        if (currentOtherAssets.length > 0) {
+          const perAsset = proceeds / currentOtherAssets.length
+          for (let j = 0; j < currentOtherAssets.length; j++) saleProceedsOtherAssetContributions[j] += perAsset
+        } else {
+          saleProceedsCashContribution += proceeds
+        }
+      } else if (dest === 'offset') {
+        saleProceedsOffsetContribution += proceeds
+      } else {
+        // 'cash' or 'super' (super handled via downsizer) — stays in general cashflow
+        saleProceedsCashContribution += proceeds
+      }
+    }
+    const totalDirectedSaleProceeds = saleProceedsSharesContribution + saleProceedsTBContribution +
+      saleProceedsCommContribution + saleProceedsOffsetContribution +
+      saleProceedsBondContributions.reduce((s, c) => s + c, 0) +
+      saleProceedsOtherAssetContributions.reduce((s, c) => s + c, 0)
+    // Cash-directed proceeds stay in cashflow (not subtracted)
+
     // Routed contributions are mandatory outflows (income already in totalIncomePreBond,
     // routing removes it from general cashflow and directs it to the target vehicle)
-    const prelimNetCashflow = totalIncomePreBond - totalOutflows - totalRoutedContributions
+    const prelimNetCashflow = totalIncomePreBond - totalOutflows - totalRoutedContributions - totalDirectedSaleProceeds
 
     // Route surplus / fill deficit
     let surplus = 0
@@ -757,7 +805,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         if (!p.payOffWhenAble || p.mortgageBalance <= 0) continue
         const netMortgage = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
         if (netMortgage <= 0) continue
-        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution) + Math.max(0, tbResult.closingValue + tbAdjustment) + Math.max(0, commResult.closingValue + commAdjustment)
+        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution + saleProceedsSharesContribution) + Math.max(0, tbResult.closingValue + tbAdjustment + saleProceedsTBContribution) + Math.max(0, commResult.closingValue + commAdjustment + saleProceedsCommContribution)
         if (availableLiquidity >= netMortgage) {
           let toPay = netMortgage
           const fromCashPay = Math.min(toPay, Math.max(0, cashBuffer))
@@ -857,21 +905,41 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       cashBuffer += routedCashContribution
     }
 
-    // Shares: total contribution = fixed + surplus + routed income
-    const finalSharesContribution = fixedSharesContribution + surplusSharesContribution + routedSharesContribution
+    // Apply sale proceeds — offset accounts
+    if (saleProceedsOffsetContribution > 0) {
+      let remainingOffset = saleProceedsOffsetContribution
+      for (let i = 0; i < currentProperties.length && remainingOffset > 0; i++) {
+        if (propertyResults[i].mortgageBalance > 0) {
+          const headroom = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
+          const toOffset = Math.min(remainingOffset, headroom)
+          if (toOffset > 0) {
+            propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
+            remainingOffset -= toOffset
+          }
+        }
+      }
+      // Any excess goes to cash
+      if (remainingOffset > 0) cashBuffer += remainingOffset
+    }
+
+    // Cash-directed sale proceeds: already in totalIncomePreBond and flow through
+    // surplus waterfall naturally — no extra cashBuffer addition needed.
+
+    // Shares: total contribution = fixed + surplus + routed income + sale proceeds
+    const finalSharesContribution = fixedSharesContribution + surplusSharesContribution + routedSharesContribution + saleProceedsSharesContribution
     const sharesNetAdjustment = finalSharesContribution + sharesAdjustment
 
-    // Treasury bonds: total contribution = fixed + surplus + routed income
-    const finalTBContribution = fixedTBContribution + surplusTBContribution + routedTBContribution
+    // Treasury bonds: total contribution = fixed + surplus + routed income + sale proceeds
+    const finalTBContribution = fixedTBContribution + surplusTBContribution + routedTBContribution + saleProceedsTBContribution
     const tbNetAdjustment = finalTBContribution + tbAdjustment
 
-    // Commodities: total contribution = fixed + surplus + routed income
-    const finalCommContribution = fixedCommContribution + surplusCommContribution + routedCommContribution
+    // Commodities: total contribution = fixed + surplus + routed income + sale proceeds
+    const finalCommContribution = fixedCommContribution + surplusCommContribution + routedCommContribution + saleProceedsCommContribution
     const commNetAdjustment = finalCommContribution + commAdjustment
 
-    // Bonds: total contribution = fixed + surplus + routed income
+    // Bonds: total contribution = fixed + surplus + routed income + sale proceeds
     const finalBondContributions = currentBonds.map((_, i) =>
-      fixedBondContributions[i] + surplusBondContributions[i] + routedBondContributions[i]
+      fixedBondContributions[i] + surplusBondContributions[i] + routedBondContributions[i] + saleProceedsBondContributions[i]
     )
     const bondResults = currentBonds.map((bond, i) =>
       processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions: yearAssumptions })
@@ -879,9 +947,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalBondContributions = finalBondContributions.reduce((sum, c) => sum + c, 0)
     const totalSurplusBondContributions = surplusBondContributions.reduce((sum, c) => sum + c, 0)
 
-    // Other assets: total contribution = fixed + surplus + routed income
+    // Other assets: total contribution = fixed + surplus + routed income + sale proceeds
     const finalOtherAssetContributions = currentOtherAssets.map((_, i) =>
-      fixedOtherAssetContributions[i] + surplusOtherAssetContributions[i] + routedOtherAssetContributions[i]
+      fixedOtherAssetContributions[i] + surplusOtherAssetContributions[i] + routedOtherAssetContributions[i] + saleProceedsOtherAssetContributions[i]
     )
     const otherAssetResults = currentOtherAssets.map((asset, i) =>
       processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i], resolvedContribution: finalOtherAssetContributions[i] })

@@ -34,6 +34,13 @@ function Section({ title, children, defaultOpen = true }) {
   )
 }
 
+/** Parse a numeric input value — returns '' when field is empty (allows clearing) */
+function numVal(raw) {
+  if (raw === '' || raw == null) return ''
+  const n = Number(raw)
+  return isNaN(n) ? '' : n
+}
+
 function CurrencyInput({ label, value, onChange, hint, max }) {
   const over = max != null && Number(value) > max
   return (
@@ -45,8 +52,8 @@ function CurrencyInput({ label, value, onChange, hint, max }) {
           className="input w-full pl-7"
           type="number"
           min={0}
-          value={value || ''}
-          onChange={e => onChange(Number(e.target.value))}
+          value={value ?? ''}
+          onChange={e => onChange(numVal(e.target.value))}
           placeholder="0"
         />
       </div>
@@ -67,8 +74,11 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
           min={min}
           max={max}
           step={step}
-          value={value != null ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''}
-          onChange={e => onChange(Number(e.target.value) / 100)}
+          value={value != null && value !== '' ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''}
+          onChange={e => {
+            const v = numVal(e.target.value)
+            onChange(v === '' ? '' : v / 100)
+          }}
           placeholder="0"
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
@@ -198,8 +208,9 @@ function PersonForm({ person, label, onUpdate }) {
             type="number"
             min={40}
             max={80}
-            value={p.retirementAge || 60}
-            onChange={e => onUpdate({ retirementAge: Number(e.target.value) })}
+            value={p.retirementAge ?? ''}
+            onChange={e => onUpdate({ retirementAge: numVal(e.target.value) })}
+            placeholder="60"
           />
         </div>
       </div>
@@ -299,7 +310,7 @@ function PersonForm({ person, label, onUpdate }) {
                   min={1}
                   max={10}
                   value={p.packaging.novatedLease.termYears || ''}
-                  onChange={e => updateLease({ termYears: Number(e.target.value) || null })}
+                  onChange={e => updateLease({ termYears: numVal(e.target.value) || null })}
                   placeholder="5"
                 />
               </div>
@@ -322,7 +333,7 @@ function PersonForm({ person, label, onUpdate }) {
                   className="input w-full"
                   type="number"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
-                  onChange={e => updateLease({ annualKmTotal: Number(e.target.value) })}
+                  onChange={e => updateLease({ annualKmTotal: numVal(e.target.value) })}
                   placeholder="0"
                 />
               </div>
@@ -332,7 +343,7 @@ function PersonForm({ person, label, onUpdate }) {
                   className="input w-full"
                   type="number"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
-                  onChange={e => updateLease({ annualKmBusiness: Number(e.target.value) })}
+                  onChange={e => updateLease({ annualKmBusiness: numVal(e.target.value) })}
                   placeholder="0"
                 />
               </div>
@@ -628,98 +639,120 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                 onChange={e => onUpdate({ purchaseDate: e.target.value })}
               />
             </div>
-            <CurrencyInput
-              label="Outstanding mortgage"
-              value={p.mortgageBalance}
-              onChange={v => {
-                const patch = { mortgageBalance: v }
-                // Auto-set original loan amount if not yet stored (first time entering mortgage)
-                if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
-                onUpdate(patch)
-              }}
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <PctInput
-              label="Interest rate"
-              value={p.interestRate}
-              onChange={v => onUpdate({ interestRate: v })}
-              step={0.05}
-            />
             <div>
-              <label className="label">Loan term remaining (yrs)</label>
-              <input
-                className="input w-full"
-                type="number"
-                min={0}
-                max={30}
-                value={p.loanTermYearsRemaining || ''}
-                onChange={e => {
-                  const yrs = Number(e.target.value)
-                  const patch = { loanTermYearsRemaining: yrs }
-                  // Auto-set original loan term if not yet stored
-                  if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
-                  onUpdate(patch)
-                }}
-                placeholder="0"
-              />
-            </div>
-            <div>
-              <label className="label">Loan type</label>
+              <label className="label">Purchase method</label>
               <select
                 className="input w-full"
-                value={p.loanType || 'pi'}
-                onChange={e => onUpdate({ loanType: e.target.value })}
+                value={p.purchasedCash ? 'cash' : 'mortgage'}
+                onChange={e => {
+                  const isCash = e.target.value === 'cash'
+                  onUpdate({
+                    purchasedCash: isCash,
+                    ...(isCash ? { mortgageBalance: 0, loanTermYearsRemaining: 0, interestRate: 0, offsetBalance: 0, offsetAnnualTopUp: 0 } : {}),
+                  })
+                }}
               >
-                <option value="pi">Principal & Interest</option>
-                <option value="io">Interest Only</option>
+                <option value="mortgage">Mortgage</option>
+                <option value="cash">Purchased with cash</option>
               </select>
             </div>
           </div>
 
-          {p.loanType === 'io' && (
-            <div>
-              <label className="label">IO period ends (year)</label>
-              <input
-                className="input w-full"
-                type="number"
-                min={2024}
-                max={2060}
-                value={p.ioEndYear || ''}
-                onChange={e => onUpdate({ ioEndYear: Number(e.target.value) })}
-                placeholder="e.g. 2028"
+          {!p.purchasedCash && (
+            <>
+              <CurrencyInput
+                label="Outstanding mortgage"
+                value={p.mortgageBalance}
+                onChange={v => {
+                  const patch = { mortgageBalance: v }
+                  // Auto-set original loan amount if not yet stored (first time entering mortgage)
+                  if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
+                  onUpdate(patch)
+                }}
               />
-              <p className="text-xs text-amber-400 mt-1">
-                Repayments step up to P&I at IO expiry
-              </p>
-            </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <CurrencyInput
-              label="Offset account balance"
-              value={p.offsetBalance}
-              onChange={v => onUpdate({ offsetBalance: v })}
-              hint="Interest charged on (mortgage − offset)"
-            />
-            <CurrencyInput
-              label="Annual offset top-up"
-              value={p.offsetAnnualTopUp}
-              onChange={v => onUpdate({ offsetAnnualTopUp: v })}
-            />
-          </div>
+              <div className="grid grid-cols-3 gap-4">
+                <PctInput
+                  label="Interest rate"
+                  value={p.interestRate}
+                  onChange={v => onUpdate({ interestRate: v })}
+                  step={0.05}
+                />
+                <div>
+                  <label className="label">Loan term remaining (yrs)</label>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={p.loanTermYearsRemaining || ''}
+                    onChange={e => {
+                      const yrs = numVal(e.target.value)
+                      const patch = { loanTermYearsRemaining: yrs }
+                      // Auto-set original loan term if not yet stored
+                      if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
+                      onUpdate(patch)
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="label">Loan type</label>
+                  <select
+                    className="input w-full"
+                    value={p.loanType || 'pi'}
+                    onChange={e => onUpdate({ loanType: e.target.value })}
+                  >
+                    <option value="pi">Principal & Interest</option>
+                    <option value="io">Interest Only</option>
+                  </select>
+                </div>
+              </div>
 
-          {p.mortgageBalance > 0 && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={p.payOffWhenAble || false}
-                onChange={e => onUpdate({ payOffWhenAble: e.target.checked })}
-                className="accent-brand-500"
-              />
-              <span className="text-sm text-gray-300">Pay off mortgage when liquid assets can cover it</span>
-            </label>
+              {p.loanType === 'io' && (
+                <div>
+                  <label className="label">IO period ends (year)</label>
+                  <input
+                    className="input w-full"
+                    type="number"
+                    min={2024}
+                    max={2060}
+                    value={p.ioEndYear || ''}
+                    onChange={e => onUpdate({ ioEndYear: numVal(e.target.value) })}
+                    placeholder="e.g. 2028"
+                  />
+                  <p className="text-xs text-amber-400 mt-1">
+                    Repayments step up to P&I at IO expiry
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <CurrencyInput
+                  label="Offset account balance"
+                  value={p.offsetBalance}
+                  onChange={v => onUpdate({ offsetBalance: v })}
+                  hint="Interest charged on (mortgage − offset)"
+                />
+                <CurrencyInput
+                  label="Annual offset top-up"
+                  value={p.offsetAnnualTopUp}
+                  onChange={v => onUpdate({ offsetAnnualTopUp: v })}
+                />
+              </div>
+
+              {p.mortgageBalance > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={p.payOffWhenAble || false}
+                    onChange={e => onUpdate({ payOffWhenAble: e.target.checked })}
+                    className="accent-brand-500"
+                  />
+                  <span className="text-sm text-gray-300">Pay off mortgage when liquid assets can cover it</span>
+                </label>
+              )}
+            </>
           )}
 
           {!p.isPrimaryResidence && (
@@ -746,7 +779,7 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                 <input
                   type="range" min={0} max={100} step={5}
                   value={p.ownershipPctA ?? 100}
-                  onChange={e => onUpdate({ ownershipPctA: Number(e.target.value) })}
+                  onChange={e => onUpdate({ ownershipPctA: numVal(e.target.value) })}
                   className="flex-1 accent-brand-500"
                 />
                 <span className="text-sm font-medium text-white w-12 text-right">
@@ -785,19 +818,24 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                     min={2024}
                     max={2070}
                     value={p.saleEvent.year || ''}
-                    onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, year: Number(e.target.value) } })}
+                    onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, year: numVal(e.target.value) } })}
                   />
                 </div>
                 <div>
                   <label className="label">Route proceeds to</label>
                   <select
                     className="input w-full"
-                    value={p.saleEvent.destination || 'shares'}
+                    value={p.saleEvent.destination || 'cash'}
                     onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}
                   >
-                    <option value="shares">Share portfolio</option>
-                    <option value="offset">Mortgage offset</option>
                     <option value="cash">Cash buffer</option>
+                    <option value="shares">Share portfolio</option>
+                    <option value="super">Super (downsizer)</option>
+                    <option value="offset">Mortgage offset</option>
+                    <option value="treasuryBonds">Treasury / Corporate Bonds</option>
+                    <option value="commodities">Commodities</option>
+                    <option value="bonds">Tax-Deferred Bonds</option>
+                    <option value="otherAssets">Other Assets</option>
                   </select>
                 </div>
               </div>
@@ -904,7 +942,7 @@ function SharesForm({ shares, onUpdate }) {
             min={40}
             max={100}
             value={s.preserveCapitalFromAge || ''}
-            onChange={e => onUpdate({ preserveCapitalFromAge: Number(e.target.value) })}
+            onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
             placeholder="e.g. 65"
           />
         </div>
@@ -1143,7 +1181,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             min={40}
             max={100}
             value={b.preserveCapitalFromAge || ''}
-            onChange={e => onUpdate({ preserveCapitalFromAge: Number(e.target.value) })}
+            onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
             placeholder="e.g. 65"
           />
         </div>
@@ -1510,7 +1548,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                     min={1}
                     max={50}
                     value={item.recurringEveryYears || ''}
-                    onChange={e => onUpdate({ recurringEveryYears: Number(e.target.value) || null })}
+                    onChange={e => onUpdate({ recurringEveryYears: numVal(e.target.value) || null })}
                     placeholder="e.g. 10"
                   />
                 </div>
@@ -1542,7 +1580,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                     min={2024}
                     max={2070}
                     value={item.activeFrom || ''}
-                    onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null, activeTo: null })}
+                    onChange={e => onUpdate({ activeFrom: numVal(e.target.value) || null, activeTo: null })}
                     placeholder="e.g. 2026"
                   />
                 </div>
@@ -1557,7 +1595,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                     min={2024}
                     max={2070}
                     value={item.activeFrom || ''}
-                    onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null })}
+                    onChange={e => onUpdate({ activeFrom: numVal(e.target.value) || null })}
                     placeholder={planStartYear ? String(planStartYear) : 'e.g. 2026'}
                   />
                 </div>
@@ -1569,7 +1607,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                     min={2024}
                     max={2070}
                     value={item.activeTo || ''}
-                    onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
+                    onChange={e => onUpdate({ activeTo: numVal(e.target.value) || null })}
                     placeholder={planEndYear ? String(planEndYear) : 'e.g. 2060'}
                   />
                 </div>
@@ -1703,7 +1741,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                 min={2024}
                 max={2070}
                 value={item.activeFrom || ''}
-                onChange={e => onUpdate({ activeFrom: Number(e.target.value) || null })}
+                onChange={e => onUpdate({ activeFrom: numVal(e.target.value) || null })}
                 placeholder="e.g. 2026"
               />
             </div>
@@ -1716,7 +1754,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                   min={2024}
                   max={2070}
                   value={item.activeTo || ''}
-                  onChange={e => onUpdate({ activeTo: Number(e.target.value) || null })}
+                  onChange={e => onUpdate({ activeTo: numVal(e.target.value) || null })}
                   placeholder="Indefinite"
                 />
               </div>
@@ -1755,7 +1793,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                       className="input w-full pl-7"
                       type="number"
                       value={item.adjustmentRate || ''}
-                      onChange={e => onUpdate({ adjustmentRate: Number(e.target.value) })}
+                      onChange={e => onUpdate({ adjustmentRate: numVal(e.target.value) })}
                       placeholder="0"
                     />
                   </div>
@@ -1879,7 +1917,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                   min={1}
                   max={30}
                   value={item.termYears || ''}
-                  onChange={e => onUpdate({ termYears: Number(e.target.value) || null })}
+                  onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
                   placeholder="5"
                 />
               </div>
@@ -1891,7 +1929,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                   min={2020}
                   max={2070}
                   value={item.startYear || ''}
-                  onChange={e => onUpdate({ startYear: Number(e.target.value) || null })}
+                  onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
                   placeholder="Already held"
                 />
               </div>
@@ -2008,6 +2046,20 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
   const superA = scenario.super.find(s => s.personLabel === 'A') || {}
   const superB = scenario.super.find(s => s.personLabel === 'B') || {}
   const expenseItems = scenario.expenses?.children || []
+
+  // Validation warnings for critical fields
+  const validationWarnings = useMemo(() => {
+    const warnings = []
+    const nameA = personA?.name || 'Person A'
+    if (!personA?.dateOfBirth) warnings.push(`${nameA}: date of birth is required`)
+    if (!personA?.retirementAge && personA?.retirementAge !== 0) warnings.push(`${nameA}: retirement age is required`)
+    if (personB?.dateOfBirth || personB?.currentSalary || personB?.name) {
+      const nameB = personB?.name || 'Person B'
+      if (!personB?.dateOfBirth) warnings.push(`${nameB}: date of birth is required`)
+      if (!personB?.retirementAge && personB?.retirementAge !== 0) warnings.push(`${nameB}: retirement age is required`)
+    }
+    return warnings
+  }, [personA, personB])
 
   // Plan year range for expense date defaults
   const planStartYear = new Date().getFullYear()
@@ -2134,6 +2186,15 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <h1 className="text-lg font-semibold text-white">Household Profile</h1>
         <TutorialButton onClick={() => setShowTutorial(true)} />
       </div>
+
+      {validationWarnings.length > 0 && (
+        <div className="bg-amber-900/50 border border-amber-800 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-1">Missing required fields</p>
+          <ul className="text-sm text-amber-400 space-y-0.5">
+            {validationWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+        </div>
+      )}
 
       <Section title="People">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -929,6 +929,34 @@ describe('Scenario-specific behaviour', () => {
     })
   })
 
+  describe('Property Investor — sale proceeds routing', () => {
+    it('proceeds routed to shares increase share value in sale year', () => {
+      const s = propertyInvestor()
+      // Route IP sale proceeds to shares instead of cash
+      s.properties[1].saleEvent.destination = 'shares'
+      const snapsShares = runSimulation(s)
+
+      const sCash = propertyInvestor() // destination = 'cash' (default)
+      const snapsCash = runSimulation(sCash)
+
+      const saleYear = snapsShares.find(y => y.year === 2040)
+      const saleYearCash = snapsCash.find(y => y.year === 2040)
+      // Share value should be larger when proceeds are directed there
+      expect(saleYear.sharesValue).toBeGreaterThan(saleYearCash.sharesValue)
+    })
+
+    it('proceeds routed to treasuryBonds land in TB value', () => {
+      const s = propertyInvestor()
+      s.properties[1].saleEvent.destination = 'treasuryBonds'
+      s.treasuryBonds = { currentValue: 10_000, annualContribution: 0, contributionMode: 'fixed', couponRate: 0.04, preserveCapital: false, preserveCapitalFromAge: null, holdings: [], ratePeriods: [{ fromYear: 2026, toYear: 2090, rate: 0.05 }] }
+      const snaps2 = runSimulation(s)
+
+      const saleYear = snaps2.find(y => y.year === 2040)
+      // TB value should jump significantly in the sale year
+      expect(saleYear.treasuryBondsValue).toBeGreaterThan(100_000)
+    })
+  })
+
   describe('Novated Lease PBI', () => {
     const snaps = runSimulation(novatedLeasePBI())
 
