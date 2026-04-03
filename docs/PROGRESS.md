@@ -90,11 +90,20 @@
 - [x] **Scenario cards pin/hide** — replaced scroll-based auto-hide with manual toggle button in header.
 - [x] **Engine pre/post-retirement lever splits** — `leverAdjustments.expenses` and `leverAdjustments.returns` support `{ preRetirement, postRetirement }` with per-year resolution based on retirement state.
 
-### Then — Scenario management UI
+### Backlog (prioritised)
+1. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
+2. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
+3. [ ] **Mobile optimisation** — responsive layout for phone screens. Collapsible sections, stacked grids, touch-friendly inputs, chart sizing.
+4. [ ] **Income time periods** — salary input with period selector (annual/monthly/fortnightly/weekly). Store as annual internally, convert on display.
+5. [ ] **Property selling costs** — new field on sale event for agent fees, conveyancing, marketing etc. (default ~2-3%). Deducted from gross sale proceeds before routing.
+6. [ ] **Temporary income reduction** — model career breaks, parental leave, sabbaticals. Year range + reduced salary amount or % reduction.
+7. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
+8. [ ] **Stamp duty on property purchase** — state/territory selector, first home buyer exemption toggle. Calculate stamp duty from purchase price using state-specific thresholds and rates. Show as upfront cost reducing cash/increasing mortgage.
+9. [ ] **Land tax** — annual land tax based on state thresholds. Applies to investment properties (PPOR exempt). Multi-property aggregation where applicable.
+
+### Previously completed
 - [x] Named scenario cards with viability status
 - [x] Side-by-side comparison view
-
-### Then — Output Views
 - [x] One-off events timeline
 - [ ] Rate period visualisation per asset
 
@@ -109,6 +118,16 @@
 ---
 
 ## Session Log
+
+### Session 17 — 2026-04-04
+
+**What was done:**
+- **Clearable number inputs** — all `type="number"` fields now allow full deletion via `numVal()` helper. No more stuck values or rapid escalation from spinner arrows on empty fields.
+- **Validation warnings** — amber banner at top of Household Profile when critical fields missing (DOB, retirement age).
+- **Property: purchased with cash** — "Purchase method" dropdown. Selecting cash hides mortgage/offset fields.
+- **Sale proceeds routing** — expanded destination to all 8 investment types (was 3). Engine now respects the destination field — directed proceeds bypass surplus waterfall and land directly in the target asset. Fallback to cash if target asset type doesn't exist.
+- **Backlog written** — 9 items: HECS/HELP, light mode, mobile, income periods, selling costs, temp income reduction, pie chart size, stamp duty, land tax.
+- 2 new scenario tests for sale proceeds routing. **523 tests passing.**
 
 ### Session 16 — 2026-04-01
 
