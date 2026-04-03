@@ -66,6 +66,14 @@ function extractEvents(scenario, snapshots) {
   if (unlockA) push(unlockA.year, `${personAName} super unlocks`, EVENT_COLORS.super)
   if (unlockB && unlockB.year !== unlockA?.year) push(unlockB.year, `${personBName} super unlocks`, EVENT_COLORS.super)
 
+  // Property purchases (future)
+  ;(scenario.properties || []).forEach((prop, i) => {
+    if (prop.futurePurchaseYear) {
+      const name = prop.isPrimaryResidence ? 'Home' : (prop.name || `Property ${i + 1}`)
+      push(prop.futurePurchaseYear, `Buy ${name}`, EVENT_COLORS.property)
+    }
+  })
+
   // Property sales
   ;(scenario.properties || []).forEach((prop, i) => {
     if (prop.saleEvent?.year) {
@@ -153,7 +161,7 @@ function extractEvents(scenario, snapshots) {
   ;(scenario.otherIncome || []).forEach(inc => {
     if (!inc.activeFrom) return
     const amt = inc.amount || 0
-    if (inc.frequency === 'one_off' && amt >= LARGE_EXPENSE_THRESHOLD) {
+    if (inc.amountType === 'one_off' && amt >= LARGE_EXPENSE_THRESHOLD) {
       push(inc.activeFrom, inc.name || 'Windfall', EVENT_COLORS.income)
     }
   })

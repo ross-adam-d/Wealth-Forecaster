@@ -391,3 +391,81 @@ describe('calcLandTax', () => {
     expect(calcLandTax(500_000, null)).toBe(0)
   })
 })
+
+// ── Future property purchase ────────────────────────────────────────────────
+
+describe('processPropertyYear — future purchase', () => {
+  const baseProperty = {
+    isPrimaryResidence: false,
+    currentValue: 800_000,
+    purchasePrice: 800_000,
+    purchaseDate: null,
+    mortgageBalance: 640_000,
+    originalLoanAmount: 640_000,
+    originalLoanTermYears: 30,
+    interestRate: 0.065,
+    loanTermYearsRemaining: 30,
+    loanType: 'pi',
+    ioEndYear: null,
+    offsetBalance: 0,
+    offsetAnnualTopUp: 0,
+    annualRentalIncome: 40_000,
+    annualPropertyExpenses: 5_000,
+    growthRate: 0.04,
+    state: 'NSW',
+    isFirstHomeBuyer: false,
+    purchasedCash: false,
+    futurePurchaseYear: 2030,
+    saleEvent: null,
+  }
+
+  it('returns all zeros before purchase year', () => {
+    const result = processPropertyYear(baseProperty, 2028)
+    expect(result.openingValue).toBe(0)
+    expect(result.closingValue).toBe(0)
+    expect(result.mortgageBalance).toBe(0)
+    expect(result.annualRepayment).toBe(0)
+    expect(result.isPurchaseYear).toBe(false)
+    expect(result.stampDuty).toBe(0)
+    expect(result.purchaseCashOutflow).toBe(0)
+  })
+
+  it('computes stamp duty and deposit in purchase year', () => {
+    const result = processPropertyYear(baseProperty, 2030)
+    expect(result.isPurchaseYear).toBe(true)
+    expect(result.stampDuty).toBeGreaterThan(0)
+    expect(result.purchaseCashOutflow).toBeGreaterThan(0)
+    // Deposit = purchasePrice - mortgageBalance = 160k, plus stamp duty
+    expect(result.purchaseCashOutflow).toBeGreaterThan(160_000)
+  })
+
+  it('operates normally after purchase year', () => {
+    const result = processPropertyYear(baseProperty, 2031)
+    expect(result.openingValue).toBe(800_000)
+    expect(result.closingValue).toBeGreaterThan(0)
+    expect(result.annualRepayment).toBeGreaterThan(0)
+    expect(result.isPurchaseYear).toBe(false)
+    expect(result.stampDuty).toBe(0)
+    expect(result.purchaseCashOutflow).toBe(0)
+  })
+
+  it('cash purchase: full price + stamp duty as outflow', () => {
+    const cashProp = { ...baseProperty, purchasedCash: true, mortgageBalance: 0 }
+    const result = processPropertyYear(cashProp, 2030)
+    expect(result.isPurchaseYear).toBe(true)
+    // Outflow = full purchase price + stamp duty
+    expect(result.purchaseCashOutflow).toBeGreaterThan(800_000)
+  })
+
+  it('FHB exemption reduces stamp duty for PPOR', () => {
+    const fhbProp = {
+      ...baseProperty,
+      isPrimaryResidence: true,
+      isFirstHomeBuyer: true,
+      purchasePrice: 600_000, // under NSW FHB exemption threshold
+      currentValue: 600_000,
+    }
+    const result = processPropertyYear(fhbProp, 2030)
+    expect(result.stampDuty).toBe(0) // fully exempt under $800k NSW
+  })
+})

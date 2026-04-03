@@ -134,6 +134,40 @@ export function processPropertyYear(property, year) {
 
   const loanTermYearsRemaining = _loanTerm || 0
 
+  // Future purchase — property not yet acquired
+  const futurePurchaseYear = property.futurePurchaseYear || null
+  if (futurePurchaseYear && year < futurePurchaseYear) {
+    return {
+      openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
+      annualInterest: 0, annualRepayment: 0, principalRepayment: 0,
+      netRentalIncomeLoss: 0, landTax: 0, sellingCosts: 0, ioStepUpThisYear: false,
+      saleProceeds: null, capitalGain: null, cgtAmount: null, equity: 0,
+      loanTermYearsRemaining: 0,
+      isPurchaseYear: false, stampDuty: 0, purchaseCashOutflow: 0,
+    }
+  }
+
+  // Purchase year — stamp duty and deposit come out as cash outflows
+  const isPurchaseYear = futurePurchaseYear === year
+  let stampDuty = 0
+  let purchaseCashOutflow = 0
+  if (isPurchaseYear) {
+    stampDuty = calcStampDuty(
+      property.purchasePrice || currentValue,
+      property.state,
+      !!property.isFirstHomeBuyer,
+      !!isPrimaryResidence
+    )
+    // For cash purchases, the full price is a cash outflow
+    // For mortgaged purchases, the deposit (purchase price - mortgage) is the outflow
+    if (property.purchasedCash) {
+      purchaseCashOutflow = (property.purchasePrice || currentValue) + stampDuty
+    } else {
+      const deposit = Math.max(0, (property.purchasePrice || currentValue) - (mortgageBalance || 0))
+      purchaseCashOutflow = deposit + stampDuty
+    }
+  }
+
   // Property already sold in a prior year — nothing left to calculate
   if (saleEvent && saleEvent.year < year) {
     return {
@@ -142,6 +176,7 @@ export function processPropertyYear(property, year) {
       netRentalIncomeLoss: 0, landTax: 0, sellingCosts: 0, ioStepUpThisYear: false,
       saleProceeds: null, capitalGain: null, cgtAmount: null, equity: 0,
       loanTermYearsRemaining: 0,
+      isPurchaseYear: false, stampDuty: 0, purchaseCashOutflow: 0,
     }
   }
 
@@ -236,5 +271,8 @@ export function processPropertyYear(property, year) {
     capitalGain,
     cgtAmount,
     equity: newPropertyValue - newMortgageBalance,
+    isPurchaseYear,
+    stampDuty,
+    purchaseCashOutflow,
   }
 }

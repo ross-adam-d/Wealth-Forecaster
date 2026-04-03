@@ -102,6 +102,7 @@ export function createDefaultProperty(isPrimary = false) {
     purchasedCash: false,     // true = no mortgage (owned outright)
     state: null,              // 'NSW' | 'VIC' | 'QLD' | 'SA' | 'WA' | 'TAS' | 'NT' | 'ACT' — for stamp duty + land tax
     isFirstHomeBuyer: false,  // stamp duty exemption/concession
+    futurePurchaseYear: null, // year property will be purchased (null = already owned)
     saleEvent: null,          // { year, netProceeds, destination, sellingCostsPct }
     payOffWhenAble: false,    // auto-pay mortgage from liquid assets when affordable
     ownershipPctA: 100,       // % of CGT attributed to Person A (0–100)

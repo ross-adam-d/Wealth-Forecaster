@@ -3,7 +3,13 @@
  * Three-level tree: Group → Category → Subcategory
  * Supports annual, monthly, one-off, and recurring amounts with optional date ranges.
  * Fixed/discretionary tagging cascades down; children can override.
+ *
+ * Date fields (activeFrom, activeTo) support both year numbers (2030) and
+ * month-precision strings ("2030-09"). When a boundary falls mid-year the
+ * amount is pro-rated by the fraction of months active.
  */
+
+import { extractYear, yearFraction } from '../utils/format.js'
 
 /**
  * Resolve a single expense node's amount for a given year.
@@ -16,18 +22,20 @@
  * @returns {number} resolved annual amount
  */
 export function resolveNodeAmount(node, year, currentYear, globalInflation, leverAdjustments = {}) {
-  // Check active window
-  if (node.activeFrom != null && year < node.activeFrom) return 0
-  if (node.activeTo != null && year > node.activeTo) return 0
+  // Check active window — supports "YYYY-MM" strings and plain year numbers
+  const fromYear = extractYear(node.activeFrom)
+  const toYear = extractYear(node.activeTo)
+  if (fromYear != null && year < fromYear) return 0
+  if (toYear != null && year > toYear) return 0
 
   // One-off: only applies in its specific year
-  if (node.amountType === 'one_off' && year !== node.activeFrom) return 0
+  if (node.amountType === 'one_off' && year !== fromYear) return 0
 
-  // Recurring: fires every N years from activeFrom within the active window
+  // Recurring: fires every N years from the start year within the active window
   if (node.amountType === 'recurring') {
     const every = node.recurringEveryYears
-    if (!every || every < 1 || node.activeFrom == null) return 0
-    if ((year - node.activeFrom) % every !== 0) return 0
+    if (!every || every < 1 || fromYear == null) return 0
+    if ((year - fromYear) % every !== 0) return 0
   }
 
   if (node.amount == null || node.amount === 0) return 0
@@ -44,7 +52,14 @@ export function resolveNodeAmount(node, year, currentYear, globalInflation, leve
   const adjustment = node.isDiscretionary ? discretionary : fixed
   const adjustedAmount = inflatedAmount * (1 + adjustment)
 
-  return Math.max(0, adjustedAmount)
+  // Pro-rate for month precision (only for annual/monthly amounts, not one-off or recurring)
+  let proRatedAmount = adjustedAmount
+  if (node.amountType !== 'one_off' && node.amountType !== 'recurring') {
+    const frac = yearFraction(year, node.activeFrom, node.activeTo)
+    if (frac < 1) proRatedAmount = adjustedAmount * frac
+  }
+
+  return Math.max(0, proRatedAmount)
 }
 
 /**

@@ -283,6 +283,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const propertySaleProceeds = propertyResults.reduce((sum, r) => sum + (r.saleProceeds || 0), 0)
     const totalLandTax = propertyResults.reduce((sum, r) => sum + (r.landTax || 0), 0)
     const totalSellingCosts = propertyResults.reduce((sum, r) => sum + (r.sellingCosts || 0), 0)
+    const totalPurchaseCashOutflow = propertyResults.reduce((sum, r) => sum + (r.purchaseCashOutflow || 0), 0)
     // Split CGT between A and B based on property ownership percentage
     const propertyCGT_A = propertyResults.reduce((sum, r, i) => {
       const pct = (currentProperties[i].ownershipPctA ?? 100) / 100
@@ -554,7 +555,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       (leaseResidualA || 0) + (leaseResidualB || 0)
 
     // Fixed contributions should not force asset drawdowns — cap at available cashflow
-    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer + totalLeasePostTaxCost
+    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer + totalLeasePostTaxCost + totalPurchaseCashOutflow
     const availableForContributions = Math.max(0, totalIncomePreBond - essentialOutflows)
     const cappedFixedContributions = Math.min(totalFixedContributions, availableForContributions)
 
@@ -1118,6 +1119,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalMortgageBalance,
       totalLandTax,
       totalSellingCosts,
+      totalPurchaseCashOutflow,
       // Shares
       sharesValue: currentShares.currentValue,
       sharesResult,

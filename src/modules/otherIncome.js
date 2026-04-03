@@ -6,10 +6,12 @@
  *
  * Each source supports:
  *  - Annual, monthly, or one-off amounts
- *  - Active window (activeFrom / activeTo)
+ *  - Active window (activeFrom / activeTo) — year numbers or "YYYY-MM" strings
  *  - Annual adjustment: none, percent (+/-), or dollar (+/-)
  *  - Tax attribution to Person A, B, or household (split 50/50)
  */
+
+import { extractYear, yearFraction } from '../utils/format.js'
 
 /**
  * Resolve a single other-income source's annual amount for a given year.
@@ -27,15 +29,15 @@ export function resolveOtherIncomeAmount(source, year, startYear, inflationRate 
   const { amount, amountType, activeFrom, activeTo, adjustmentType, adjustmentRate } = source
   if (amount == null || amount === 0) return 0
 
-  // Active window check
-  const effectiveFrom = activeFrom ?? startYear
-  const effectiveTo = activeTo ?? Infinity
+  // Active window check — supports "YYYY-MM" strings and plain year numbers
+  const fromYear = extractYear(activeFrom) ?? startYear
+  const toYear = extractYear(activeTo) ?? Infinity
 
-  if (year < effectiveFrom || year > effectiveTo) return 0
+  if (year < fromYear || year > toYear) return 0
 
   // One-off: only in the specific year — inflate to nominal (user enters real dollars)
   if (amountType === 'one_off') {
-    if (year !== effectiveFrom) return 0
+    if (year !== fromYear) return 0
     const yearsFromNow = year - startYear
     return amount * Math.pow(1 + inflationRate, yearsFromNow)
   }
@@ -44,21 +46,21 @@ export function resolveOtherIncomeAmount(source, year, startYear, inflationRate 
   const baseAmount = amountType === 'monthly' ? amount * 12 : amount
 
   // Apply adjustments over elapsed years
-  const yearsElapsed = year - effectiveFrom
-  if (yearsElapsed <= 0) return baseAmount
-
-  if (adjustmentType === 'percent') {
-    // Compound growth/decline — adjustmentRate can be positive or negative
-    return baseAmount * Math.pow(1 + (adjustmentRate || 0), yearsElapsed)
+  const yearsElapsed = year - fromYear
+  let resolvedAmount = baseAmount
+  if (yearsElapsed > 0) {
+    if (adjustmentType === 'percent') {
+      resolvedAmount = baseAmount * Math.pow(1 + (adjustmentRate || 0), yearsElapsed)
+    } else if (adjustmentType === 'dollar') {
+      resolvedAmount = Math.max(0, baseAmount + (adjustmentRate || 0) * yearsElapsed)
+    }
   }
 
-  if (adjustmentType === 'dollar') {
-    // Linear increase/decrease — adjustmentRate is $/year (positive or negative)
-    return Math.max(0, baseAmount + (adjustmentRate || 0) * yearsElapsed)
-  }
+  // Pro-rate for month precision in start/end years
+  const frac = yearFraction(year, activeFrom, activeTo)
+  if (frac < 1) resolvedAmount *= frac
 
-  // 'none' — flat
-  return baseAmount
+  return resolvedAmount
 }
 
 /**

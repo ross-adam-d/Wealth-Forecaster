@@ -683,7 +683,7 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
             )
           })()}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="label">Purchase date</label>
               <input
@@ -709,6 +709,17 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                 <option value="mortgage">Mortgage</option>
                 <option value="cash">Purchased with cash</option>
               </select>
+            </div>
+            <div>
+              <label className="label">Future purchase year</label>
+              <input
+                className="input w-full"
+                type="number"
+                placeholder="Already owned"
+                value={numVal(p.futurePurchaseYear)}
+                onChange={e => onUpdate({ futurePurchaseYear: e.target.value === '' ? null : Number(e.target.value) })}
+              />
+              {p.futurePurchaseYear && <span className="text-xs text-gray-500 mt-1 block">Acquired in {p.futurePurchaseYear}</span>}
             </div>
           </div>
 

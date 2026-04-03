@@ -72,14 +72,8 @@
 - [x] **Timeline label fix** — added `z-20` to label container so labels render above dots (`z-10`)
 - [x] **Compare deficit visibility** — red Xs for losing metrics, red text for losers, red-highlighted deficit rows with warning icon
 - [x] **Compare chart x-axis fix** — "Full plan" range now caps at plan end year; `XAxis type="number" domain` prevents padding
-- [x] **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears` (e.g. buy car every 10 years from 2026 to 2070). Engine fires expense only in matching years within active window. UI: dropdown option + frequency input + summary hint. 7 new tests (323 total).
-- [ ] **Month precision across app** — extend year fields to "YYYY-MM" with month picker UI:
-  - Expenses: start/end month, one-off date month
-  - Property sale events: month (e.g. "Oct 2029")
-  - Other income: activeFrom/activeTo with month
-  - Asset acquisition dates
-  - Engine: fractional-year pro-rating for month-precision
-  - Schema: backward compat with year-only values
+- [x] **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears` (e.g. buy car every 10 years from 2026 to 2070). Engine fires expense only in matching years within active window. UI: dropdown option + frequency input + summary hint. 7 new tests.
+- [x] **Month precision across app** — `yearFraction()` and `extractYear()` utilities support "YYYY-MM" strings. Expenses and other income modules pro-rate amounts for partial years. 19 new format utility tests.
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
 - [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
 - [x] Impact Analyser: wire lever values into simulation overrides
@@ -91,6 +85,7 @@
 - [x] **Engine pre/post-retirement lever splits** — `leverAdjustments.expenses` and `leverAdjustments.returns` support `{ preRetirement, postRetirement }` with per-year resolution based on retirement state.
 
 ### Backlog (prioritised)
+0. [ ] **Month picker UI** — add "YYYY-MM" inputs for expense activeFrom/activeTo, other income date fields, property sale event date. Engine already supports month precision.
 1. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
 2. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
 3. [ ] **Mobile optimisation** — responsive layout for phone screens. Collapsible sections, stacked grids, touch-friendly inputs, chart sizing.
@@ -100,8 +95,8 @@
 7. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
 8. [x] **Stamp duty on property purchase** — state/territory selector, FHB exemption toggle. Progressive brackets for all 8 states. Displayed as info below purchase price.
 9. [x] **Land tax** — annual land tax via progressive brackets per state. Integrated into net rental income (deductible). PPOR exempt.
-10. [ ] **Property purchase as outflow** — future property purchase modelling (deposit from cash, stamp duty as upfront outflow). Deferred — needs "planned purchase date" concept.
-11. [x] **One-off/large expenses and windfalls on timeline** — expenses >= $10k and windfall income now show on life events timeline.
+10. [x] **Property purchase as outflow** — future property purchase with `futurePurchaseYear`. Property returns zeros before purchase year; stamp duty + deposit computed as cash outflow in purchase year. Wired into engine `essentialOutflows`. Timeline shows "Buy" events. 5 new tests.
+11. [x] **One-off/large expenses and windfalls on timeline** — expenses >= $10k and windfall income now show on life events timeline. Fixed windfall detection bug (`frequency` → `amountType`).
 
 ### Previously completed
 - [x] Named scenario cards with viability status
