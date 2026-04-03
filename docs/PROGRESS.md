@@ -95,13 +95,13 @@
 2. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
 3. [ ] **Mobile optimisation** — responsive layout for phone screens. Collapsible sections, stacked grids, touch-friendly inputs, chart sizing.
 4. [ ] **Income time periods** — salary input with period selector (annual/monthly/fortnightly/weekly). Store as annual internally, convert on display.
-5. [ ] **Property selling costs** — new field on sale event for agent fees, conveyancing, marketing etc. (default ~2-3%). Deducted from gross sale proceeds before routing.
+5. [x] **Property selling costs** — `sellingCostsPct` on sale event (default 2.5%). Deducted from gross proceeds, reduces CGT gain. UI shows estimated $ amount.
 6. [ ] **Temporary income reduction** — model career breaks, parental leave, sabbaticals. Year range + reduced salary amount or % reduction.
 7. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
-8. [ ] **Stamp duty on property purchase** — state/territory selector, first home buyer exemption toggle. Calculate stamp duty from purchase price using state-specific thresholds and rates. Show as upfront cost reducing cash/increasing mortgage.
-9. [ ] **Land tax** — annual land tax based on state thresholds. Applies to investment properties (PPOR exempt). Multi-property aggregation where applicable.
-10. [ ] **Property purchase as outflow** — buying a property should show as a cash outflow (deposit/full purchase) in cashflow and charts. Currently only ongoing mortgage repayments are tracked, not the initial purchase event.
-11. [ ] **One-off/large expenses and windfalls on timeline** — show one-off expenses, large recurring expenses, and windfall income events on the Projection life events timeline. Currently only property sales, retirement, and pension are shown.
+8. [x] **Stamp duty on property purchase** — state/territory selector, FHB exemption toggle. Progressive brackets for all 8 states. Displayed as info below purchase price.
+9. [x] **Land tax** — annual land tax via progressive brackets per state. Integrated into net rental income (deductible). PPOR exempt.
+10. [ ] **Property purchase as outflow** — future property purchase modelling (deposit from cash, stamp duty as upfront outflow). Deferred — needs "planned purchase date" concept.
+11. [x] **One-off/large expenses and windfalls on timeline** — expenses >= $10k and windfall income now show on life events timeline.
 
 ### Previously completed
 - [x] Named scenario cards with viability status
@@ -130,6 +130,13 @@
 - **Sale proceeds routing** — expanded destination to all 8 investment types (was 3). Engine now respects the destination field — directed proceeds bypass surplus waterfall and land directly in the target asset. Fallback to cash if target asset type doesn't exist.
 - **Backlog written** — 9 items: HECS/HELP, light mode, mobile, income periods, selling costs, temp income reduction, pie chart size, stamp duty, land tax.
 - 2 new scenario tests for sale proceeds routing. **523 tests passing.**
+
+**Property features (same session):**
+- **Selling costs** — `sellingCostsPct` on sale event (default 2.5%). Deducted from gross sale price before CGT and proceeds routing. UI shows % input + estimated $ hint.
+- **Stamp duty** — state/territory selector on property, FHB exemption toggle. Progressive bracket calculation for all 8 states. Info line below purchase price.
+- **Land tax** — annual land tax for investment properties via progressive state brackets. Deducted from net rental income (tax deductible). PPOR exempt.
+- **Timeline events** — one-off expenses >= $10k, large recurring expenses, and windfall income now appear on life events timeline.
+- Engine: `totalLandTax`, `totalSellingCosts` in snapshot. 20 new property tests. **543 tests passing.**
 
 ### Session 16 — 2026-04-01
 
