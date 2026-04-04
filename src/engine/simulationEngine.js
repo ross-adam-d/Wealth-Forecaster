@@ -717,7 +717,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         } else {
           saleProceedsCashContribution += proceeds
         }
-      } else if (dest === 'offset' || dest.startsWith('offset:')) {
+      } else if (dest === 'offset' || (dest && dest.startsWith('offset:'))) {
         saleProceedsOffsetContribution += proceeds
         // Store target property index for directed offset routing
         if (dest.startsWith('offset:')) {
