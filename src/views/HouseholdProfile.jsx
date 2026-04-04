@@ -582,7 +582,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
 
 // ── Property form ─────────────────────────────────────────────────────────
 
-function PropertyForm({ property, index, onUpdate, onRemove }) {
+function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
   const p = property || {}
   const [open, setOpen] = useState(true)
   const title = p.isPrimaryResidence ? 'Primary Residence' : `Investment Property ${index}`
@@ -889,7 +889,15 @@ function PropertyForm({ property, index, onUpdate, onRemove }) {
                       <option value="cash">Cash buffer</option>
                       <option value="shares">Share portfolio</option>
                       <option value="super">Super (downsizer)</option>
-                      <option value="offset">Mortgage offset</option>
+                      {allProperties.filter((op, oi) => oi !== index - 1 && !op.purchasedCash && op.mortgageBalance > 0).length > 0 && (
+                        <optgroup label="Mortgage offset">
+                          {allProperties.map((op, oi) => {
+                            if (oi === index - 1 || op.purchasedCash || !op.mortgageBalance) return null
+                            const name = op.isPrimaryResidence ? 'Home' : (op.name || `Property ${oi + 1}`)
+                            return <option key={oi} value={`offset:${oi}`}>{name} offset</option>
+                          })}
+                        </optgroup>
+                      )}
                       <option value="treasuryBonds">Treasury / Corporate Bonds</option>
                       <option value="commodities">Commodities</option>
                       <option value="bonds">Tax-Deferred Bonds</option>
@@ -2296,6 +2304,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
               key={i}
               property={p}
               index={i + 1}
+              allProperties={scenario.properties}
               onUpdate={patch => updateProperty(i, patch)}
               onRemove={() => removeProperty(i)}
             />

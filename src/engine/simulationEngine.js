@@ -643,6 +643,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const saleProceedsBondContributions = currentBonds.map(() => 0)
     const saleProceedsOtherAssetContributions = currentOtherAssets.map(() => 0)
     let saleProceedsOffsetContribution = 0
+    const saleProceedsOffsetTargets = []  // { amount, targetIdx } for directed offset routing
 
     for (let i = 0; i < propertyResults.length; i++) {
       const proceeds = propertyResults[i].saleProceeds || 0
@@ -668,18 +669,22 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         } else {
           saleProceedsCashContribution += proceeds
         }
-      } else if (dest === 'offset') {
+      } else if (dest === 'offset' || dest.startsWith('offset:')) {
         saleProceedsOffsetContribution += proceeds
+        // Store target property index for directed offset routing
+        if (dest.startsWith('offset:')) {
+          const targetIdx = parseInt(dest.split(':')[1], 10)
+          if (!isNaN(targetIdx)) saleProceedsOffsetTargets.push({ amount: proceeds, targetIdx })
+        }
       } else {
         // 'cash' or 'super' (super handled via downsizer) — stays in general cashflow
         saleProceedsCashContribution += proceeds
       }
     }
     const totalDirectedSaleProceeds = saleProceedsSharesContribution + saleProceedsTBContribution +
-      saleProceedsCommContribution + saleProceedsOffsetContribution +
+      saleProceedsCommContribution + saleProceedsOffsetContribution + saleProceedsCashContribution +
       saleProceedsBondContributions.reduce((s, c) => s + c, 0) +
       saleProceedsOtherAssetContributions.reduce((s, c) => s + c, 0)
-    // Cash-directed proceeds stay in cashflow (not subtracted)
 
     // Routed contributions are mandatory outflows (income already in totalIncomePreBond,
     // routing removes it from general cashflow and directs it to the target vehicle)
@@ -915,16 +920,37 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       cashBuffer += routedCashContribution
     }
 
-    // Apply sale proceeds — offset accounts
+    // Apply sale proceeds — cash buffer
+    if (saleProceedsCashContribution > 0) {
+      cashBuffer += saleProceedsCashContribution
+    }
+
+    // Apply sale proceeds — offset accounts (targeted or first-available)
     if (saleProceedsOffsetContribution > 0) {
       let remainingOffset = saleProceedsOffsetContribution
-      for (let i = 0; i < currentProperties.length && remainingOffset > 0; i++) {
-        if (propertyResults[i].mortgageBalance > 0) {
-          const headroom = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
-          const toOffset = Math.min(remainingOffset, headroom)
-          if (toOffset > 0) {
-            propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
-            remainingOffset -= toOffset
+
+      if (saleProceedsOffsetTargets.length > 0) {
+        // Directed: apply to specific property offset accounts
+        for (const { amount, targetIdx } of saleProceedsOffsetTargets) {
+          if (targetIdx >= 0 && targetIdx < propertyResults.length && propertyResults[targetIdx].mortgageBalance > 0) {
+            const headroom = Math.max(0, propertyResults[targetIdx].mortgageBalance - (propertyResults[targetIdx].offsetBalance || 0))
+            const toOffset = Math.min(amount, headroom)
+            if (toOffset > 0) {
+              propertyResults[targetIdx] = { ...propertyResults[targetIdx], offsetBalance: (propertyResults[targetIdx].offsetBalance || 0) + toOffset }
+              remainingOffset -= toOffset
+            }
+          }
+        }
+      } else {
+        // Legacy: spread across properties with mortgages
+        for (let i = 0; i < currentProperties.length && remainingOffset > 0; i++) {
+          if (propertyResults[i].mortgageBalance > 0) {
+            const headroom = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
+            const toOffset = Math.min(remainingOffset, headroom)
+            if (toOffset > 0) {
+              propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
+              remainingOffset -= toOffset
+            }
           }
         }
       }
@@ -932,8 +958,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       if (remainingOffset > 0) cashBuffer += remainingOffset
     }
 
-    // Cash-directed sale proceeds: already in totalIncomePreBond and flow through
-    // surplus waterfall naturally — no extra cashBuffer addition needed.
+
 
     // Shares: total contribution = fixed + surplus + routed income + sale proceeds
     const finalSharesContribution = fixedSharesContribution + surplusSharesContribution + routedSharesContribution + saleProceedsSharesContribution
