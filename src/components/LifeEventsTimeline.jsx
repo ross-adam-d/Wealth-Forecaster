@@ -60,6 +60,20 @@ function extractEvents(scenario, snapshots) {
     if (retireB) push(retireB.year, `${personBName} retires`, EVENT_COLORS.retirement)
   }
 
+  // Salary changes
+  ;(personA?.salaryChanges || []).forEach(change => {
+    if (change.fromYear) {
+      const label = change.note || (change.salary === 0 ? 'Career break' : 'Salary change')
+      push(change.fromYear, `${personAName}: ${label}`, EVENT_COLORS.income)
+    }
+  })
+  ;(personB?.salaryChanges || []).forEach(change => {
+    if (change.fromYear) {
+      const label = change.note || (change.salary === 0 ? 'Career break' : 'Salary change')
+      push(change.fromYear, `${personBName}: ${label}`, EVENT_COLORS.income)
+    }
+  })
+
   // Super unlock
   const unlockA = snapshots.find(s => s.superAUnlocked)
   const unlockB = snapshots.find(s => s.superBUnlocked)

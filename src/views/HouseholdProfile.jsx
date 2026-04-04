@@ -198,14 +198,43 @@ function PersonForm({ person, label, onUpdate }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <CurrencyInput
-          label="Current salary (gross)"
-          value={p.currentSalary}
-          onChange={v => onUpdate({ currentSalary: v })}
-        />
+      <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="label">Target retirement age</label>
+          <label className="label">Current salary (gross)</label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+            <input
+              className="input w-full pl-7"
+              type="number"
+              min={0}
+              value={p.currentSalary ?? ''}
+              onChange={e => onUpdate({ currentSalary: numVal(e.target.value) })}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="label">Period</label>
+          <select
+            className="input w-full"
+            value={p.salaryPeriod || 'annual'}
+            onChange={e => onUpdate({ salaryPeriod: e.target.value })}
+          >
+            <option value="annual">Annual</option>
+            <option value="monthly">Monthly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="weekly">Weekly</option>
+          </select>
+          {p.salaryPeriod && p.salaryPeriod !== 'annual' && p.currentSalary > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              = ${(p.salaryPeriod === 'weekly' ? p.currentSalary * 52
+                : p.salaryPeriod === 'fortnightly' ? p.currentSalary * 26
+                : p.currentSalary * 12).toLocaleString()}/yr
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="label">Retirement age</label>
           <input
             className="input w-full"
             type="number"
@@ -216,6 +245,132 @@ function PersonForm({ person, label, onUpdate }) {
             placeholder="60"
           />
         </div>
+      </div>
+
+      {/* Salary changes — part-time, career breaks, promotions */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-500">Salary changes (part-time, career break, promotion)</span>
+          <button
+            className="btn-ghost text-xs py-1"
+            onClick={() => {
+              const changes = [...(p.salaryChanges || [])]
+              changes.push({
+                id: crypto.randomUUID(),
+                fromYear: new Date().getFullYear() + 1,
+                toYear: null,
+                salary: 0,
+                salaryPeriod: 'annual',
+                note: '',
+              })
+              onUpdate({ salaryChanges: changes })
+            }}
+          >
+            + Add change
+          </button>
+        </div>
+        {(p.salaryChanges || []).map((change, ci) => (
+          <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2 space-y-2">
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="label">From year</label>
+                <input
+                  className="input w-full"
+                  type="number"
+                  min={2020}
+                  max={2080}
+                  value={change.fromYear ?? ''}
+                  onChange={e => {
+                    const changes = [...(p.salaryChanges || [])]
+                    changes[ci] = { ...changes[ci], fromYear: numVal(e.target.value) }
+                    onUpdate({ salaryChanges: changes })
+                  }}
+                  placeholder="Year"
+                />
+              </div>
+              <div>
+                <label className="label">To year</label>
+                <input
+                  className="input w-full"
+                  type="number"
+                  min={2020}
+                  max={2080}
+                  value={change.toYear ?? ''}
+                  onChange={e => {
+                    const changes = [...(p.salaryChanges || [])]
+                    changes[ci] = { ...changes[ci], toYear: numVal(e.target.value) || null }
+                    onUpdate({ salaryChanges: changes })
+                  }}
+                  placeholder="Ongoing"
+                />
+              </div>
+              <div>
+                <label className="label">Salary</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    className="input w-full pl-7"
+                    type="number"
+                    min={0}
+                    value={change.salary ?? ''}
+                    onChange={e => {
+                      const changes = [...(p.salaryChanges || [])]
+                      changes[ci] = { ...changes[ci], salary: numVal(e.target.value) }
+                      onUpdate({ salaryChanges: changes })
+                    }}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="label">Period</label>
+                <div className="flex gap-1">
+                  <select
+                    className="input flex-1"
+                    value={change.salaryPeriod || 'annual'}
+                    onChange={e => {
+                      const changes = [...(p.salaryChanges || [])]
+                      changes[ci] = { ...changes[ci], salaryPeriod: e.target.value }
+                      onUpdate({ salaryChanges: changes })
+                    }}
+                  >
+                    <option value="annual">Annual</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="fortnightly">F/nightly</option>
+                    <option value="weekly">Weekly</option>
+                  </select>
+                  <button
+                    className="text-red-400 hover:text-red-300 px-2 text-xs"
+                    title="Remove"
+                    onClick={() => {
+                      const changes = (p.salaryChanges || []).filter((_, i) => i !== ci)
+                      onUpdate({ salaryChanges: changes })
+                    }}
+                  >✕</button>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                className="input flex-1 text-xs"
+                value={change.note || ''}
+                onChange={e => {
+                  const changes = [...(p.salaryChanges || [])]
+                  changes[ci] = { ...changes[ci], note: e.target.value }
+                  onUpdate({ salaryChanges: changes })
+                }}
+                placeholder="Note (e.g. Part-time 3 days, Career break, Promotion)"
+              />
+              {change.salary > 0 && change.salaryPeriod && change.salaryPeriod !== 'annual' && (
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  = ${(change.salaryPeriod === 'weekly' ? change.salary * 52
+                    : change.salaryPeriod === 'fortnightly' ? change.salary * 26
+                    : change.salary * 12).toLocaleString()}/yr
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div>

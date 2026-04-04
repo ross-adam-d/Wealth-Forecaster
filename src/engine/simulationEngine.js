@@ -39,6 +39,44 @@ function growSalary(salary, wageGrowthRate, yearsElapsed) {
 }
 
 /**
+ * Convert a salary entered in any period to annual.
+ */
+function toAnnualSalary(amount, period) {
+  if (!amount) return 0
+  switch (period) {
+    case 'weekly':      return amount * 52
+    case 'fortnightly': return amount * 26
+    case 'monthly':     return amount * 12
+    default:            return amount  // 'annual' or unset
+  }
+}
+
+/**
+ * Resolve effective salary for a person in a given year.
+ * Checks salaryChanges for overrides (most specific match wins).
+ * Returns the annual salary BEFORE wage growth.
+ */
+function resolveBaseSalary(person, year, startYear) {
+  const baseSalary = toAnnualSalary(person.currentSalary, person.salaryPeriod)
+  const changes = person.salaryChanges || []
+  if (changes.length === 0) return baseSalary
+
+  // Find the applicable salary change for this year (last match wins)
+  let activeSalary = null
+  for (const change of changes) {
+    const from = change.fromYear || startYear
+    const to = change.toYear || Infinity
+    if (year >= from && year <= to) {
+      activeSalary = toAnnualSalary(change.salary, change.salaryPeriod)
+    }
+  }
+
+  // If a change is active, use it (no wage growth compounding — the user sets the exact amount)
+  // If no change is active, use base salary
+  return activeSalary != null ? activeSalary : baseSalary
+}
+
+/**
  * Determine if a person has retired in or before a given year.
  */
 function hasRetired(person, year) {
@@ -227,8 +265,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       : assumptions
 
     // ── Step 1: Resolve salaries ──────────────────────────────────────────
-    const salaryA = retiredA ? 0 : growSalary(personA.currentSalary, personA.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed)
-    const salaryB = retiredB ? 0 : growSalary(personB.currentSalary, personB.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed)
+    // Check for salary change overrides (part-time, career break, etc.)
+    const baseSalaryA = resolveBaseSalary(personA, year, currentYear)
+    const baseSalaryB = resolveBaseSalary(personB, year, currentYear)
+    const baseAnnualA = toAnnualSalary(personA.currentSalary, personA.salaryPeriod)
+    const baseAnnualB = toAnnualSalary(personB.currentSalary, personB.salaryPeriod)
+    // Apply wage growth only when using the base salary (not during a salary change override)
+    const salaryA = retiredA ? 0 : (baseSalaryA !== baseAnnualA
+      ? baseSalaryA  // salary change period — user sets exact amount, no wage growth
+      : growSalary(baseAnnualA, personA.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed))
+    const salaryB = retiredB ? 0 : (baseSalaryB !== baseAnnualB
+      ? baseSalaryB
+      : growSalary(baseAnnualB, personB.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed))
 
     const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, salaryA)
     const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, salaryB)

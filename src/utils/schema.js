@@ -20,12 +20,25 @@ import {
   BOND_CONTRIBUTION_MODES,
 } from '../constants/index.js'
 
+export function createDefaultSalaryChange() {
+  return {
+    id: crypto.randomUUID(),
+    fromYear: null,           // year this change takes effect (null = from start)
+    toYear: null,             // year this change ends (null = until next change or retirement)
+    salary: 0,                // gross annual salary during this period
+    salaryPeriod: 'annual',   // display period for entry convenience
+    note: '',                 // e.g. "Part-time 3 days", "Career break", "Promotion"
+  }
+}
+
 export function createDefaultPerson(label = 'A') {
   return {
     label,
     name: '',
     dateOfBirth: null,        // ISO date string
     currentSalary: 0,
+    salaryPeriod: 'annual',   // 'annual' | 'monthly' | 'fortnightly' | 'weekly' — display only
+    salaryChanges: [],        // future salary changes: [{ id, fromYear, toYear, salary, salaryPeriod, note }]
     wageGrowthRate: WAGE_GROWTH_RATE,
     employerType: 'standard', // 'standard' | 'pbi_nfp' | 'qld_health'
     retirementAge: 60,
