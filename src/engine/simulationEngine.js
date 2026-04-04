@@ -236,8 +236,15 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const { reduction: leaseReductionB, employeePostTaxContrib: leasePostTaxB, residualPayment: leaseResidualB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB, year)
 
     // ── Step 2: Income tax ────────────────────────────────────────────────
-    const superContribA_pre = processContributions(superA, salaryA, year)
-    const superContribB_pre = processContributions(superB, salaryB, year)
+    // Zero out salary sacrifice and voluntary contributions when retired (no salary to sacrifice)
+    const superA_forContrib = retiredA
+      ? { ...superA, salarySacrificeAmount: 0, voluntaryConcessional: 0, voluntaryNonConcessional: 0 }
+      : superA
+    const superB_forContrib = retiredB
+      ? { ...superB, salarySacrificeAmount: 0, voluntaryConcessional: 0, voluntaryNonConcessional: 0 }
+      : superB
+    const superContribA_pre = processContributions(superA_forContrib, salaryA, year)
+    const superContribB_pre = processContributions(superB_forContrib, salaryB, year)
 
     const taxA = calcPersonTax({
       grossSalary: salaryA,

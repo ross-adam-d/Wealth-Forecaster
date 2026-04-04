@@ -10,7 +10,7 @@ import {
   LAND_TAX,
   DEFAULT_SELLING_COSTS_PCT,
 } from '../constants/index.js'
-import { extractYear } from '../utils/format.js'
+import { extractYear, parseYearMonth } from '../utils/format.js'
 
 /**
  * Calculate amount from progressive brackets (used for stamp duty and land tax).
@@ -169,8 +169,11 @@ export function processPropertyYear(property, year) {
     }
   }
 
-  // Resolve sale event year (supports "YYYY-MM" strings and plain year numbers)
+  // Resolve sale event year and month (supports "YYYY-MM" strings and plain year numbers)
   const saleYear = saleEvent ? extractYear(saleEvent.year) : null
+  const saleParsed = saleEvent ? parseYearMonth(saleEvent.year) : null
+  // Fraction of year property is held (e.g. sale in June = 6/12)
+  const saleYearFraction = (saleYear === year && saleParsed?.month) ? saleParsed.month / 12 : 1
 
   // Property already sold in a prior year — nothing left to calculate
   if (saleYear && saleYear < year) {
@@ -188,8 +191,12 @@ export function processPropertyYear(property, year) {
   const effectiveLoanType = (loanType === 'io' && ioEndYear && year > ioEndYear) ? 'pi' : loanType
   const ioStepUpThisYear = loanType === 'io' && ioEndYear && year === ioEndYear + 1
 
-  // Interest is calculated on the effective balance (net of offset)
-  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate)
+  // Pro-rate factor: in the sale year with month precision, only charge for months held
+  // e.g. sale in June → holdFraction = 6/12 = 0.5
+  const holdFraction = (saleYear === year) ? saleYearFraction : 1
+
+  // Interest is calculated on the effective balance (net of offset), pro-rated in sale year
+  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * holdFraction
 
   // Fixed repayment: use original loan amount & term so the repayment stays constant.
   // This means offset accounts reduce interest → more goes to principal → loan pays off early.
@@ -206,6 +213,9 @@ export function processPropertyYear(property, year) {
     annualRepayment = calcAnnualRepayment(originalLoanAmount, interestRate, originalLoanTermYears, 'pi')
   }
 
+  // Pro-rate repayment in sale year
+  annualRepayment *= holdFraction
+
   // If mortgage is nearly paid off, cap repayment at remaining balance + interest
   if (mortgageBalance > 0 && annualRepayment > mortgageBalance + annualInterest) {
     annualRepayment = mortgageBalance + annualInterest
@@ -218,15 +228,14 @@ export function processPropertyYear(property, year) {
 
   const principalRepayment = Math.max(0, annualRepayment - annualInterest)
 
-  // Land tax — investment properties only (PPOR exempt)
+  // Land tax — investment properties only (PPOR exempt), pro-rated in sale year
   const state = property.state || null
-  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) : 0
+  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) * holdFraction : 0
 
-  // Net rental position (negative = negatively geared)
-  // Land tax is a deductible property expense for investment properties
+  // Net rental position (negative = negatively geared), pro-rated in sale year
   const netRentalIncomeLoss = isPrimaryResidence
     ? 0
-    : annualRentalIncome - annualPropertyExpenses - annualInterest - landTax
+    : (annualRentalIncome * holdFraction) - (annualPropertyExpenses * holdFraction) - annualInterest - landTax
 
   // Update balances
   const newMortgageBalance = Math.max(0, mortgageBalance - principalRepayment)
