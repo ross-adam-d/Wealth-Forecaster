@@ -116,6 +116,16 @@
 
 ## Session Log
 
+### Session 19 — 2026-04-05
+
+**What was done:**
+- **Projection page crash fix** — `ReferenceError: Cannot access 'd' before initialization` caused blank `/projection` page. Root cause: `personA`/`personB` variables referenced before declaration in `LifeEventsTimeline.jsx` (introduced by Session 18 salary changes feature). Moved declarations above first usage.
+- **Cashflow accounting fix** — `netCashflow` in snapshot now subtracts `totalDirectedSaleProceeds` and `totalRoutedContributions`. Previously, sale proceeds routed to cash/offset/shares appeared as unaccounted surplus in the cashflow chart. Income and outflows now balance correctly.
+- **Sale proceeds visibility** — new snapshot fields: `totalDirectedSaleProceeds`, `saleProceedsCashContribution`, `saleProceedsOffsetContribution`, `surplusToOffset`. Cashflow detail table now shows "To offset" and "Sale → invest" columns. Expense breakdown chart includes offset and sale routing bars.
+- **Offset balance in detail table** — liability columns now show per-property offset balance alongside mortgage balance, so users can see the effective debt reducing over time.
+- Updated cashflow reconciliation invariant test to account for new outflow terms.
+- **568 tests passing.**
+
 ### Session 18 — 2026-04-04
 
 **What was done:**

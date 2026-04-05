@@ -740,6 +740,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     // Route surplus / fill deficit
     let surplus = 0
+    let surplusToOffset = 0
     let sharesAdjustment = 0
     let surplusSharesContribution = 0
     let tbAdjustment = 0
@@ -804,6 +805,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
               if (toOffset > 0) {
                 propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
                 remaining -= toOffset
+                surplusToOffset += toOffset
               }
             }
           }
@@ -1048,7 +1050,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const tbDrawdown = Math.max(0, -tbAdjustment)
     const commDrawdown = Math.max(0, -commAdjustment)
     const totalIncome = totalIncomePreBond + totalBondWithdrawals + totalOtherAssetWithdrawals + sharesDrawdown + tbDrawdown + commDrawdown + cashDrawdown + superAExtra + superBExtra
-    const netCashflow = totalIncome - totalOutflows
+    const netCashflow = totalIncome - totalOutflows - totalDirectedSaleProceeds - totalRoutedContributions
     // Tolerance: sub-$100 rounding errors from floating point are not real deficits
     const isDeficit = netCashflow < -100
 
@@ -1250,6 +1252,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalExpenses,
       // Cashflow
       totalOutflows,
+      totalDirectedSaleProceeds,
+      totalRoutedContributions,
+      surplusToOffset,
+      saleProceedsCashContribution,
+      saleProceedsOffsetContribution,
       netCashflow,
       isDeficit,
       surplus,

@@ -61,6 +61,8 @@ function extractEvents(scenario, snapshots) {
   }
 
   // Salary changes
+  const personA = scenario.household?.personA
+  const personB = scenario.household?.personB
   ;(personA?.salaryChanges || []).forEach(change => {
     if (change.fromYear) {
       const label = change.note || (change.salary === 0 ? 'Career break' : 'Salary change')
@@ -132,8 +134,6 @@ function extractEvents(scenario, snapshots) {
   if (pensionStart) push(pensionStart.year, 'Age Pension starts', EVENT_COLORS.pension)
 
   // Novated lease end — uses month string "2029-08"
-  const personA = scenario.household?.personA
-  const personB = scenario.household?.personB
   if (personA?.packaging?.novatedLease?.activeYears?.to) {
     push(personA.packaging.novatedLease.activeYears.to, `${personAName} lease ends`, EVENT_COLORS.lease)
   }

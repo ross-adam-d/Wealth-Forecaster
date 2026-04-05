@@ -646,7 +646,8 @@ describe('Scenario validation — universal invariants', () => {
 
       it('cashflow reconciliation: netCashflow = totalIncome - totalOutflows', () => {
         for (const s of snaps) {
-          expect(Math.abs(s.netCashflow - (s.totalIncome - s.totalOutflows))).toBeLessThan(1)
+          const expected = s.totalIncome - s.totalOutflows - (s.totalDirectedSaleProceeds ?? 0) - (s.totalRoutedContributions ?? 0)
+          expect(Math.abs(s.netCashflow - expected)).toBeLessThan(1)
         }
       })
 
@@ -943,6 +944,16 @@ describe('Scenario-specific behaviour', () => {
       const saleYearCash = snapsCash.find(y => y.year === 2040)
       // Share value should be larger when proceeds are directed there
       expect(saleYear.sharesValue).toBeGreaterThan(saleYearCash.sharesValue)
+    })
+
+    it('proceeds routed to cash increase cash buffer in sale year', () => {
+      const s = propertyInvestor() // destination = 'cash' (default)
+      const snaps = runSimulation(s)
+
+      const preSale = snaps.find(y => y.year === 2039)
+      const saleYear = snaps.find(y => y.year === 2040)
+      // Cash buffer should jump significantly in the sale year
+      expect(saleYear.cashBuffer).toBeGreaterThan(preSale.cashBuffer + 50_000)
     })
 
     it('proceeds routed to treasuryBonds land in TB value', () => {

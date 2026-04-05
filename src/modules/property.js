@@ -204,7 +204,8 @@ export function processPropertyYear(property, year) {
   // After IO→PI conversion, recalculate from remaining balance and remaining term.
   let annualRepayment
   if (effectiveLoanType === 'io') {
-    annualRepayment = calcAnnualRepayment(mortgageBalance, interestRate, loanTermYearsRemaining, 'io')
+    // IO repayment = interest on offset-adjusted balance (no principal reduction)
+    annualRepayment = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate)
   } else if (ioStepUpThisYear || !originalLoanAmount || !originalLoanTermYears) {
     // IO just converted to PI, or legacy data without originals — recalc from current state
     annualRepayment = calcAnnualRepayment(mortgageBalance, interestRate, loanTermYearsRemaining, 'pi')

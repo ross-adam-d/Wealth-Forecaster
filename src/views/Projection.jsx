@@ -104,7 +104,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       year: s.year,
       // Summary view
       income: transform(s.totalIncome, s.year),
-      outflows: transform(s.totalOutflows, s.year),
+      outflows: transform(s.totalOutflows + (s.totalDirectedSaleProceeds ?? 0) + (s.totalRoutedContributions ?? 0), s.year),
       net: transform(s.netCashflow, s.year),
       // Income breakdown
       salaryA: transform(s.salaryA ?? 0, s.year),
@@ -121,6 +121,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       mortgageExp: transform(s.propertyResults?.reduce((sum, r) => sum + (r.annualRepayment || 0), 0) ?? 0, s.year),
       debtExp: transform(s.totalDebtRepayments ?? 0, s.year),
       investContrib: transform(s.totalInvestmentContributions ?? 0, s.year),
+      offsetContrib: transform((s.surplusToOffset ?? 0) + (s.saleProceedsOffsetContribution ?? 0), s.year),
+      saleProceedsRouted: transform((s.totalDirectedSaleProceeds ?? 0) - (s.saleProceedsCashContribution ?? 0) - (s.saleProceedsOffsetContribution ?? 0), s.year),
       leaseExp: transform(s.totalLeasePostTaxCost ?? 0, s.year),
       // Surplus/deficit
       surplus: transform(Math.max(0, s.netCashflow), s.year),
@@ -156,6 +158,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'sharesContrib',    label: 'Shares contrib' },
     { key: 'bondContributions', label: 'Bond contrib' },
     { key: 'otherContrib',   label: 'Other contrib' },
+    { key: 'offsetContrib',  label: 'To offset' },
+    { key: 'saleProceedsRouted', label: 'Sale → invest' },
     { key: 'livingExpenses', label: 'Expenses' },
     { key: 'mortgage',       label: 'Mortgage' },
     { key: 'debtRepayments', label: 'Debt repay' },
@@ -180,6 +184,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     ;(scenario.properties || []).forEach((prop, i) => {
       if (prop.purchasePrice > 0 || prop.currentValue > 0) {
         cols.push({ key: `mortgage_${i}`, label: prop.name || `Mortgage ${i + 1}` })
+        if (prop.offsetBalance > 0 || prop.offsetAnnualTopUp > 0) {
+          cols.push({ key: `offset_${i}`, label: `${prop.name || `Property ${i + 1}`} offset` })
+        }
       }
     })
     ;(scenario.debts || []).forEach((debt, i) => {
@@ -218,6 +225,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       sharesContrib:     s.sharesContribution ?? 0,
       bondContributions: s.totalBondContributions ?? 0,
       otherContrib:      s.totalOtherAssetContributions ?? 0,
+      offsetContrib:     (s.surplusToOffset ?? 0) + (s.saleProceedsOffsetContribution ?? 0),
+      saleProceedsRouted: (s.totalDirectedSaleProceeds ?? 0) - (s.saleProceedsCashContribution ?? 0) - (s.saleProceedsOffsetContribution ?? 0),
       livingExpenses:  s.totalExpenses,
       mortgage:        Math.max(0, mortgage),
       debtRepayments:  s.totalDebtRepayments ?? 0,
@@ -235,6 +244,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       // Liability balances (dynamic)
       ...(scenario.properties || []).reduce((acc, _, i) => {
         acc[`mortgage_${i}`] = s.propertyResults?.[i]?.mortgageBalance ?? 0
+        acc[`offset_${i}`] = s.propertyResults?.[i]?.offsetBalance ?? 0
         return acc
       }, {}),
       ...(scenario.debts || []).reduce((acc, _, i) => {
@@ -521,6 +531,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               <Bar dataKey="mortgageExp"   stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Mortgage" />
               <Bar dataKey="debtExp"       stackId="1" fill="#fb923c" fillOpacity={0.7} name="Debt repay" />
               <Bar dataKey="investContrib" stackId="1" fill="#a78bfa" fillOpacity={0.6} name="Invest. contrib" />
+              <Bar dataKey="offsetContrib" stackId="1" fill="#22d3ee" fillOpacity={0.6} name="To offset" />
+              <Bar dataKey="saleProceedsRouted" stackId="1" fill="#c084fc" fillOpacity={0.6} name="Sale → invest" />
               <Bar dataKey="leaseExp"      stackId="1" fill="#94a3b8" fillOpacity={0.6} name="Novated lease" />
             </BarChart>
           ) : (
