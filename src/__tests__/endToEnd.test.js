@@ -159,11 +159,11 @@ describe('End-to-end model validation', () => {
     expect(yr0.netCashflow).toBeGreaterThan(-15_000)
   })
 
-  it('mortgage offset receives surplus via waterfall', () => {
+  it('mortgage offset (cash) receives surplus via waterfall', () => {
     const snaps = runSimulation(buildRealisticScenario())
-    // Offset should grow from initial $80k toward mortgage balance
+    // Cash buffer (which IS the offset) should grow from initial $80k as surplus is routed to offset→cash
     const yr5 = snaps[5]
-    expect(yr5.propertyResults[0].offsetBalance).toBeGreaterThan(80_000)
+    expect(yr5.cashBuffer).toBeGreaterThan(80_000)
   })
 
   it('shares receive surplus contributions when in surplus mode', () => {
@@ -298,15 +298,12 @@ describe('End-to-end model validation', () => {
   it('liquid assets definition is consistent', () => {
     const snaps = runSimulation(buildRealisticScenario())
     for (const s of snaps.slice(0, 15)) {
-      // Liquid assets = cash + offset + shares + TB + commodities + tax-free bonds + drawdownable other assets + pension-phase super
-      const totalOffset = s.propertyResults?.reduce((sum, r) => sum + (r.offsetBalance || 0), 0) ?? 0
-      const drawdownableOther = s.otherAssetResults?.reduce((sum, r, i) => {
-        // Only count drawdownable other assets
+      // Liquid assets = cash (includes offset) + shares + TB + commodities + tax-free bonds + drawdownable other assets + pension-phase super
+      const drawdownableOther = s.otherAssetResults?.reduce((sum, r) => {
         return sum + (r.canDrawdown !== false ? r.closingValue ?? 0 : 0)
       }, 0) ?? 0
       const expectedLiquid =
         s.cashBuffer +
-        totalOffset +
         s.sharesValue +
         (s.treasuryBondsValue ?? 0) +
         (s.commoditiesValue ?? 0) +

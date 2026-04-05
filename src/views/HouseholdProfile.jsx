@@ -942,19 +942,23 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 cursor-pointer mb-2">
+                <input
+                  type="checkbox"
+                  checked={p.hasOffset || p.offsetBalance > 0}
+                  onChange={e => onUpdate({ hasOffset: e.target.checked })}
+                  className="accent-brand-500"
+                />
+                <span className="text-sm text-gray-300">Mortgage offset account</span>
+              </label>
+              {(p.hasOffset || p.offsetBalance > 0) && (
                 <CurrencyInput
-                  label="Offset account balance"
+                  label="Current offset balance"
                   value={p.offsetBalance}
-                  onChange={v => onUpdate({ offsetBalance: v })}
-                  hint="Interest charged on (mortgage − offset)"
+                  onChange={v => onUpdate({ offsetBalance: v, hasOffset: true })}
+                  hint="Treated as cash — reduces interest on this mortgage"
                 />
-                <CurrencyInput
-                  label="Annual offset top-up"
-                  value={p.offsetAnnualTopUp}
-                  onChange={v => onUpdate({ offsetAnnualTopUp: v })}
-                />
-              </div>
+              )}
 
               {p.mortgageBalance > 0 && (
                 <label className="flex items-center gap-2 cursor-pointer">

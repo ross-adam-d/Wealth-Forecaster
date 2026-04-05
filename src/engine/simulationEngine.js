@@ -241,7 +241,13 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))
   let currentProperties = properties.map(p => ({ ...p }))
   let currentDebts = debtsInput.map(d => ({ ...d }))
-  let cashBuffer = 0
+  // Fold initial offset balances into cash — offset IS cash that reduces mortgage interest
+  let cashBuffer = currentProperties.reduce((sum, p) => sum + (p.offsetBalance || 0), 0)
+  currentProperties = currentProperties.map(p => ({
+    ...p,
+    hasOffset: p.hasOffset || (p.offsetBalance > 0) || (p.offsetAnnualTopUp > 0),
+    offsetBalance: 0,
+  }))
   let firstDeficitYear = null
   let cumulativeDeficit = 0
 
@@ -332,7 +338,16 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     })
 
     // ── Step 6: Property ──────────────────────────────────────────────────
-    const propertyResults = currentProperties.map(p => processPropertyYear(p, year))
+    // Offset is cash: distribute cash buffer across properties with mortgages for interest reduction
+    // Each property gets up to its mortgage balance from the available cash pool
+    let remainingCashForOffset = Math.max(0, cashBuffer)
+    const cashForOffsetPerProperty = currentProperties.map(p => {
+      if (!p.hasOffset || p.mortgageBalance <= 0) return 0
+      const allocated = Math.min(remainingCashForOffset, p.mortgageBalance)
+      remainingCashForOffset -= allocated
+      return allocated
+    })
+    const propertyResults = currentProperties.map((p, i) => processPropertyYear(p, year, cashForOffsetPerProperty[i]))
     const totalNetRentalIncomeLoss = propertyResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
     const totalMortgageRepayments = propertyResults.reduce((sum, r) => sum + r.annualRepayment, 0)
     const propertySaleProceeds = propertyResults.reduce((sum, r) => sum + (r.saleProceeds || 0), 0)
@@ -691,7 +706,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const saleProceedsBondContributions = currentBonds.map(() => 0)
     const saleProceedsOtherAssetContributions = currentOtherAssets.map(() => 0)
     let saleProceedsOffsetContribution = 0
-    const saleProceedsOffsetTargets = []  // { amount, targetIdx } for directed offset routing
+    // saleProceedsOffsetContribution tracks display only — offset proceeds go to cash
 
     for (let i = 0; i < propertyResults.length; i++) {
       const proceeds = propertyResults[i].saleProceeds || 0
@@ -718,12 +733,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
           saleProceedsCashContribution += proceeds
         }
       } else if (dest === 'offset' || (dest && dest.startsWith('offset:'))) {
-        saleProceedsOffsetContribution += proceeds
-        // Store target property index for directed offset routing
-        if (dest.startsWith('offset:')) {
-          const targetIdx = parseInt(dest.split(':')[1], 10)
-          if (!isNaN(targetIdx)) saleProceedsOffsetTargets.push({ amount: proceeds, targetIdx })
-        }
+        // Offset IS cash — sale proceeds to offset just go to cash buffer
+        // Cash automatically offsets mortgage interest at start of each year
+        saleProceedsCashContribution += proceeds
+        saleProceedsOffsetContribution += proceeds  // track for display
       } else {
         // 'cash' or 'super' (super handled via downsizer) — stays in general cashflow
         saleProceedsCashContribution += proceeds
@@ -795,19 +808,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       for (const dest of effectiveRoutingOrder) {
         if (remaining <= 0) break
         if (dest === SURPLUS_DESTINATIONS.OFFSET) {
-          // Top up offset accounts on properties that have mortgages
-          for (let i = 0; i < currentProperties.length; i++) {
-            if (remaining <= 0) break
-            const p = currentProperties[i]
-            if (p.mortgageBalance > 0) {
-              const headroom = Math.max(0, p.mortgageBalance - (propertyResults[i].offsetBalance || 0))
-              const toOffset = Math.min(remaining, headroom)
-              if (toOffset > 0) {
-                propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
-                remaining -= toOffset
-                surplusToOffset += toOffset
-              }
-            }
+          // Offset IS cash — routing to offset means routing to cash buffer
+          // Only absorb up to the total mortgage headroom (cash beyond mortgage doesn't help offset)
+          const totalMortgageHeadroom = currentProperties.reduce((sum, p, i) => {
+            if (!p.hasOffset || p.mortgageBalance <= 0) return sum
+            return sum + Math.max(0, p.mortgageBalance - cashBuffer)
+          }, 0)
+          const toOffset = Math.min(remaining, Math.max(0, totalMortgageHeadroom))
+          if (toOffset > 0) {
+            cashBuffer += toOffset
+            surplusToOffset += toOffset
+            remaining -= toOffset
           }
         } else if (dest === SURPLUS_DESTINATIONS.SHARES) {
           // Allocate surplus to shares when in surplus mode, up to target
@@ -975,38 +986,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       cashBuffer += saleProceedsCashContribution
     }
 
-    // Apply sale proceeds — offset accounts (targeted or first-available)
-    if (saleProceedsOffsetContribution > 0) {
-      let remainingOffset = saleProceedsOffsetContribution
-
-      if (saleProceedsOffsetTargets.length > 0) {
-        // Directed: apply to specific property offset accounts
-        for (const { amount, targetIdx } of saleProceedsOffsetTargets) {
-          if (targetIdx >= 0 && targetIdx < propertyResults.length && propertyResults[targetIdx].mortgageBalance > 0) {
-            const headroom = Math.max(0, propertyResults[targetIdx].mortgageBalance - (propertyResults[targetIdx].offsetBalance || 0))
-            const toOffset = Math.min(amount, headroom)
-            if (toOffset > 0) {
-              propertyResults[targetIdx] = { ...propertyResults[targetIdx], offsetBalance: (propertyResults[targetIdx].offsetBalance || 0) + toOffset }
-              remainingOffset -= toOffset
-            }
-          }
-        }
-      } else {
-        // Legacy: spread across properties with mortgages
-        for (let i = 0; i < currentProperties.length && remainingOffset > 0; i++) {
-          if (propertyResults[i].mortgageBalance > 0) {
-            const headroom = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
-            const toOffset = Math.min(remainingOffset, headroom)
-            if (toOffset > 0) {
-              propertyResults[i] = { ...propertyResults[i], offsetBalance: (propertyResults[i].offsetBalance || 0) + toOffset }
-              remainingOffset -= toOffset
-            }
-          }
-        }
-      }
-      // Any excess goes to cash
-      if (remainingOffset > 0) cashBuffer += remainingOffset
-    }
+    // Offset proceeds already routed to cash above (offset IS cash)
 
 
 
@@ -1111,19 +1091,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       currentValue: otherAssetResults[i].closingValue,
       priorYearContribution: otherAssetResults[i].effectiveContribution,  // Track actual for annual increase ratchet
     }))
-    // Release offset to cash when mortgage is fully paid off (offset has no purpose without a mortgage)
-    for (let i = 0; i < propertyResults.length; i++) {
-      if (propertyResults[i].mortgageBalance <= 0 && propertyResults[i].offsetBalance > 0) {
-        cashBuffer += propertyResults[i].offsetBalance
-        propertyResults[i] = { ...propertyResults[i], offsetBalance: 0 }
-      }
-    }
-
     currentProperties = currentProperties.map((p, i) => ({
       ...p,
       currentValue: propertyResults[i].closingValue,
       mortgageBalance: propertyResults[i].mortgageBalance,
-      offsetBalance: propertyResults[i].offsetBalance,
       loanTermYearsRemaining: propertyResults[i].loanTermYearsRemaining || p.loanTermYearsRemaining || 0,
     }))
     currentDebts = currentDebts.map((d, i) => ({
@@ -1146,12 +1117,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalOtherAssetsDrawdownable = currentOtherAssets.filter(a => a.canDrawdown).reduce((sum, a) => sum + a.currentValue, 0)
     const totalOtherAssetsLocked = totalOtherAssetsValue - totalOtherAssetsDrawdownable
 
-    // Offset balances are liquid — accessible any time from the offset account
-    const totalOffsetBalance = propertyResults.reduce((sum, r) => sum + (r.offsetBalance || 0), 0)
-
     const totalLiquidAssets =
       cashBuffer +
-      totalOffsetBalance +
       currentShares.currentValue +
       currentTreasuryBonds.currentValue +
       currentCommodities.currentValue +

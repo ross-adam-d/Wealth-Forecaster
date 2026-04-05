@@ -774,9 +774,10 @@ describe('Scenario-specific behaviour', () => {
       }
     })
 
-    it('mortgage offset grows via surplus routing', () => {
+    it('cash buffer (offset) grows via surplus routing', () => {
       const yr10 = snaps[10]
-      expect(yr10.propertyResults[0].offsetBalance).toBeGreaterThan(40_000)
+      // Cash buffer includes the initial offset ($40k) plus surplus routed to offset→cash
+      expect(yr10.cashBuffer).toBeGreaterThan(40_000)
     })
 
     it('mortgage pays down over time', () => {

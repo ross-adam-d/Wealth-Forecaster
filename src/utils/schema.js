@@ -107,6 +107,7 @@ export function createDefaultProperty(isPrimary = false) {
     loanTermYearsRemaining: 0,
     loanType: 'pi',           // 'pi' | 'io'
     ioEndYear: null,
+    hasOffset: false,
     offsetBalance: 0,
     offsetAnnualTopUp: 0,
     annualRentalIncome: 0,

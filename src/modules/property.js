@@ -112,9 +112,10 @@ export function calcAnnualInterest(loanBalance, offsetBalance, annualRate) {
  *
  * @param {object} property - property profile from data model
  * @param {number} year     - simulation year
+ * @param {number} cashForOffset - cash buffer available to offset this mortgage (0 if no offset)
  * @returns {object}
  */
-export function processPropertyYear(property, year) {
+export function processPropertyYear(property, year, cashForOffset = 0) {
   const {
     isPrimaryResidence,
     currentValue,
@@ -125,13 +126,14 @@ export function processPropertyYear(property, year) {
     loanTermYearsRemaining: _loanTerm,
     loanType,
     ioEndYear,
-    offsetBalance = 0,
-    offsetAnnualTopUp = 0,
     annualRentalIncome = 0,
     annualPropertyExpenses = 0,
     growthRate,
     saleEvent,
   } = property
+
+  // Offset is now derived from cash buffer, capped at mortgage balance
+  const offsetBalance = Math.min(cashForOffset, mortgageBalance || 0)
 
   const loanTermYearsRemaining = _loanTerm || 0
 
@@ -240,7 +242,6 @@ export function processPropertyYear(property, year) {
 
   // Update balances
   const newMortgageBalance = Math.max(0, mortgageBalance - principalRepayment)
-  const newOffsetBalance = offsetBalance + offsetAnnualTopUp
   const newPropertyValue = currentValue * (1 + growthRate)
 
   // Sale event
@@ -272,7 +273,7 @@ export function processPropertyYear(property, year) {
     openingValue: currentValue,
     closingValue: saleYear === year ? 0 : newPropertyValue,
     mortgageBalance: saleYear === year ? 0 : newMortgageBalance,
-    offsetBalance: saleYear === year ? 0 : newOffsetBalance,
+    offsetBalance,  // reflects the effective offset used this year (derived from cash)
     loanTermYearsRemaining: saleYear === year ? 0 : Math.max(0, loanTermYearsRemaining - 1),
     annualInterest,
     annualRepayment,
