@@ -1111,6 +1111,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       currentValue: otherAssetResults[i].closingValue,
       priorYearContribution: otherAssetResults[i].effectiveContribution,  // Track actual for annual increase ratchet
     }))
+    // Release offset to cash when mortgage is fully paid off (offset has no purpose without a mortgage)
+    for (let i = 0; i < propertyResults.length; i++) {
+      if (propertyResults[i].mortgageBalance <= 0 && propertyResults[i].offsetBalance > 0) {
+        cashBuffer += propertyResults[i].offsetBalance
+        propertyResults[i] = { ...propertyResults[i], offsetBalance: 0 }
+      }
+    }
+
     currentProperties = currentProperties.map((p, i) => ({
       ...p,
       currentValue: propertyResults[i].closingValue,
@@ -1138,8 +1146,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const totalOtherAssetsDrawdownable = currentOtherAssets.filter(a => a.canDrawdown).reduce((sum, a) => sum + a.currentValue, 0)
     const totalOtherAssetsLocked = totalOtherAssetsValue - totalOtherAssetsDrawdownable
 
+    // Offset balances are liquid — accessible any time from the offset account
+    const totalOffsetBalance = propertyResults.reduce((sum, r) => sum + (r.offsetBalance || 0), 0)
+
     const totalLiquidAssets =
       cashBuffer +
+      totalOffsetBalance +
       currentShares.currentValue +
       currentTreasuryBonds.currentValue +
       currentCommodities.currentValue +

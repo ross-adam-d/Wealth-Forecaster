@@ -298,11 +298,20 @@ describe('End-to-end model validation', () => {
   it('liquid assets definition is consistent', () => {
     const snaps = runSimulation(buildRealisticScenario())
     for (const s of snaps.slice(0, 15)) {
-      // Liquid assets = cash + shares + tax-free bonds + drawdownable other assets + pension-phase super
+      // Liquid assets = cash + offset + shares + TB + commodities + tax-free bonds + drawdownable other assets + pension-phase super
+      const totalOffset = s.propertyResults?.reduce((sum, r) => sum + (r.offsetBalance || 0), 0) ?? 0
+      const drawdownableOther = s.otherAssetResults?.reduce((sum, r, i) => {
+        // Only count drawdownable other assets
+        return sum + (r.canDrawdown !== false ? r.closingValue ?? 0 : 0)
+      }, 0) ?? 0
       const expectedLiquid =
         s.cashBuffer +
+        totalOffset +
         s.sharesValue +
+        (s.treasuryBondsValue ?? 0) +
+        (s.commoditiesValue ?? 0) +
         s.bondLiquidity +
+        drawdownableOther +
         (s.superA?.inPensionPhase ? s.superABalance : 0) +
         (s.superB?.inPensionPhase ? s.superBBalance : 0)
       // Allow small rounding tolerance
