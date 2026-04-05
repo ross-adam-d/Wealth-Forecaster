@@ -742,8 +742,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         saleProceedsCashContribution += proceeds
       }
     }
+    // Note: saleProceedsOffsetContribution is NOT added here — it's already included
+    // in saleProceedsCashContribution (offset IS cash)
     const totalDirectedSaleProceeds = saleProceedsSharesContribution + saleProceedsTBContribution +
-      saleProceedsCommContribution + saleProceedsOffsetContribution + saleProceedsCashContribution +
+      saleProceedsCommContribution + saleProceedsCashContribution +
       saleProceedsBondContributions.reduce((s, c) => s + c, 0) +
       saleProceedsOtherAssetContributions.reduce((s, c) => s + c, 0)
 
