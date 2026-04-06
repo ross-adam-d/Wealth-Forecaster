@@ -29,6 +29,10 @@ const C = {
   bondW:        '#fbbf24',  // amber-400
   sharesD:      '#4ade80',  // green-400
   cashD:        '#94a3b8',  // slate-400
+  tbD:          '#22d3ee',  // cyan-400
+  commD:        '#f472b6',  // pink-400
+  otherAssetD:  '#64748b',  // slate-500
+  agePension:   '#fbbf24',  // amber-400
   otherInc:     '#c084fc',  // purple-400
   propSale:     '#2dd4bf',  // teal-400
   payoffAssets: '#f97316',  // orange-500
@@ -37,6 +41,7 @@ const C = {
   mortgage:     '#fca5a5',  // red-300
   lease:        '#fb923c',  // orange-400
   contribs:     '#818cf8',  // indigo-400
+  routed:       '#818cf8',  // indigo-400
   dirProceeds:  '#2dd4bf',  // teal-400
   payoffDebt:   '#f97316',  // orange-500
   surplus:      '#4ade80',  // green-400
@@ -129,32 +134,41 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
 
     // ── LEFT: all money flowing in ───────────────────────────────────────────
     // Gross salary shown pre-tax so tax burden is visible on right.
-    const salaryA   = tx(s.salaryA || 0, yr)
-    const salaryB   = tx(s.salaryB || 0, yr)
-    const rentalNet = tx(Math.max(0, s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) || 0), yr)
-    const dividends = tx((s.sharesResult?.cashDividend || 0) + (s.taxA?.frankingRefund || 0) + (s.taxB?.frankingRefund || 0), yr)
-    const superDraw = tx((s.superA?.drawdown || 0) + (s.superAExtra || 0) + (s.superB?.drawdown || 0) + (s.superBExtra || 0), yr)
-    const bondW     = tx(s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) || 0, yr)
-    const sharesD   = tx(s.sharesDrawdown || 0, yr)
-    const cashD     = tx(s.cashDrawdown || 0, yr)
-    const otherInc  = tx(s.totalOtherIncome || 0, yr)
+    const salaryA      = tx(s.salaryA || 0, yr)
+    const salaryB      = tx(s.salaryB || 0, yr)
+    const rentalNet    = tx(Math.max(0, s.propertyResults?.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0) || 0), yr)
+    const dividends    = tx((s.sharesResult?.cashDividend || 0) + (s.taxA?.frankingRefund || 0) + (s.taxB?.frankingRefund || 0), yr)
+    const superDraw    = tx((s.superA?.drawdown || 0) + (s.superAExtra || 0) + (s.superB?.drawdown || 0) + (s.superBExtra || 0), yr)
+    const bondW        = tx(s.bondResults?.reduce((sum, r) => sum + r.withdrawal, 0) || 0, yr)
+    const sharesD      = tx(s.sharesDrawdown || 0, yr)
+    const cashD        = tx(s.cashDrawdown || 0, yr)
+    // Treasury bond / commodities / other-asset drawdowns — part of totalIncome but previously invisible
+    const tbD          = tx(s.tbDrawdown || 0, yr)
+    const commD        = tx(s.commDrawdown || 0, yr)
+    const otherAssetD  = tx(s.otherAssetResults?.reduce((sum, r) => sum + (r.withdrawal || 0), 0) || 0, yr)
+    const agePensionAmt = tx(s.agePension?.totalPension || 0, yr)
+    const otherInc     = tx(s.totalOtherIncome || 0, yr)
     // Property sale proceeds = net sale price minus mortgage repaid from proceeds (equity released)
-    const propSale  = tx(s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) || 0, yr)
+    const propSale     = tx(s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) || 0, yr)
     // Mortgage lump-sum payoff (payOffWhenAble) — matched on left + right as a balance-sheet event
-    const payoffAmt = tx(s.mortgagePayoffTotal || 0, yr)
+    const payoffAmt    = tx(s.mortgagePayoffTotal || 0, yr)
 
     const rawLeft = []
-    if (salaryA   > 100) rawLeft.push({ id: 'salaryA',   label: `${personAName} salary (gross)`,   value: salaryA,   color: C.salaryA   })
-    if (salaryB   > 100) rawLeft.push({ id: 'salaryB',   label: `${personBName} salary (gross)`,   value: salaryB,   color: C.salaryB   })
-    if (rentalNet > 100) rawLeft.push({ id: 'rental',    label: 'Net rental income',               value: rentalNet, color: C.rental    })
-    if (dividends > 100) rawLeft.push({ id: 'dividends', label: 'Dividends & franking',            value: dividends, color: C.dividends })
-    if (superDraw > 100) rawLeft.push({ id: 'superDraw', label: 'Super pension drawdown',          value: superDraw, color: C.superDraw })
-    if (bondW     > 100) rawLeft.push({ id: 'bondW',     label: 'Bond withdrawals',               value: bondW,     color: C.bondW     })
-    if (sharesD   > 100) rawLeft.push({ id: 'sharesD',   label: 'Shares sold',                    value: sharesD,   color: C.sharesD   })
-    if (cashD     > 100) rawLeft.push({ id: 'cashD',     label: 'Cash reserves drawn',            value: cashD,     color: C.cashD     })
-    if (otherInc  > 100) rawLeft.push({ id: 'otherInc',  label: 'Other income',                   value: otherInc,  color: C.otherInc  })
-    if (propSale  > 100) rawLeft.push({ id: 'propSale',  label: 'Property sale proceeds',         value: propSale,  color: C.propSale  })
-    if (payoffAmt > 100) rawLeft.push({ id: 'payoff',    label: 'Liquid assets → mortgage payoff',value: payoffAmt, color: C.payoffAssets })
+    if (salaryA      > 100) rawLeft.push({ id: 'salaryA',      label: `${personAName} salary (gross)`,   value: salaryA,      color: C.salaryA     })
+    if (salaryB      > 100) rawLeft.push({ id: 'salaryB',      label: `${personBName} salary (gross)`,   value: salaryB,      color: C.salaryB     })
+    if (rentalNet    > 100) rawLeft.push({ id: 'rental',       label: 'Net rental income',               value: rentalNet,    color: C.rental      })
+    if (dividends    > 100) rawLeft.push({ id: 'dividends',    label: 'Dividends & franking',            value: dividends,    color: C.dividends   })
+    if (agePensionAmt > 100) rawLeft.push({ id: 'pension',    label: 'Age Pension',                     value: agePensionAmt,color: C.agePension  })
+    if (superDraw    > 100) rawLeft.push({ id: 'superDraw',    label: 'Super pension drawdown',          value: superDraw,    color: C.superDraw   })
+    if (bondW        > 100) rawLeft.push({ id: 'bondW',        label: 'Bond withdrawals',               value: bondW,        color: C.bondW       })
+    if (sharesD      > 100) rawLeft.push({ id: 'sharesD',      label: 'Shares sold',                    value: sharesD,      color: C.sharesD     })
+    if (tbD          > 100) rawLeft.push({ id: 'tbD',          label: 'Treasury bonds drawn',            value: tbD,          color: C.tbD         })
+    if (commD        > 100) rawLeft.push({ id: 'commD',        label: 'Commodities drawn',              value: commD,        color: C.commD       })
+    if (otherAssetD  > 100) rawLeft.push({ id: 'otherAssetD',  label: 'Other assets drawn',             value: otherAssetD,  color: C.otherAssetD })
+    if (cashD        > 100) rawLeft.push({ id: 'cashD',        label: 'Cash reserves drawn',            value: cashD,        color: C.cashD       })
+    if (otherInc     > 100) rawLeft.push({ id: 'otherInc',     label: 'Other income',                   value: otherInc,     color: C.otherInc    })
+    if (propSale     > 100) rawLeft.push({ id: 'propSale',     label: 'Property sale proceeds',         value: propSale,     color: C.propSale    })
+    if (payoffAmt    > 100) rawLeft.push({ id: 'payoff',       label: 'Liquid assets → mortgage payoff',value: payoffAmt,    color: C.payoffAssets })
 
     // ── RIGHT: all uses of money ─────────────────────────────────────────────
     const totalTax  = tx((s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0) + (s.totalDiv293Tax || 0), yr)
@@ -165,6 +179,9 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     const leaseNet  = tx(s.totalLeasePostTaxCost || 0, yr)
     // Fixed investment contributions (shares/bonds/TB/comm/other in fixed mode)
     const fixedContribs = tx(s.cappedFixedContributions || 0, yr)
+    // Post-retirement other income directed to investments (routeTo != 'cashflow')
+    // This reduces netCashflow — without this node the right side under-counts and looks broken
+    const routedContribs = tx(s.totalRoutedContributions || 0, yr)
     // Sale proceeds directed to investments (not flowing through surplus waterfall)
     const dirProceeds = tx(s.totalDirectedSaleProceeds || 0, yr)
     // Remaining surplus routed to savings/investments via waterfall
@@ -173,16 +190,17 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     const deficit   = netCF < 0 ? Math.abs(netCF) : 0
 
     const rawRight = []
-    if (totalTax     > 100) rawRight.push({ id: 'tax',        label: 'Income tax & Medicare',           value: totalTax,     color: C.tax         })
-    if (livingExp    > 100) rawRight.push({ id: 'expenses',   label: 'Living expenses',                 value: livingExp,    color: C.expenses    })
-    if (mortgageR    > 100) rawRight.push({ id: 'mortgage',   label: 'Mortgage repayments',             value: mortgageR,    color: C.mortgage    })
-    if (debtR        > 100) rawRight.push({ id: 'debt',       label: 'Debt repayments',                 value: debtR,        color: C.mortgage    })
-    if (leaseNet     > 100) rawRight.push({ id: 'lease',      label: 'Novated lease (net)',             value: leaseNet,     color: C.lease       })
-    if (fixedContribs > 100) rawRight.push({ id: 'contribs', label: 'Investment contributions',        value: fixedContribs,color: C.contribs    })
-    if (dirProceeds  > 100) rawRight.push({ id: 'dirProc',   label: 'Sale proceeds → investments',     value: dirProceeds,  color: C.dirProceeds })
-    if (surplus      > 100) rawRight.push({ id: 'surplus',   label: 'Surplus → savings',               value: surplus,      color: C.surplus     })
-    if (deficit      > 100) rawRight.push({ id: 'deficit',   label: 'Deficit (all sources exhausted)', value: deficit,      color: C.deficit     })
-    if (payoffAmt    > 100) rawRight.push({ id: 'payoffOut', label: 'Mortgage paid off (lump sum)',     value: payoffAmt,    color: C.payoffDebt  })
+    if (totalTax      > 100) rawRight.push({ id: 'tax',        label: 'Income tax & Medicare',           value: totalTax,      color: C.tax         })
+    if (livingExp     > 100) rawRight.push({ id: 'expenses',   label: 'Living expenses',                 value: livingExp,     color: C.expenses    })
+    if (mortgageR     > 100) rawRight.push({ id: 'mortgage',   label: 'Mortgage repayments',             value: mortgageR,     color: C.mortgage    })
+    if (debtR         > 100) rawRight.push({ id: 'debt',       label: 'Debt repayments',                 value: debtR,         color: C.mortgage    })
+    if (leaseNet      > 100) rawRight.push({ id: 'lease',      label: 'Novated lease (net)',             value: leaseNet,      color: C.lease       })
+    if (fixedContribs  > 100) rawRight.push({ id: 'contribs',  label: 'Investment contributions',        value: fixedContribs, color: C.contribs    })
+    if (routedContribs > 100) rawRight.push({ id: 'routed',    label: 'Income → investments (routed)',   value: routedContribs,color: C.routed      })
+    if (dirProceeds   > 100) rawRight.push({ id: 'dirProc',    label: 'Sale proceeds → investments',     value: dirProceeds,   color: C.dirProceeds })
+    if (surplus       > 100) rawRight.push({ id: 'surplus',    label: 'Surplus → savings',               value: surplus,       color: C.surplus     })
+    if (deficit       > 100) rawRight.push({ id: 'deficit',    label: 'Deficit (all sources exhausted)', value: deficit,       color: C.deficit     })
+    if (payoffAmt     > 100) rawRight.push({ id: 'payoffOut',  label: 'Mortgage paid off (lump sum)',     value: payoffAmt,     color: C.payoffDebt  })
 
     const totalLeft  = rawLeft.reduce((s, n) => s + n.value, 0)
     const totalRight = rawRight.reduce((s, n) => s + n.value, 0)
