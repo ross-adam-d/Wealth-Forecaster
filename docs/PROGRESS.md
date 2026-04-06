@@ -90,14 +90,15 @@
 2. [x] **Mobile optimisation** ✅ Done Sessions 21–22 — nav scrollable→burger menu, HouseholdProfile grids responsive, Impact/Goal sidebars stack, Compare/Assumptions overflow fixed, chart headers flex-col, pie legend custom grid, Sankey horizontal scroll, life events compact.
 3. [x] **Income time periods** ✅ Done Session 17.
 4. [x] **Property selling costs** ✅ Done Session 17.
-5. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
-6. [x] **Stamp duty** ✅ Done Session 17.
-7. [x] **Land tax** ✅ Done Session 17.
-8. [x] **Property purchase as outflow** ✅ Done Session 18.
-9. [x] **Timeline events for expenses/windfalls** ✅ Done Session 17/18.
-10. [x] **Month picker UI for expenses/income** ✅ Done Session 21.
-11. [ ] **`offsetAnnualTopUp` cleanup** — field still in schema but unused since Session 19 offset simplification.
-12. [ ] **Cashflow table: income columns** — show salary A / salary B / total income for easy verification of salary change projections.
+5. [ ] **Minimum cash buffer** — user-nominated floor on cash reserves. Simulation should maintain this floor before routing surplus to investments; drawdown waterfall should leave this amount untouched.
+6. [ ] **Light mode contrast** — washed out; needs higher contrast, more use of fill colours inside borders/tiles (e.g. card backgrounds, input fields, badges). Review every `.light` override in `index.css`.
+7. [ ] **Super unlock → liquid assets bug** — super shown as unlocked in liquidity table (e.g. 2043) but balance not included in liquid assets column. Investigate `inPensionPhase` / `isLocked` logic — unlocked super should flow into `totalLiquidAssets`.
+8. [ ] **Liquidity table collapsible** — add collapse/expand toggle to the liquidity table section (same pattern as other collapsible sections).
+9. [ ] **Life events timeline: alternating labels** — labels currently collide when events are close together. Fix: alternate labels above/below the timeline line; use the connector bar length to create vertical space. Odd-indexed events above, even below (or vice versa).
+10. [ ] **Gap viability: M/K formatting** — gap amount shown in K even when it should be M (e.g. "1200K" → "1.2M"). Apply `fmt$` helper (or equivalent) consistently to the gap viability metric everywhere it's displayed.
+11. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
+12. [ ] **`offsetAnnualTopUp` cleanup** — field still in schema but unused since Session 19 offset simplification.
+13. [ ] **Cashflow table: income columns** — show salary A / salary B / total income for easy verification of salary change projections.
 
 ### Previously completed
 - [x] Named scenario cards with viability status
