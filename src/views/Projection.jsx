@@ -332,8 +332,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Net worth / liquidity chart */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 justify-between mb-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold text-gray-300">
               {netWorthView === 'networth' ? 'Net Worth' : netWorthView === 'liquidity' ? 'Liquidity' : 'Liquidity Breakdown'}
             </h2>
@@ -371,7 +371,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         <p className="text-xs text-gray-600 mb-4">
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
         </p>
-        <ResponsiveContainer width="100%" height={300}>
+        <div className="overflow-x-auto">
+        <div style={{ minWidth: '600px' }}>
+        <ResponsiveContainer width="100%" height={360}>
           {netWorthView === 'networth' ? (
             <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
@@ -431,12 +433,14 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             </AreaChart>
           )}
         </ResponsiveContainer>
+        </div>
+        </div>
       </div>
 
       {/* Annual cashflow */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 justify-between mb-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold text-gray-300">Annual Cashflow</h2>
             <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
               {[
@@ -473,7 +477,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         <p className="text-xs text-gray-600 mb-4">
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
         </p>
-        <ResponsiveContainer width="100%" height={260}>
+        <div className="overflow-x-auto">
+        <div style={{ minWidth: '600px' }}>
+        <ResponsiveContainer width="100%" height={320}>
           {cashflowView === 'summary' ? (
             <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
@@ -545,6 +551,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             </ComposedChart>
           )}
         </ResponsiveContainer>
+        </div>
+        </div>
       </div>
 
       {/* Investment breakdown */}
@@ -563,7 +571,9 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
           </select>
         </div>
         <p className="text-xs text-gray-600 mb-4">Each asset balance tracked year by year</p>
-        <ResponsiveContainer width="100%" height={300}>
+        <div className="overflow-x-auto">
+        <div style={{ minWidth: '700px' }}>
+        <ResponsiveContainer width="100%" height={400}>
           <BarChart data={rangeFilter(netWorthData, investRange)}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
@@ -589,6 +599,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             <Bar dataKey="lockedSuperB"  stackId="1" fill="#fb923c" fillOpacity={0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
           </BarChart>
         </ResponsiveContainer>
+        </div>
+        </div>
         <p className="mt-2 text-xs text-gray-600">
           Solid = liquid / accessible. Faded = illiquid (locked super, pre-10yr bonds, property equity).
         </p>

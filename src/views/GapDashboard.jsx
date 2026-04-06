@@ -275,7 +275,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
 
       {/* Runway chart */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2 justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-300">Gap Period Analysis</h2>
           <div className="flex flex-wrap items-center gap-2">
             {isStressed && (
@@ -318,7 +318,9 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
         </div>
 
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={280}>
+          <div className="overflow-x-auto">
+          <div style={{ minWidth: '580px' }}>
+          <ResponsiveContainer width="100%" height={340}>
             {chartView === 'breakdown' ? (
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
@@ -394,8 +396,10 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
               </ComposedChart>
             )}
           </ResponsiveContainer>
+          </div>
+          </div>
         ) : (
-          <div className="h-[280px] flex items-center justify-center text-gray-600">
+          <div className="h-[340px] flex items-center justify-center text-gray-600">
             Enter household details to see gap runway
           </div>
         )}
