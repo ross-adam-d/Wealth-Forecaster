@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './utils/supabase.js'
 import { useScenario } from './hooks/useScenario.js'
 import { useSimulation } from './hooks/useSimulation.js'
+import { useTheme } from './hooks/useTheme.js'
 import Layout from './components/Layout.jsx'
 import GapDashboard from './views/GapDashboard.jsx'
 import Projection from './views/Projection.jsx'
@@ -42,6 +43,7 @@ export default function App() {
 
   const { snapshots, retirementDate } = useSimulation(activeScenario)
   const [displayReal, setDisplayReal] = useState(true)
+  const { isLight, toggleTheme } = useTheme()
 
   if (authLoading) {
     return (
@@ -69,6 +71,8 @@ export default function App() {
     renameScenario,
     displayReal,
     setDisplayReal,
+    isLight,
+    toggleTheme,
   }
 
   return (

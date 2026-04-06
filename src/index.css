@@ -45,3 +45,79 @@
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-red-900/50 text-red-400 border border-red-800;
   }
 }
+
+/* ── Light mode overrides ────────────────────────────────────────────────────
+   Applied when <html> has the 'light' class.
+   Overrides dark Tailwind utilities + component classes without touching JSX.
+   ────────────────────────────────────────────────────────────────────────── */
+html.light {
+  color-scheme: light;
+}
+
+html.light body {
+  background-color: #f8fafc; /* slate-50 */
+  color: #111827; /* gray-900 */
+}
+
+/* ── Background overrides ── */
+html.light .bg-gray-950 { background-color: #f8fafc; } /* slate-50 — page bg */
+html.light .bg-gray-900 { background-color: #ffffff; } /* white — cards, header */
+html.light .bg-gray-800 { background-color: #f1f5f9; } /* slate-100 — inputs, hover */
+html.light .bg-gray-700 { background-color: #e2e8f0; } /* slate-200 — active nav */
+
+html.light .hover\:bg-gray-800:hover { background-color: #f1f5f9; }
+html.light .hover\:bg-gray-800\/50:hover { background-color: rgba(241, 245, 249, 0.5); }
+html.light .hover\:bg-gray-700:hover { background-color: #e2e8f0; }
+html.light .hover\:border-gray-700:hover { border-color: #cbd5e1; }
+
+/* ── Text overrides ── */
+html.light .text-white    { color: #111827; } /* gray-900 */
+html.light .text-gray-100 { color: #111827; }
+html.light .text-gray-200 { color: #1f2937; } /* gray-800 */
+html.light .text-gray-300 { color: #374151; } /* gray-700 */
+html.light .text-gray-400 { color: #4b5563; } /* gray-600 */
+/* gray-500 stays the same (#6b7280) — readable on both */
+html.light .text-gray-600 { color: #6b7280; } /* slightly lighter disclaimer text */
+
+html.light .hover\:text-white:hover { color: #111827; }
+
+/* ── Border overrides ── */
+html.light .border-gray-800 { border-color: #e2e8f0; } /* slate-200 */
+html.light .border-gray-700 { border-color: #cbd5e1; } /* slate-300 */
+
+/* ── Component class overrides ── */
+html.light .card {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+
+html.light .input {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #111827;
+}
+
+html.light .input::placeholder {
+  color: #94a3b8;
+}
+
+html.light .btn-ghost {
+  color: #4b5563;
+}
+
+html.light .btn-ghost:hover {
+  color: #111827;
+  background-color: #f1f5f9;
+}
+
+html.light .label {
+  color: #4b5563;
+}
+
+/* ── Scrollbar (optional refinement) ── */
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
