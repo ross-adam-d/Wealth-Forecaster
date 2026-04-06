@@ -200,7 +200,7 @@ export default function Compare({ scenarios, displayReal = true }) {
       </div>
 
       {/* Scenario selectors */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">Scenario A</label>
           <select className="input w-full" value={idA} onChange={e => setIdA(e.target.value)}>
@@ -216,7 +216,7 @@ export default function Compare({ scenarios, displayReal = true }) {
       </div>
 
       {/* Viability badges */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLOR_A }} />

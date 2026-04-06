@@ -233,7 +233,7 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
           {staggered.map((evt, i) => (
             <div key={`${evt.sortKey}-${evt.label}`} className="flex items-center">
               {/* Column for this event */}
-              <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '90px' }}>
+              <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '76px' }}>
                 {/* Callout line + label above dot */}
                 <div
                   className="absolute flex flex-col items-center z-20"
@@ -281,7 +281,7 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
 
               {/* Connector line */}
               {i < staggered.length - 1 && (
-                <div className="h-px bg-gray-700 flex-shrink-0" style={{ width: '24px' }} />
+                <div className="h-px bg-gray-700 flex-shrink-0" style={{ width: '14px' }} />
               )}
             </div>
           ))}

@@ -332,8 +332,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Net worth / liquidity chart */}
       <div className="card">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h2 className="text-sm font-semibold text-gray-300">
               {netWorthView === 'networth' ? 'Net Worth' : netWorthView === 'liquidity' ? 'Liquidity' : 'Liquidity Breakdown'}
             </h2>
@@ -435,8 +435,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Annual cashflow */}
       <div className="card">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h2 className="text-sm font-semibold text-gray-300">Annual Cashflow</h2>
             <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
               {[
@@ -549,7 +549,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Investment breakdown */}
       <div className="card">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <h2 className="text-sm font-semibold text-gray-300">Investment Breakdown</h2>
           <select
             value={investRange}
@@ -687,11 +687,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               </div>
             </div>
 
-            <CashflowSankey
-              snapshot={snapshots[sankeyYearIdx]}
-              scenario={scenario}
-              transform={transform}
-            />
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: '540px' }}>
+                <CashflowSankey
+                  snapshot={snapshots[sankeyYearIdx]}
+                  scenario={scenario}
+                  transform={transform}
+                />
+              </div>
+            </div>
 
             <p className="mt-3 text-xs text-gray-600 leading-relaxed">
               <span className="text-gray-500 font-medium">Gross salary</span> is shown before income tax — tax appears as an expense on the right so the full burden is visible.

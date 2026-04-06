@@ -53,27 +53,26 @@ function toAnnualSalary(amount, period) {
 
 /**
  * Resolve effective salary for a person in a given year.
- * Checks salaryChanges for overrides (most specific match wins).
- * Returns the annual salary BEFORE wage growth.
+ * Returns { baseSalary, activeSalary, activeFrom } where:
+ *   activeSalary — the change salary in today's dollars (null if no change active)
+ *   activeFrom   — the year the active change starts (for wage growth compounding)
  */
 function resolveBaseSalary(person, year, startYear) {
   const baseSalary = toAnnualSalary(person.currentSalary, person.salaryPeriod)
   const changes = person.salaryChanges || []
-  if (changes.length === 0) return baseSalary
 
-  // Find the applicable salary change for this year (last match wins)
   let activeSalary = null
+  let activeFrom = null
   for (const change of changes) {
     const from = change.fromYear || startYear
     const to = change.toYear || Infinity
     if (year >= from && year <= to) {
       activeSalary = toAnnualSalary(change.salary, change.salaryPeriod)
+      activeFrom = from
     }
   }
 
-  // If a change is active, use it (no wage growth compounding — the user sets the exact amount)
-  // If no change is active, use base salary
-  return activeSalary != null ? activeSalary : baseSalary
+  return { baseSalary, activeSalary, activeFrom }
 }
 
 /**
@@ -214,6 +213,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     simulationEndAge,
     surplusRoutingOrder,
     drawdownOrder: drawdownOrderInput,
+    cashSavings: cashSavingsInput = 0,
   } = scenario
 
   const currentYear = new Date().getFullYear()
@@ -241,8 +241,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))
   let currentProperties = properties.map(p => ({ ...p }))
   let currentDebts = debtsInput.map(d => ({ ...d }))
-  // Fold initial offset balances into cash — offset IS cash that reduces mortgage interest
-  let cashBuffer = currentProperties.reduce((sum, p) => sum + (p.offsetBalance || 0), 0)
+  // Initialise cash buffer: general savings + any property offset balances (offset IS cash)
+  // Offset is allocated to the first mortgaged property with hasOffset=true each year.
+  const initialOffsetBalance = currentProperties.reduce((sum, p) => sum + (p.offsetBalance || 0), 0)
+  let cashBuffer = (cashSavingsInput || 0) + initialOffsetBalance
   currentProperties = currentProperties.map(p => ({
     ...p,
     hasOffset: p.hasOffset || (p.offsetBalance > 0) || (p.offsetAnnualTopUp > 0),
@@ -271,18 +273,20 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       : assumptions
 
     // ── Step 1: Resolve salaries ──────────────────────────────────────────
-    // Check for salary change overrides (part-time, career break, etc.)
-    const baseSalaryA = resolveBaseSalary(personA, year, currentYear)
-    const baseSalaryB = resolveBaseSalary(personB, year, currentYear)
-    const baseAnnualA = toAnnualSalary(personA.currentSalary, personA.salaryPeriod)
-    const baseAnnualB = toAnnualSalary(personB.currentSalary, personB.salaryPeriod)
-    // Apply wage growth only when using the base salary (not during a salary change override)
-    const salaryA = retiredA ? 0 : (baseSalaryA !== baseAnnualA
-      ? baseSalaryA  // salary change period — user sets exact amount, no wage growth
-      : growSalary(baseAnnualA, personA.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed))
-    const salaryB = retiredB ? 0 : (baseSalaryB !== baseAnnualB
-      ? baseSalaryB
-      : growSalary(baseAnnualB, personB.wageGrowthRate || yearAssumptions.wageGrowthRate, yearsElapsed))
+    // Check for salary change overrides (part-time, career break, promotions).
+    // Salary changes also grow at the wage growth rate from the change start year.
+    const resolvedA = resolveBaseSalary(personA, year, currentYear)
+    const resolvedB = resolveBaseSalary(personB, year, currentYear)
+    const wageRateA = personA.wageGrowthRate || yearAssumptions.wageGrowthRate
+    const wageRateB = personB.wageGrowthRate || yearAssumptions.wageGrowthRate
+    // Salary changes are entered in today's dollars — grow from currentYear like base salary.
+    // This keeps Today's $ display ≈ the entered amount throughout the change period.
+    const salaryA = retiredA ? 0 : (resolvedA.activeSalary != null
+      ? growSalary(resolvedA.activeSalary, wageRateA, yearsElapsed)
+      : growSalary(resolvedA.baseSalary, wageRateA, yearsElapsed))
+    const salaryB = retiredB ? 0 : (resolvedB.activeSalary != null
+      ? growSalary(resolvedB.activeSalary, wageRateB, yearsElapsed)
+      : growSalary(resolvedB.baseSalary, wageRateB, yearsElapsed))
 
     const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, salaryA)
     const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, salaryB)
@@ -338,14 +342,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     })
 
     // ── Step 6: Property ──────────────────────────────────────────────────
-    // Offset is cash: distribute cash buffer across properties with mortgages for interest reduction
-    // Each property gets up to its mortgage balance from the available cash pool
-    let remainingCashForOffset = Math.max(0, cashBuffer)
-    const cashForOffsetPerProperty = currentProperties.map(p => {
-      if (!p.hasOffset || p.mortgageBalance <= 0) return 0
-      const allocated = Math.min(remainingCashForOffset, p.mortgageBalance)
-      remainingCashForOffset -= allocated
-      return allocated
+    // Offset is cash: the entire cash buffer offsets the FIRST property with hasOffset=true.
+    // Only one mortgage is offset at a time — an offset account is linked to a single loan.
+    const offsetTargetIndex = currentProperties.findIndex(p => p.hasOffset && p.mortgageBalance > 0)
+    const cashForOffsetPerProperty = currentProperties.map((p, i) => {
+      if (i !== offsetTargetIndex) return 0
+      return Math.min(Math.max(0, cashBuffer), p.mortgageBalance)
     })
     const propertyResults = currentProperties.map((p, i) => processPropertyYear(p, year, cashForOffsetPerProperty[i]))
     const totalNetRentalIncomeLoss = propertyResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
@@ -811,12 +813,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         if (remaining <= 0) break
         if (dest === SURPLUS_DESTINATIONS.OFFSET) {
           // Offset IS cash — routing to offset means routing to cash buffer
-          // Only absorb up to the total mortgage headroom (cash beyond mortgage doesn't help offset)
-          const totalMortgageHeadroom = currentProperties.reduce((sum, p, i) => {
-            if (!p.hasOffset || p.mortgageBalance <= 0) return sum
-            return sum + Math.max(0, p.mortgageBalance - cashBuffer)
-          }, 0)
-          const toOffset = Math.min(remaining, Math.max(0, totalMortgageHeadroom))
+          // Only absorb up to the headroom of the single offset-linked mortgage
+          const offsetTarget = currentProperties[offsetTargetIndex]
+          const mortgageHeadroom = offsetTarget
+            ? Math.max(0, offsetTarget.mortgageBalance - cashBuffer)
+            : 0
+          const toOffset = Math.min(remaining, mortgageHeadroom)
           if (toOffset > 0) {
             cashBuffer += toOffset
             surplusToOffset += toOffset
@@ -877,15 +879,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       }
 
       // Mortgage payoff: check if any property with payOffWhenAble can be paid off
-      // from available liquid assets (cash + shares)
+      // from available liquid assets (cash + shares + TB + commodities).
+      // Use FULL mortgage balance — offset is just a virtual allocation from cashBuffer,
+      // not separate funds, so subtracting it would double-count.
       for (let i = 0; i < currentProperties.length; i++) {
         const p = currentProperties[i]
         if (!p.payOffWhenAble || p.mortgageBalance <= 0) continue
-        const netMortgage = Math.max(0, propertyResults[i].mortgageBalance - (propertyResults[i].offsetBalance || 0))
-        if (netMortgage <= 0) continue
+        const fullMortgage = propertyResults[i].mortgageBalance
+        if (fullMortgage <= 0) continue
         const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution + saleProceedsSharesContribution) + Math.max(0, tbResult.closingValue + tbAdjustment + saleProceedsTBContribution) + Math.max(0, commResult.closingValue + commAdjustment + saleProceedsCommContribution)
-        if (availableLiquidity >= netMortgage) {
-          let toPay = netMortgage
+        if (availableLiquidity >= fullMortgage) {
+          let toPay = fullMortgage
           const fromCashPay = Math.min(toPay, Math.max(0, cashBuffer))
           cashBuffer -= fromCashPay
           toPay -= fromCashPay
@@ -898,7 +902,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
             offsetBalance: 0,
             annualRepayment: 0,
           }
-          mortgagePayoffs.push({ propertyIndex: i, amount: netMortgage, year })
+          mortgagePayoffs.push({ propertyIndex: i, amount: fullMortgage, year })
         }
       }
     } else {
@@ -1233,6 +1237,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalExpenses,
       // Cashflow
       totalOutflows,
+      totalMortgageRepayments,
+      cappedFixedContributions,
       totalDirectedSaleProceeds,
       totalRoutedContributions,
       surplusToOffset,
@@ -1261,6 +1267,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       firstDeficitYear,
       // Mortgage payoff events
       mortgagePayoffs,
+      mortgagePayoffTotal: mortgagePayoffs.reduce((sum, mp) => sum + mp.amount, 0),
     })
   }
 

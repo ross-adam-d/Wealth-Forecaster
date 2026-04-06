@@ -12,6 +12,7 @@ import { calcStatutory, calcECM } from '../modules/fbt.js'
 import { calcStampDuty, calcLandTax } from '../modules/property.js'
 import { DEFAULT_SELLING_COSTS_PCT } from '../constants/index.js'
 import MonthYearInput from '../components/MonthYearInput.jsx'
+import { extractYear } from '../utils/format.js'
 import {
   createDefaultShareHolding,
   createDefaultSuperHolding,
@@ -177,7 +178,7 @@ function PersonForm({ person, label, onUpdate }) {
     <div className="space-y-4">
       <h3 className="text-sm font-semibold text-gray-300">Person {label}</h3>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">Name</label>
           <input
@@ -198,8 +199,8 @@ function PersonForm({ person, label, onUpdate }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="col-span-2">
           <label className="label">Current salary (gross)</label>
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -214,8 +215,7 @@ function PersonForm({ person, label, onUpdate }) {
               />
             </div>
             <select
-              className="input flex-shrink-0"
-              style={{ width: '110px' }}
+              className="input w-28 flex-shrink-0"
               value={p.salaryPeriod || 'annual'}
               onChange={e => onUpdate({ salaryPeriod: e.target.value })}
             >
@@ -234,7 +234,7 @@ function PersonForm({ person, label, onUpdate }) {
           )}
         </div>
         <div>
-          <label className="label">Target retirement age</label>
+          <label className="label">Retirement age</label>
           <input
             className="input w-full"
             type="number"
@@ -270,8 +270,8 @@ function PersonForm({ person, label, onUpdate }) {
           </button>
         </div>
         {(p.salaryChanges || []).map((change, ci) => (
-          <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2 space-y-2">
-            <div className="flex items-center justify-between">
+          <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2">
+            <div className="flex items-center justify-between mb-2">
               <input
                 className="input flex-1 text-xs mr-2"
                 value={change.note || ''}
@@ -290,7 +290,7 @@ function PersonForm({ person, label, onUpdate }) {
                 }}
               >Remove</button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="label">From</label>
                 <input
@@ -323,8 +323,6 @@ function PersonForm({ person, label, onUpdate }) {
                   placeholder="Ongoing"
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="label">Salary</label>
                 <div className="relative">
@@ -356,18 +354,12 @@ function PersonForm({ person, label, onUpdate }) {
                 >
                   <option value="annual">Annual</option>
                   <option value="monthly">Monthly</option>
-                  <option value="fortnightly">Fortnightly</option>
+                  <option value="fortnightly">F/nightly</option>
                   <option value="weekly">Weekly</option>
                 </select>
               </div>
             </div>
-            {change.salary > 0 && change.salaryPeriod && change.salaryPeriod !== 'annual' && (
-              <p className="text-xs text-gray-500">
-                = ${(change.salaryPeriod === 'weekly' ? change.salary * 52
-                  : change.salaryPeriod === 'fortnightly' ? change.salary * 26
-                  : change.salary * 12).toLocaleString()}/yr
-              </p>
-            )}
+            <p className="text-xs text-gray-500 mt-1">Enter in today's dollars — grows with wages, so projection shows ≈ this amount in real terms</p>
           </div>
         ))}
       </div>
@@ -386,7 +378,7 @@ function PersonForm({ person, label, onUpdate }) {
       </div>
 
       {p.employerType === 'pbi_nfp' && (
-        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
           <CurrencyInput
             label="PBI general packaging"
             value={p.packaging?.pbiGeneral}
@@ -405,7 +397,7 @@ function PersonForm({ person, label, onUpdate }) {
       )}
 
       {p.employerType === 'qld_health' && (
-        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
           <CurrencyInput
             label="QLD Health general cap"
             value={p.packaging?.qldHealthGeneral}
@@ -448,7 +440,7 @@ function PersonForm({ person, label, onUpdate }) {
 
         {hasLease && leaseOpen && (
           <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CurrencyInput
                 label="Vehicle cost price"
                 value={p.packaging.novatedLease.vehicleCostPrice}
@@ -478,7 +470,7 @@ function PersonForm({ person, label, onUpdate }) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CurrencyInput
                 label="Annual running costs"
                 value={p.packaging.novatedLease.annualRunningCosts}
@@ -506,7 +498,7 @@ function PersonForm({ person, label, onUpdate }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Lease start (month/year)</label>
                 <input
@@ -574,7 +566,7 @@ function PersonForm({ person, label, onUpdate }) {
             </div>
 
             {!p.packaging.novatedLease.offsetWithECM && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="label">FBT method</label>
                   <select
@@ -638,7 +630,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
     <div className="space-y-4">
       <h3 className="text-sm font-semibold text-gray-300">Person {personLabel}</h3>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CurrencyInput
           label="Current balance"
           value={s.currentBalance}
@@ -676,7 +668,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
         />
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <CurrencyInput
             label="Salary sacrifice (annual)"
@@ -773,7 +765,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">State / Territory</label>
               <select
@@ -807,7 +799,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CurrencyInput
               label="Current value"
               value={p.currentValue}
@@ -838,7 +830,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             )
           })()}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="label">Purchase date</label>
               <input
@@ -886,7 +878,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 }}
               />
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <PctInput
                   label="Interest rate"
                   value={p.interestRate}
@@ -945,19 +937,16 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               <label className="flex items-center gap-2 cursor-pointer mb-2">
                 <input
                   type="checkbox"
-                  checked={p.hasOffset || p.offsetBalance > 0}
+                  checked={p.hasOffset || false}
                   onChange={e => onUpdate({ hasOffset: e.target.checked })}
                   className="accent-brand-500"
                 />
                 <span className="text-sm text-gray-300">Mortgage offset account</span>
               </label>
-              {(p.hasOffset || p.offsetBalance > 0) && (
-                <CurrencyInput
-                  label="Current offset balance"
-                  value={p.offsetBalance}
-                  onChange={v => onUpdate({ offsetBalance: v, hasOffset: true })}
-                  hint="Treated as cash — reduces interest on this mortgage"
-                />
+              {p.hasOffset && (
+                <p className="text-xs text-gray-500 mb-2">
+                  Your cash / savings balance (entered above) will offset this mortgage, reducing the interest charged each year.
+                </p>
               )}
 
               {p.mortgageBalance > 0 && (
@@ -975,7 +964,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           )}
 
           {!p.isPrimaryResidence && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CurrencyInput
                 label="Annual rental income"
                 value={p.annualRentalIncome}
@@ -991,7 +980,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           )}
 
           <div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">CGT ownership — Person A</label>
               <div className="flex items-center gap-2">
@@ -1029,7 +1018,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             </div>
             {p.saleEvent && (
               <div className="space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <MonthYearInput
                     label="Sale date"
                     value={p.saleEvent.year}
@@ -1086,7 +1075,7 @@ function SharesForm({ shares, onUpdate }) {
   const mode = s.contributionMode || 'surplus'
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CurrencyInput
           label="Current portfolio value"
           value={s.currentValue}
@@ -1128,7 +1117,7 @@ function SharesForm({ shares, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <PctInput
           label="Annual increase"
           value={s.annualIncreaseRate || 0}
@@ -1139,7 +1128,7 @@ function SharesForm({ shares, onUpdate }) {
           hint="Contribution grows by this % each year"
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <PctInput
           label="Dividend yield"
           value={s.dividendYield}
@@ -1334,7 +1323,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
   const mode = b.contributionMode || 'fixed'
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CurrencyInput
           label="Current portfolio value"
           value={b.currentValue}
@@ -1376,7 +1365,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <PctInput
           label="Annual increase"
           value={b.annualIncreaseRate || 0}
@@ -1436,7 +1425,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
   const mode = c.contributionMode || 'fixed'
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CurrencyInput
           label="Current portfolio value"
           value={c.currentValue}
@@ -1478,7 +1467,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <PctInput
           label="Annual increase"
           value={c.annualIncreaseRate || 0}
@@ -1555,7 +1544,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
               placeholder="e.g. Education fund"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CurrencyInput
               label="Current balance"
               value={b.currentBalance}
@@ -1598,7 +1587,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
                 : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PctInput
               label="Annual increase"
               value={b.annualIncreaseRate || 0}
@@ -1742,7 +1731,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
         <>
           {/* Own amount + settings */}
           <div className="px-4 py-3 space-y-3 bg-gray-800/10" style={{ paddingLeft: `${16 + indentPx}px` }}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CurrencyInput
                 label={hasChildren ? 'Own amount (excl. children)' : 'Amount'}
                 value={item.amount}
@@ -1771,7 +1760,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
             </div>
 
             {item.amountType === 'recurring' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="label">Every X years</label>
                   <input
@@ -1785,7 +1774,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                   />
                 </div>
                 <p className="text-xs text-gray-500 self-end pb-2">
-                  Fires in {item.activeFrom || '?'}, then every {item.recurringEveryYears || '?'} years{item.activeTo ? ` until ${item.activeTo}` : ''}
+                  Fires in {extractYear(item.activeFrom) || '?'}, then every {item.recurringEveryYears || '?'} years{item.activeTo ? ` until ${extractYear(item.activeTo)}` : ''}
                 </p>
               </div>
             )}
@@ -1803,46 +1792,28 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
             </div>
 
             {item.amountType === 'one_off' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Date (year)</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    min={2024}
-                    max={2070}
-                    value={item.activeFrom || ''}
-                    onChange={e => onUpdate({ activeFrom: numVal(e.target.value) || null, activeTo: null })}
-                    placeholder="e.g. 2026"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <MonthYearInput
+                  label="Date"
+                  value={item.activeFrom}
+                  onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
+                  placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                />
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Start year</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    min={2024}
-                    max={2070}
-                    value={item.activeFrom || ''}
-                    onChange={e => onUpdate({ activeFrom: numVal(e.target.value) || null })}
-                    placeholder={planStartYear ? String(planStartYear) : 'e.g. 2026'}
-                  />
-                </div>
-                <div>
-                  <label className="label">End year</label>
-                  <input
-                    className="input w-full"
-                    type="number"
-                    min={2024}
-                    max={2070}
-                    value={item.activeTo || ''}
-                    onChange={e => onUpdate({ activeTo: numVal(e.target.value) || null })}
-                    placeholder={planEndYear ? String(planEndYear) : 'e.g. 2060'}
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <MonthYearInput
+                  label="Start"
+                  value={item.activeFrom}
+                  onChange={v => onUpdate({ activeFrom: v })}
+                  placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                />
+                <MonthYearInput
+                  label="End"
+                  value={item.activeTo}
+                  onChange={v => onUpdate({ activeTo: v })}
+                  placeholder="Ongoing"
+                />
               </div>
             )}
           </div>
@@ -1916,7 +1887,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
 
       {open && (
         <div className="p-4 space-y-3 bg-gray-800/20">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CurrencyInput
               label="Amount"
               value={item.amount}
@@ -1936,7 +1907,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Attributed to</label>
               <select
@@ -1964,37 +1935,25 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label">{item.amountType === 'one_off' ? 'Year' : 'Starts (year)'}</label>
-              <input
-                className="input w-full"
-                type="number"
-                min={2024}
-                max={2070}
-                value={item.activeFrom || ''}
-                onChange={e => onUpdate({ activeFrom: numVal(e.target.value) || null })}
-                placeholder="e.g. 2026"
-              />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <MonthYearInput
+              label={item.amountType === 'one_off' ? 'Date' : 'Starts'}
+              value={item.activeFrom}
+              onChange={v => onUpdate({ activeFrom: v })}
+              placeholder="Year"
+            />
             {item.amountType !== 'one_off' && (
-              <div>
-                <label className="label">Ends (year)</label>
-                <input
-                  className="input w-full"
-                  type="number"
-                  min={2024}
-                  max={2070}
-                  value={item.activeTo || ''}
-                  onChange={e => onUpdate({ activeTo: numVal(e.target.value) || null })}
-                  placeholder="Indefinite"
-                />
-              </div>
+              <MonthYearInput
+                label="Ends"
+                value={item.activeTo}
+                onChange={v => onUpdate({ activeTo: v })}
+                placeholder="Indefinite"
+              />
             )}
           </div>
 
           {item.amountType !== 'one_off' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Annual adjustment</label>
                 <select
@@ -2126,7 +2085,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 
       {open && (
         <div className="p-4 space-y-3 bg-gray-800/20">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CurrencyInput
               label="Current balance"
               value={item.currentBalance}
@@ -2140,7 +2099,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
           </div>
 
           {item.type !== 'credit_card' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Term (years)</label>
                 <input
@@ -2169,7 +2128,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
           )}
 
           {item.type === 'lease' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <CurrencyInput
                 label="Residual / balloon value"
                 value={item.residualValue}
@@ -2215,7 +2174,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 
           {item.type === 'credit_card' && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <CurrencyInput
                   label="Monthly repayment (0 = min 2%)"
                   value={item.monthlyRepayment}
@@ -2412,7 +2371,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
     })
 
   return (
-    <div className="px-6 py-6 max-w-4xl mx-auto space-y-6">
+    <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
       {showTutorial && <Tutorial steps={HOUSEHOLD_TUTORIAL} onClose={closeTutorial} />}
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold text-white">Household Profile</h1>
@@ -2478,6 +2437,20 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
               + Add property
             </button>
           )}
+        </div>
+      </Section>
+
+      <Section title="Cash &amp; Savings">
+        <div className="space-y-3">
+          <CurrencyInput
+            label="Current cash / savings balance"
+            value={scenario.cashSavings ?? 0}
+            onChange={v => updateScenario({ cashSavings: v })}
+            hint="Included in liquidity and net worth. If linked to a mortgage offset account, mark that property's offset checkbox — this balance will reduce interest on that loan."
+          />
+          <p className="text-xs text-gray-500">
+            Cash earns no return in the model. Surplus cashflow accumulates here unless routed elsewhere via the Surplus Strategy.
+          </p>
         </div>
       </Section>
 
@@ -2627,7 +2600,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   Remove
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <CurrencyInput
                   label="Current value"
                   value={asset.currentValue}

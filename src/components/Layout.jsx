@@ -42,15 +42,17 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
 
   // Manual pin/hide for scenario cards
   const [cardsPinned, setCardsPinned] = useState(true)
+  // Mobile nav menu
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className="h-screen flex flex-col">
       {showWelcome && <Tutorial steps={WELCOME_STEPS} onClose={closeWelcome} />}
       {/* LIQUIDITY EXHAUSTION BANNER — persistent, impossible to miss */}
       {deficitYears.length > 0 && (
-        <div className="bg-red-900 border-b-2 border-red-500 px-6 py-3 flex items-center gap-3">
+        <div className="bg-red-900 border-b-2 border-red-500 px-4 py-3 flex items-center gap-3">
           <span className="text-red-200 text-2xl font-bold leading-none">!</span>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-red-100 font-bold text-sm">
               PLAN NOT VIABLE — Liquidity exhausted in {firstDeficitYear}
             </p>
@@ -60,25 +62,27 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
               {' '}Adjust retirement age, expenses, or asset allocation to close the gap.
             </p>
           </div>
-          <NavLink to="/gap" className="text-xs font-semibold text-red-200 bg-red-800 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
-            View Gap Analysis
+          <NavLink to="/gap" className="text-xs font-semibold text-red-200 bg-red-800 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap flex-shrink-0">
+            View Gap
           </NavLink>
         </div>
       )}
 
       {/* Top nav */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <span className="font-semibold text-white text-sm tracking-tight">Aussie Retirement Simulator</span>
-          <nav className="flex items-center gap-1">
+      <header className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-semibold text-white text-sm tracking-tight whitespace-nowrap hidden sm:block">Aussie Retirement Simulator</span>
+          <span className="font-semibold text-white text-sm tracking-tight whitespace-nowrap sm:hidden">ARS</span>
+          {/* Desktop nav */}
+          <nav className="hidden sm:flex items-center gap-0.5">
             {NAV.map(({ to, label }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
                   isActive
-                    ? 'px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-gray-700'
-                    : 'px-3 py-1.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors'
+                    ? 'px-2.5 py-1.5 rounded-lg text-xs font-medium text-white bg-gray-700 whitespace-nowrap'
+                    : 'px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors whitespace-nowrap'
                 }
               >
                 {label}
@@ -87,11 +91,30 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileMenuOpen(m => !m)}
+            className="sm:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Toggle navigation"
+          >
+            {mobileMenuOpen ? (
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <line x1="4" y1="4" x2="14" y2="14"/>
+                <line x1="14" y1="4" x2="4" y2="14"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <line x1="3" y1="5" x2="15" y2="5"/>
+                <line x1="3" y1="9" x2="15" y2="9"/>
+                <line x1="3" y1="13" x2="15" y2="13"/>
+              </svg>
+            )}
+          </button>
           {/* Scenario cards pin/hide toggle */}
           <button
             onClick={() => setCardsPinned(p => !p)}
-            className={`text-xs font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
+            className={`text-xs font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-lg border transition-colors ${
               cardsPinned
                 ? 'bg-brand-600/20 text-brand-400 border-brand-600/40 hover:bg-brand-600/30'
                 : 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'
@@ -99,12 +122,12 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
             title={cardsPinned ? 'Hide scenarios' : 'Show scenarios'}
           >
             <span className="text-xs">{cardsPinned ? '▾' : '▸'}</span>
-            Scenarios
+            <span className="hidden sm:inline">Scenarios</span>
           </button>
           {/* Real/nominal toggle */}
           {setDisplayReal && (
             <label className="flex items-center gap-1.5 cursor-pointer">
-              <span className="text-xs text-gray-500">Today's $</span>
+              <span className="text-xs text-gray-500 hidden sm:inline">Today's $</span>
               <button
                 onClick={() => setDisplayReal(r => !r)}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${displayReal ? 'bg-brand-600' : 'bg-gray-700'}`}
@@ -114,13 +137,39 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
             </label>
           )}
           <button
-            className="btn-ghost text-sm"
+            className="btn-ghost text-xs hidden sm:block"
             onClick={() => supabase.auth.signOut()}
           >
             Sign out
           </button>
         </div>
       </header>
+
+      {/* Mobile nav dropdown */}
+      {mobileMenuOpen && (
+        <div className="sm:hidden bg-gray-900 border-b border-gray-800 px-2 py-2 flex flex-col gap-0.5">
+          {NAV.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={() => setMobileMenuOpen(false)}
+              className={({ isActive }) =>
+                isActive
+                  ? 'block px-3 py-2.5 rounded-lg text-sm font-medium text-white bg-gray-700'
+                  : 'block px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors'
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+          <button
+            className="block w-full text-left px-3 py-2.5 text-sm text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            onClick={() => { setMobileMenuOpen(false); supabase.auth.signOut() }}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
 
       {/* Scenario cards strip — manual pin/hide */}
       <div

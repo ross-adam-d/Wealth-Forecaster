@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 const CATEGORY_COLORS = {
   super:          '#0ea5e9',
@@ -99,7 +99,7 @@ export default function InvestmentPieChart({ snapshots, scenario }) {
           <span className="text-xs text-gray-400 font-mono w-10">{selectedYear}</span>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={280}>
         <PieChart>
           <Pie
             data={data}
@@ -107,8 +107,8 @@ export default function InvestmentPieChart({ snapshots, scenario }) {
             nameKey="name"
             cx="50%"
             cy="50%"
-            outerRadius={110}
-            innerRadius={50}
+            outerRadius={120}
+            innerRadius={55}
             paddingAngle={2}
           >
             {data.map(entry => (
@@ -116,14 +116,19 @@ export default function InvestmentPieChart({ snapshots, scenario }) {
             ))}
           </Pie>
           <Tooltip content={<CustomTooltip />} />
-          <Legend
-            wrapperStyle={{ fontSize: 12, color: '#9ca3af' }}
-            formatter={(value, entry) => (
-              <span className="text-gray-400">{value} ({fmt$(entry.payload.value)})</span>
-            )}
-          />
         </PieChart>
       </ResponsiveContainer>
+
+      {/* Custom legend — responsive grid, outside chart area */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-1.5 mt-3">
+        {data.map(entry => (
+          <div key={entry.key} className="flex items-center gap-1.5 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
+            <span className="text-xs text-gray-400 truncate">{entry.name}</span>
+            <span className="text-xs text-gray-500 flex-shrink-0 font-mono">{fmt$(entry.value)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

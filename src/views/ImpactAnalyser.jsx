@@ -167,11 +167,11 @@ export default function ImpactAnalyser({ scenario, snapshots, retirementDate, di
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)]">
+    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-8rem)]">
       {showTutorial && <Tutorial steps={IMPACT_TUTORIAL} onClose={closeTutorial} />}
 
       {/* Left: lever panel */}
-      <div className="w-80 bg-gray-900 border-r border-gray-800 overflow-y-auto flex-shrink-0">
+      <div className="w-full lg:w-80 bg-gray-900 border-b lg:border-b-0 lg:border-r border-gray-800 overflow-y-auto lg:flex-shrink-0">
         <div className="p-4 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-white">Levers</h2>

@@ -97,7 +97,7 @@ export default function Assumptions({ scenario, updateScenario }) {
         </div>
       </div>
 
-      <div className="card overflow-hidden p-0">
+      <div className="card overflow-x-auto p-0">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-800 bg-gray-800/30">

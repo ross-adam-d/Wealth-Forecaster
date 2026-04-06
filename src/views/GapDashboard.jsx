@@ -275,26 +275,26 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
 
       {/* Runway chart */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <h2 className="text-sm font-semibold text-gray-300">Gap Period Analysis</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isStressed && (
               <span className="text-xs text-amber-400 bg-amber-900/30 border border-amber-800 rounded px-2 py-0.5">
                 Stress active
               </span>
             )}
-          {/* Range selector */}
+            {/* Range selector */}
             <select
               value={gapChartRange}
               onChange={e => setGapChartRange(e.target.value)}
-              className="input text-xs py-1 px-2 h-7 mr-2"
+              className="input text-xs py-1 px-2 h-7"
             >
               <option value="10">Next 10 yrs</option>
               <option value="20">Next 20 yrs</option>
               <option value="40">Next 40 yrs</option>
               <option value="full">Full gap</option>
             </select>
-          {/* Chart view toggles */}
+            {/* Chart view toggles */}
             <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
               {[
                 { id: 'breakdown', label: 'Breakdown' },

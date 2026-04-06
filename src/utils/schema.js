@@ -331,6 +331,7 @@ export function createDefaultScenario(name = 'Base Plan') {
       personA: createDefaultPerson('A'),
       personB: createDefaultPerson('B'),
     },
+    cashSavings: 0,             // current cash/savings account balance (liquid, earns 0%)
     super: [
       createDefaultSuper('A'),
       createDefaultSuper('B'),

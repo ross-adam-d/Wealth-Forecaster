@@ -85,18 +85,19 @@
 - [x] **Engine pre/post-retirement lever splits** — `leverAdjustments.expenses` and `leverAdjustments.returns` support `{ preRetirement, postRetirement }` with per-year resolution based on retirement state.
 
 ### Backlog (prioritised)
-0. [ ] **Month picker UI for expenses/income** — extend MonthYearInput to expense activeFrom/activeTo and other income date fields. Property purchase/sale already done.
-1. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
-2. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
-3. [ ] **Mobile optimisation** — responsive layout for phone screens. Collapsible sections, stacked grids, touch-friendly inputs, chart sizing.
-4. [ ] **Income time periods** — salary input with period selector (annual/monthly/fortnightly/weekly). Store as annual internally, convert on display.
-5. [x] **Property selling costs** — `sellingCostsPct` on sale event (default 2.5%). Deducted from gross proceeds, reduces CGT gain. UI shows estimated $ amount.
-6. [ ] **Temporary income reduction** — model career breaks, parental leave, sabbaticals. Year range + reduced salary amount or % reduction.
-7. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
-8. [x] **Stamp duty on property purchase** — state/territory selector, FHB exemption toggle. Progressive brackets for all 8 states. Displayed as info below purchase price.
-9. [x] **Land tax** — annual land tax via progressive brackets per state. Integrated into net rental income (deductible). PPOR exempt.
-10. [x] **Property purchase as outflow** — future property purchase with `futurePurchaseYear`. Property returns zeros before purchase year; stamp duty + deposit computed as cash outflow in purchase year. Wired into engine `essentialOutflows`. Timeline shows "Buy" events. 5 new tests.
-11. [x] **One-off/large expenses and windfalls on timeline** — expenses >= $10k and windfall income now show on life events timeline. Fixed windfall detection bug (`frequency` → `amountType`).
+0. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
+1. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
+2. [x] **Mobile optimisation** ✅ Done Session 21 — nav scrollable, HouseholdProfile grids all responsive, Impact/Goal sidebars stack on mobile, Compare + Assumptions table overflow fixed.
+3. [x] **Income time periods** ✅ Done Session 17.
+4. [x] **Property selling costs** ✅ Done Session 17.
+5. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
+6. [x] **Stamp duty** ✅ Done Session 17.
+7. [x] **Land tax** ✅ Done Session 17.
+8. [x] **Property purchase as outflow** ✅ Done Session 18.
+9. [x] **Timeline events for expenses/windfalls** ✅ Done Session 17/18.
+10. [x] **Month picker UI for expenses/income** ✅ Done Session 21.
+11. [ ] **`offsetAnnualTopUp` cleanup** — field still in schema but unused since Session 19 offset simplification.
+12. [ ] **Cashflow table: income columns** — show salary A / salary B / total income for easy verification of salary change projections.
 
 ### Previously completed
 - [x] Named scenario cards with viability status
@@ -115,6 +116,36 @@
 ---
 
 ## Session Log
+
+### Session 21 — 2026-04-06
+
+**What was done:**
+- **Month picker for expenses and other income** — replaced all plain year `<input type="number">` fields in expense nodes and other income sources with `MonthYearInput`. One-off expenses get a single "Date" picker; recurring/annual expenses get "Start" + "End" pickers. Other income sources updated the same way ("Starts" / "Ends"). Recurring expense display hint uses `extractYear()` to handle "YYYY-MM" strings. `extractYear` imported into HouseholdProfile.
+- **Mobile layout — HouseholdProfile** — bulk-replaced all `grid-cols-2` → `grid-cols-1 sm:grid-cols-2`, all `grid-cols-3` → `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`, salary change 4-col rows → `grid-cols-2 sm:grid-cols-4`.
+- **Mobile layout — Layout nav** — nav links scrollable on mobile (`overflow-x-auto scrollbar-none`); app title abbreviates to "ARS" on mobile; "Sign out" and "Scenarios" text label hidden on small screens; padding/gap tightened.
+- **Mobile layout — ImpactAnalyser + RetirementGoal** — sidebar layout changed from `flex h-[calc(100vh-8rem)]` to `flex flex-col lg:flex-row lg:h-[calc(100vh-8rem)]`; sidebar `w-80` → `w-full lg:w-80` with border adapting to direction.
+- **Mobile layout — Compare** — all `grid-cols-2` → `grid-cols-1 sm:grid-cols-2`.
+- **Mobile layout — Assumptions** — table wrapper changed from `overflow-hidden` to `overflow-x-auto`.
+- **568 tests passing.**
+
+### Session 20 — 2026-04-06
+
+**What was done:**
+- **`payOffWhenAble` double-count fix** — mortgage lump-sum payoff now requires full mortgage balance in liquid assets (not offset-adjusted). Previously, the same cash counted twice: once as offset (reducing the target) and again as available liquidity to pay the reduced amount. Now the engine correctly requires e.g. $465k in assets to pay off a $465k mortgage.
+- **`cashSavings` field** — new top-level scenario field for general cash/savings account balance. Added to `createDefaultScenario()`, destructured in engine (added to `cashBuffer` init alongside offset balances), and exposed as "Cash & Savings" section in Household Profile between Properties and Share Portfolio.
+- **Offset locked to single mortgage** — `cashForOffsetPerProperty` now uses `findIndex` to select only the first property with `hasOffset: true`. Previously distributed cash across multiple offset-flagged properties; since an offset account is linked to one loan, this was incorrect. Surplus routing `offset` headroom also updated to single-target logic.
+- **Offset balance input removed** — property form previously had a "Current offset balance" currency input. Replaced with an explanatory note: enter cash in the Cash & Savings section and tick the offset checkbox to link it to this mortgage.
+- **Sankey full rewrite** (`CashflowSankey.jsx`) — six fixes in one:
+  - Mortgage node now uses `totalMortgageRepayments` directly from snapshot (previously derived as `totalOutflows - expenses - lease`, which incorrectly included fixed investment contributions — caused ghost mortgage in 2028 and left > right imbalance)
+  - Debt repayments shown separately from mortgage
+  - Mortgage lump-sum payoff (`payOffWhenAble`) shown as a matched left/right pair: "Liquid assets → mortgage payoff" / "Mortgage paid off (lump sum)"
+  - Fixed investment contributions shown on right as "Investment contributions"
+  - Directed sale proceeds shown on right as "Sale proceeds → investments"
+  - `deficit` node retained; left=right now balanced correctly
+- **New snapshot fields**: `mortgagePayoffTotal`, `totalMortgageRepayments`, `cappedFixedContributions` — exposed to Sankey and future views.
+- **Household layout** — container widened from `max-w-4xl` to `max-w-6xl`. Salary row changed to 3-column (salary+period span 2/3, retirement age 1/3) so salary field is no longer truncated. Salary change cards collapsed to single 4-column row (From / To / Salary / Period).
+- **Salary change wage growth** — salary changes now grow at the wage growth rate from `currentYear` (same reference as base salary). User enters amount in today's dollars; Today's $ display shows ≈ the entered value throughout the change period. Previously no wage growth applied during change periods.
+- **568 tests passing.**
 
 ### Session 19 — 2026-04-05
 
