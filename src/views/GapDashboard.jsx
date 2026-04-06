@@ -8,6 +8,9 @@ import {
 } from 'recharts'
 import { PRESERVATION_AGE } from '../constants/index.js'
 import { runSimulation } from '../engine/simulationEngine.js'
+import ChartFullscreen from '../components/ChartFullscreen.jsx'
+
+const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
 
 function getGapYears(snapshots, scenario) {
   const { personA, personB } = scenario.household
@@ -318,86 +321,62 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
         </div>
 
         {chartData.length > 0 ? (
-          <div className="overflow-x-auto">
-          <div style={{ minWidth: '580px' }}>
-          <ResponsiveContainer width="100%" height={340}>
-            {chartView === 'breakdown' ? (
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip
-                  formatter={(v, name) => [fmt$(v), name]}
-                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-                  labelStyle={{ color: '#f9fafb' }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
-                <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
-                <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
-                <Area type="monotone" dataKey="shares"         stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
-                <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
-                <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
-                <Area type="monotone" dataKey="bonds"          stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Tax-Def. Bonds" />
-                <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
-                <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
-                {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
-                {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
-              </AreaChart>
-            ) : chartView === 'total' ? (
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip
-                  formatter={(v, name) => [fmt$(v), name]}
-                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-                  labelStyle={{ color: '#f9fafb' }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                <Area
-                  type="monotone"
-                  dataKey="totalLiquid"
-                  stroke="#4ade80"
-                  fill="#4ade80"
-                  fillOpacity={0.25}
-                  name="Total liquid assets"
-                  strokeWidth={2}
-                />
-                {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
-                {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
-                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
-              </AreaChart>
-            ) : (
-              /* Cashflow view: grouped bars for income/outflows + line for net */
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip
-                  formatter={(v, name) => [fmt$(v), name]}
-                  contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
-                  labelStyle={{ color: '#f9fafb' }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
-                <Bar dataKey="income" name="Income (after tax)" fill="#0ea5e9" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
-                <Bar dataKey="outflows" name="Outflows (inc. mortgage)" fill="#f87171" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
-                <Line
-                  type="monotone"
-                  dataKey="net"
-                  name="Net cashflow"
-                  strokeWidth={2}
-                  dot={false}
-                  stroke="#4ade80"
-                />
-                {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
-                {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
-              </ComposedChart>
+          <ChartFullscreen title="Gap Period Analysis">
+            {(isFullscreen) => (
+              <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
+                <div style={isFullscreen ? { height: '100%' } : { minWidth: '580px' }}>
+                  <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 340}>
+                    {chartView === 'breakdown' ? (
+                      <AreaChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                        <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
+                        <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
+                        <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
+                        <Area type="monotone" dataKey="shares"         stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
+                        <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
+                        <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
+                        <Area type="monotone" dataKey="bonds"          stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Tax-Def. Bonds" />
+                        <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
+                        <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
+                        {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
+                        {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+                      </AreaChart>
+                    ) : chartView === 'total' ? (
+                      <AreaChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                        <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={0.25} name="Total liquid assets" strokeWidth={2} />
+                        {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
+                        {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+                        <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+                      </AreaChart>
+                    ) : (
+                      <ComposedChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                        <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                        {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                        <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+                        <Bar dataKey="income" name="Income (after tax)" fill="#0ea5e9" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="outflows" name="Outflows (inc. mortgage)" fill="#f87171" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
+                        <Line type="monotone" dataKey="net" name="Net cashflow" strokeWidth={2} dot={false} stroke="#4ade80" />
+                        {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
+                        {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+                      </ComposedChart>
+                    )}
+                  </ResponsiveContainer>
+                </div>
+              </div>
             )}
-          </ResponsiveContainer>
-          </div>
-          </div>
+          </ChartFullscreen>
         ) : (
           <div className="h-[340px] flex items-center justify-center text-gray-600">
             Enter household details to see gap runway

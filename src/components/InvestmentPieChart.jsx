@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
+const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
+
 const CATEGORY_COLORS = {
   super:          '#0ea5e9',
   shares:         '#34d399',
@@ -115,7 +117,7 @@ export default function InvestmentPieChart({ snapshots, scenario }) {
               <Cell key={entry.key} fill={entry.color} stroke={entry.color} />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          {!isTouchDevice && <Tooltip content={<CustomTooltip />} />}
         </PieChart>
       </ResponsiveContainer>
 
