@@ -86,7 +86,7 @@
 
 ### Backlog (prioritised)
 0. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
-1. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
+1. [x] **Light mode** ✅ Done Session 23 — sun/moon toggle in header, CSS override strategy (`html.light`), localStorage persistence.
 2. [x] **Mobile optimisation** ✅ Done Sessions 21–22 — nav scrollable→burger menu, HouseholdProfile grids responsive, Impact/Goal sidebars stack, Compare/Assumptions overflow fixed, chart headers flex-col, pie legend custom grid, Sankey horizontal scroll, life events compact.
 3. [x] **Income time periods** ✅ Done Session 17.
 4. [x] **Property selling costs** ✅ Done Session 17.
@@ -116,6 +116,17 @@
 ---
 
 ## Session Log
+
+### Session 23 — 2026-04-06
+
+**What was done:**
+- **Light mode** — sun/moon toggle button added to header nav (between Today's $ toggle and Sign out).
+  - `src/hooks/useTheme.js` — new hook: reads `localStorage.theme`, applies/removes `light` class on `<html>`, exposes `{ isLight, toggleTheme }`.
+  - `src/index.css` — light mode overrides under `html.light`: remaps `bg-gray-950/900/800/700`, `text-white/gray-100/200/300/400/600`, `border-gray-800/700`, all hover variants, and component classes (`.card`, `.input`, `.btn-ghost`, `.label`). No JSX files touched beyond `App.jsx` and `Layout.jsx`.
+  - `src/App.jsx` — imports `useTheme`, passes `{ isLight, toggleTheme }` down via `sharedProps` to `Layout`.
+  - `src/components/Layout.jsx` — renders sun icon (dark mode) / moon icon (light mode) toggle button. Accepts `isLight` and `toggleTheme` props.
+  - Strategy: CSS class override (`html.light .bg-gray-900 { ... }`) beats Tailwind utility specificity; no per-view JSX changes needed. Chart colors (hardcoded hex), brand colors, and status badges unchanged in both modes.
+- **568 tests passing. Deployed.**
 
 ### Session 22 — 2026-04-05
 
