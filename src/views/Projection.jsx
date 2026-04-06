@@ -122,7 +122,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       superDraw: transform((s.superA?.drawdown ?? 0) + (s.superB?.drawdown ?? 0), s.year),
       pension: transform(s.agePension?.totalPension ?? 0, s.year),
       // Expense breakdown
-      tax: transform((s.taxA?.totalTaxPayable ?? 0) + (s.taxB?.totalTaxPayable ?? 0), s.year),
+      tax: transform((s.taxA?.totalTaxPayable ?? 0) + (s.taxB?.totalTaxPayable ?? 0) + (s.hecsRepaymentA ?? 0) + (s.hecsRepaymentB ?? 0), s.year),
       livingExp: transform(s.totalExpenses, s.year),
       mortgageExp: transform(s.propertyResults?.reduce((sum, r) => sum + (r.annualRepayment || 0), 0) ?? 0, s.year),
       debtExp: transform(s.totalDebtRepayments ?? 0, s.year),
@@ -156,8 +156,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   ], [personAName, personBName])
 
   const EXPENSE_COLS = useMemo(() => [
-    { key: 'taxA',           label: `Tax A` },
-    { key: 'taxB',           label: `Tax B` },
+    { key: 'taxA',           label: `Tax & HECS A` },
+    { key: 'taxB',           label: `Tax & HECS B` },
     { key: 'superAccumA',    label: `Super A` },
     { key: 'superAccumB',    label: `Super B` },
     { key: 'sharesContrib',    label: 'Shares contrib' },
@@ -219,8 +219,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       propertySale:    s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0,
       otherIncome:     s.totalOtherIncome ?? 0,
       // Expenses (including tax + super accum)
-      taxA:            s.taxA?.totalTaxPayable ?? 0,
-      taxB:            s.taxB?.totalTaxPayable ?? 0,
+      taxA:            (s.taxA?.totalTaxPayable ?? 0) + (s.hecsRepaymentA ?? 0),
+      taxB:            (s.taxB?.totalTaxPayable ?? 0) + (s.hecsRepaymentB ?? 0),
       superAccumA:     s.superA?.inPensionPhase ? 0 : (s.superA?.contributions ?? 0),
       superAccumB:     s.superB?.inPensionPhase ? 0 : (s.superB?.contributions ?? 0),
       sharesContrib:     s.sharesContribution ?? 0,

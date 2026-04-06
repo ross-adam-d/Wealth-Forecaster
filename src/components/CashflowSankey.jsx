@@ -171,7 +171,8 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     if (payoffAmt    > 100) rawLeft.push({ id: 'payoff',       label: 'Liquid assets → mortgage payoff',value: payoffAmt,    color: C.payoffAssets })
 
     // ── RIGHT: all uses of money ─────────────────────────────────────────────
-    const totalTax  = tx((s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0) + (s.totalDiv293Tax || 0), yr)
+    const hecsTotal = tx((s.hecsRepaymentA || 0) + (s.hecsRepaymentB || 0), yr)
+    const totalTax  = tx((s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0) + (s.totalDiv293Tax || 0), yr) + hecsTotal
     const livingExp = tx(s.totalExpenses || 0, yr)
     // Use direct repayment fields — NOT derived from totalOutflows (which includes contributions)
     const mortgageR = tx(s.totalMortgageRepayments || 0, yr)
@@ -190,7 +191,7 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     const deficit   = netCF < 0 ? Math.abs(netCF) : 0
 
     const rawRight = []
-    if (totalTax      > 100) rawRight.push({ id: 'tax',        label: 'Income tax & Medicare',           value: totalTax,      color: C.tax         })
+    if (totalTax      > 100) rawRight.push({ id: 'tax',        label: hecsTotal > 100 ? 'Income tax, Medicare & HECS' : 'Income tax & Medicare', value: totalTax, color: C.tax })
     if (livingExp     > 100) rawRight.push({ id: 'expenses',   label: 'Living expenses',                 value: livingExp,     color: C.expenses    })
     if (mortgageR     > 100) rawRight.push({ id: 'mortgage',   label: 'Mortgage repayments',             value: mortgageR,     color: C.mortgage    })
     if (debtR         > 100) rawRight.push({ id: 'debt',       label: 'Debt repayments',                 value: debtR,         color: C.mortgage    })
