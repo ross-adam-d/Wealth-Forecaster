@@ -58,11 +58,8 @@ function youngSingleRenter() {
     ],
   }
 
-  // HECS debt
-  s.debts = [{
-    id: 'hecs', name: 'HECS-HELP', type: 'personal_loan',
-    currentBalance: 35_000, interestRate: 0.04, monthlyRepayment: 400, termYears: 10, startYear: null,
-  }]
+  // HECS debt — income-based compulsory repayment, CPI-indexed balance
+  s.household.personA.hecs = { balance: 35_000, extraAnnual: 0 }
 
   return s
 }
@@ -748,9 +745,10 @@ describe('Scenario-specific behaviour', () => {
   describe('Young Single Renter', () => {
     const snaps = runSimulation(youngSingleRenter())
 
-    it('HECS debt pays off within 10 years', () => {
-      const yr10 = snaps[10]
-      expect(yr10.totalDebtBalance).toBe(0)
+    it('HECS debt fully pays off', () => {
+      // Income-based repayment with CPI indexation — typically paid off in ~15 years at $72k salary
+      const paidOff = snaps.find(s => s.hecsBalanceA === 0)
+      expect(paidOff).toBeDefined()
     })
 
     it('net worth grows over working life', () => {

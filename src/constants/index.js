@@ -62,6 +62,32 @@ export const TAX_BRACKETS = [
 export const MEDICARE_LEVY_RATE = 0.02       // 2%
 export const MEDICARE_LEVY_LOWER_THRESHOLD = 26_000  // approx FY2025 shade-in threshold
 
+// --- HECS/HELP compulsory repayment schedule (FY2024-25 ATO thresholds) ---
+// Repayment is a % of total taxable income (not just the excess).
+// Thresholds are indexed annually by CPI — scaled in simulation by inflationRate each year.
+// Balance is also CPI-indexed annually (June 1).
+export const HECS_REPAYMENT_BANDS = [
+  { lower: 0,        upper: 54_435,   rate: 0 },
+  { lower: 54_435,   upper: 62_850,   rate: 0.010 },
+  { lower: 62_851,   upper: 66_620,   rate: 0.020 },
+  { lower: 66_621,   upper: 70_618,   rate: 0.025 },
+  { lower: 70_619,   upper: 74_855,   rate: 0.030 },
+  { lower: 74_856,   upper: 79_346,   rate: 0.035 },
+  { lower: 79_347,   upper: 84_107,   rate: 0.040 },
+  { lower: 84_108,   upper: 88_756,   rate: 0.045 },
+  { lower: 88_757,   upper: 93_541,   rate: 0.050 },
+  { lower: 93_542,   upper: 98_539,   rate: 0.055 },
+  { lower: 98_540,   upper: 103_766,  rate: 0.060 },
+  { lower: 103_767,  upper: 109_308,  rate: 0.065 },
+  { lower: 109_309,  upper: 115_004,  rate: 0.070 },
+  { lower: 115_005,  upper: 121_208,  rate: 0.075 },
+  { lower: 121_209,  upper: 128_471,  rate: 0.080 },
+  { lower: 128_472,  upper: 135_840,  rate: 0.085 },
+  { lower: 135_841,  upper: 143_757,  rate: 0.090 },
+  { lower: 143_758,  upper: 151_200,  rate: 0.095 },
+  { lower: 151_201,  upper: Infinity, rate: 0.100 },
+]
+
 // --- Capital gains ---
 export const CGT_DISCOUNT = 0.50             // 50% for assets held > 12 months
 export const CORPORATE_TAX_RATE = 0.30      // Used for franking credit gross-up

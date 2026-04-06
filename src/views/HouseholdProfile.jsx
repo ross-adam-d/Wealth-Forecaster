@@ -364,6 +364,51 @@ function PersonForm({ person, label, onUpdate }) {
         ))}
       </div>
 
+      {/* HECS/HELP debt */}
+      <div className="border-t border-gray-800 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-gray-400">HECS / HELP debt</span>
+          {!p.hecs ? (
+            <button
+              className="btn-ghost text-xs py-1"
+              onClick={() => onUpdate({ hecs: { balance: 0, extraAnnual: 0 } })}
+            >+ Add HECS debt</button>
+          ) : (
+            <button
+              className="btn-ghost text-xs py-1 text-red-400 hover:text-red-300"
+              onClick={() => onUpdate({ hecs: null })}
+            >Remove</button>
+          )}
+        </div>
+        {p.hecs && (
+          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
+            <CurrencyInput
+              label="Current HECS balance"
+              value={p.hecs.balance}
+              onChange={v => onUpdate({ hecs: { ...p.hecs, balance: v || 0 } })}
+            />
+            <div>
+              <label className="label">Extra annual repayment (optional)</label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    className="input w-full pl-7"
+                    type="number"
+                    min={0}
+                    value={p.hecs.extraAnnual || ''}
+                    onChange={e => onUpdate({ hecs: { ...p.hecs, extraAnnual: numVal(e.target.value) || 0 } })}
+                    placeholder="0"
+                  />
+                </div>
+                <span className="text-xs text-gray-500 flex-shrink-0">/yr</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Leave at $0 to pay compulsory minimum only (income-based, scales with salary)</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div>
         <label className="label">Employer type</label>
         <select

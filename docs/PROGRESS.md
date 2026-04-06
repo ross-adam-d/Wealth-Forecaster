@@ -85,7 +85,7 @@
 - [x] **Engine pre/post-retirement lever splits** — `leverAdjustments.expenses` and `leverAdjustments.returns` support `{ preRetirement, postRetirement }` with per-year resolution based on retirement state.
 
 ### Backlog (prioritised)
-0. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
+0. [x] **HECS/HELP debt** ✅ Done Session 24 — income-based compulsory repayment, CPI indexation, optional extra annual repayment, per-person on household profile.
 1. [x] **Light mode** ✅ Done Session 23 — sun/moon toggle in header, CSS override strategy (`html.light`), localStorage persistence.
 2. [x] **Mobile optimisation** ✅ Done Sessions 21–22 — nav scrollable→burger menu, HouseholdProfile grids responsive, Impact/Goal sidebars stack, Compare/Assumptions overflow fixed, chart headers flex-col, pie legend custom grid, Sankey horizontal scroll, life events compact.
 3. [x] **Income time periods** ✅ Done Session 17.
@@ -116,6 +116,18 @@
 ---
 
 ## Session Log
+
+### Session 24 — 2026-04-07
+
+**What was done:**
+- **HECS/HELP debt** — per-person income-based compulsory repayment, CPI-indexed balance, optional voluntary extra repayment.
+  - `src/constants/index.js` — `HECS_REPAYMENT_BANDS` table (FY2024-25 ATO thresholds, 19 bands from $54,435 @ 1% to $151,201+ @ 10%).
+  - `src/engine/taxEngine.js` — new `calcHecsRepayment(taxableIncome, hecsBalance, thresholdGrowthFactor)`. `calcPersonTax()` accepts `hecsBalance`, `hecsExtraAnnual`, `hecsThresholdGrowthFactor`; computes compulsory + voluntary repayment; subtracts from `netTakeHome`; returns `hecsRepayment`.
+  - `src/utils/schema.js` — `createDefaultPerson()` gains `hecs: null` (`null` = no debt; `{ balance, extraAnnual }` when active).
+  - `src/engine/simulationEngine.js` — tracks `hecsBalanceA/B` as mutable state. CPI-indexes from year 1 onwards. Repayment thresholds scaled by wage growth factor so real repayment % stays proportional over time. HECS balances deducted from `totalNetWorth`. Snapshot includes `hecsBalanceA`, `hecsBalanceB`, `hecsRepaymentA`, `hecsRepaymentB`. Warnings when paid off.
+  - `src/views/HouseholdProfile.jsx` — HECS/HELP section in each PersonForm (after salary changes). "Add HECS debt" / Remove toggle. Balance input + optional "Extra annual repayment" with hint "Leave $0 for compulsory minimum only".
+  - `src/__tests__/scenarios.test.js` — Young Single Renter scenario migrated from `debts[]` personal loan to `personA.hecs`. Test updated to check `hecsBalanceA === 0` (eventual payoff). Golden snapshot updated.
+- **568 tests passing.**
 
 ### Session 23 — 2026-04-06
 

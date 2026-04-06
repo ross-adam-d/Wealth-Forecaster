@@ -241,6 +241,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))
   let currentProperties = properties.map(p => ({ ...p }))
   let currentDebts = debtsInput.map(d => ({ ...d }))
+  let hecsBalanceA = personA.hecs?.balance || 0
+  let hecsBalanceB = personB.hecs?.balance || 0
   // Initialise cash buffer: general savings + any property offset balances (offset IS cash)
   // Offset is allocated to the first mortgaged property with hasOffset=true each year.
   const initialOffsetBalance = currentProperties.reduce((sum, p) => sum + (p.offsetBalance || 0), 0)
@@ -271,6 +273,17 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const yearAssumptions = Object.keys(returnOverride).length > 0
       ? { ...assumptions, ...returnOverride }
       : assumptions
+
+    // ── HECS/HELP: CPI-index balances (ATO indexes on June 1 by prior-year CPI) ─────────────
+    // Index from year 1 onwards — the entered balance is the current year opening balance.
+    if (yearsElapsed > 0) {
+      if (hecsBalanceA > 0) hecsBalanceA *= (1 + yearAssumptions.inflationRate)
+      if (hecsBalanceB > 0) hecsBalanceB *= (1 + yearAssumptions.inflationRate)
+    }
+    // Repayment thresholds grow with wages over time (ATO indexes thresholds annually)
+    const hecsThresholdGrowth = yearsElapsed > 0
+      ? Math.pow(1 + yearAssumptions.wageGrowthRate, yearsElapsed)
+      : 1
 
     // ── Step 1: Resolve salaries ──────────────────────────────────────────
     // Check for salary change overrides (part-time, career break, promotions).
@@ -456,10 +469,13 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       capitalGain: propertyCGT_A,
       otherIncome: otherIncomeResult.taxableA + tbCouponHalf,
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
+      hecsBalance: hecsBalanceA,
+      hecsExtraAnnual: personA.hecs?.extraAnnual || 0,
+      hecsThresholdGrowthFactor: hecsThresholdGrowth,
     })
 
     const hasTBCoupon = tbResult.couponIncome > 0
-    const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon) ? calcPersonTax({
+    const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon || hecsBalanceB > 0) ? calcPersonTax({
       grossSalary: salaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
@@ -467,7 +483,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       capitalGain: propertyCGT_B,
       otherIncome: otherIncomeResult.taxableB + tbCouponHalf,
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
+      hecsBalance: hecsBalanceB,
+      hecsExtraAnnual: personB.hecs?.extraAnnual || 0,
+      hecsThresholdGrowthFactor: hecsThresholdGrowth,
     }) : taxB
+
+    // Reduce HECS balances by repayments computed in final tax pass
+    hecsBalanceA = Math.max(0, hecsBalanceA - (taxAFinal.hecsRepayment || 0))
+    hecsBalanceB = Math.max(0, hecsBalanceB - (taxBFinal.hecsRepayment || 0))
 
     // ── Step 8: Resolve target contributions for ALL non-property investments ──
     // Post-retirement: all accumulation strategies cease — no new contributions
@@ -1140,7 +1163,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       propertyEquity +
       (superA_result.isLocked ? superA.currentBalance : 0) +
       (superB_result.isLocked ? superB.currentBalance : 0) -
-      totalDebtBalance
+      totalDebtBalance -
+      hecsBalanceA -
+      hecsBalanceB
 
     // Collect warnings
     const warnings = [
@@ -1154,6 +1179,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       ...(agePensionPrelim.totalPension > 0 ? [`Age Pension: $${Math.round(agePensionPrelim.totalPension).toLocaleString()}/yr`] : []),
       ...(leaseResidualA > 0 ? [`Lease residual (A): $${Math.round(leaseResidualA).toLocaleString()} balloon payment (post-tax)`] : []),
       ...(leaseResidualB > 0 ? [`Lease residual (B): $${Math.round(leaseResidualB).toLocaleString()} balloon payment (post-tax)`] : []),
+      ...(hecsBalanceA === 0 && (taxAFinal.hecsRepayment || 0) > 0 ? [`HECS paid off (A)`] : []),
+      ...(hecsBalanceB === 0 && (taxBFinal.hecsRepayment || 0) > 0 ? [`HECS paid off (B)`] : []),
     ]
 
     yearSnapshots.push({
@@ -1232,6 +1259,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       debtResult,
       totalDebtBalance,
       totalDebtRepayments,
+      // HECS/HELP
+      hecsBalanceA,
+      hecsBalanceB,
+      hecsRepaymentA: taxAFinal.hecsRepayment || 0,
+      hecsRepaymentB: taxBFinal.hecsRepayment || 0,
       // Expenses
       expenseTree,
       totalExpenses,

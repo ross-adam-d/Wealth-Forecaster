@@ -42,6 +42,7 @@ export function createDefaultPerson(label = 'A') {
     wageGrowthRate: WAGE_GROWTH_RATE,
     employerType: 'standard', // 'standard' | 'pbi_nfp' | 'qld_health'
     retirementAge: 60,
+    hecs: null,               // null = no HECS debt; { balance, extraAnnual } if active
     packaging: {
       novatedLease: null,     // see createDefaultNovatedLease()
       pbiGeneral: 0,

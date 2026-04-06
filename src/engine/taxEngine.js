@@ -13,6 +13,7 @@ import {
   PBI_MEAL_ENTERTAINMENT_CAP,
   QLD_HEALTH_GENERAL_CAP,
   QLD_HEALTH_MEAL_ENTERTAINMENT_CAP,
+  HECS_REPAYMENT_BANDS,
 } from '../constants/index.js'
 
 /**
@@ -104,6 +105,9 @@ export function resolvePackagingReductions(person, grossSalary) {
  * @param {number} params.frankingCredit         - franking credit gross-up
  * @param {number} params.capitalGain            - post-50%-discount CGT amount (sale year only)
  * @param {boolean} params.inPensionPhase        - franking credits refundable in pension phase
+ * @param {number}  params.hecsBalance           - current HECS/HELP balance (post CPI-indexation)
+ * @param {number}  params.hecsExtraAnnual       - optional extra voluntary repayment per year
+ * @param {number}  params.hecsThresholdGrowthFactor - cumulative growth factor to scale repayment thresholds
  * @returns {object} detailed tax breakdown
  */
 export function calcPersonTax({
@@ -117,6 +121,9 @@ export function calcPersonTax({
   capitalGain = 0,
   otherIncome = 0,
   inPensionPhase = false,
+  hecsBalance = 0,
+  hecsExtraAnnual = 0,
+  hecsThresholdGrowthFactor = 1,
 } = {}) {
   // Step 1: assessable income
   const assessableIncome =
@@ -153,6 +160,13 @@ export function calcPersonTax({
 
   const totalTaxPayable = netTax + medicareLevy
 
+  // Step 5: HECS/HELP repayment (withheld at source, reduces net take-home)
+  const hecsCompulsory = calcHecsRepayment(taxableIncome, hecsBalance, hecsThresholdGrowthFactor)
+  const hecsVoluntary = hecsBalance > 0 && hecsExtraAnnual > 0
+    ? Math.min(hecsExtraAnnual, Math.max(0, hecsBalance - hecsCompulsory))
+    : 0
+  const hecsRepayment = hecsCompulsory + hecsVoluntary
+
   return {
     assessableIncome,
     taxableIncome,
@@ -162,8 +176,34 @@ export function calcPersonTax({
     netTax,
     medicareLevy,
     totalTaxPayable,
-    netTakeHome: grossSalary + otherIncome - salarySacrifice - packagingReduction - novatedLeaseReduction - totalTaxPayable,
+    hecsRepayment,
+    netTakeHome: grossSalary + otherIncome - salarySacrifice - packagingReduction - novatedLeaseReduction - totalTaxPayable - hecsRepayment,
   }
+}
+
+/**
+ * Calculate compulsory HECS/HELP repayment for a year.
+ * Repayment = taxableIncome × rate from the band the income falls in.
+ * Capped at remaining balance.
+ *
+ * @param {number} taxableIncome
+ * @param {number} hecsBalance - current HECS balance (post CPI-indexation for the year)
+ * @param {number} thresholdGrowthFactor - cumulative growth to scale nominal thresholds (1 in year 0)
+ * @returns {number}
+ */
+export function calcHecsRepayment(taxableIncome, hecsBalance, thresholdGrowthFactor = 1) {
+  if (!hecsBalance || hecsBalance <= 0 || taxableIncome <= 0) return 0
+  let rate = 0
+  for (const band of HECS_REPAYMENT_BANDS) {
+    const scaledLower = band.lower * thresholdGrowthFactor
+    const scaledUpper = band.upper === Infinity ? Infinity : band.upper * thresholdGrowthFactor
+    if (taxableIncome >= scaledLower && taxableIncome < scaledUpper) {
+      rate = band.rate
+      break
+    }
+  }
+  if (rate === 0) return 0
+  return Math.min(hecsBalance, taxableIncome * rate)
 }
 
 /**
