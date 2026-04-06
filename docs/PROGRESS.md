@@ -87,7 +87,7 @@
 ### Backlog (prioritised)
 0. [ ] **HECS/HELP debt** — repayment thresholds, compulsory repayment from taxable income, indexation (CPI), voluntary repayment option. Integrated into tax engine so net take-home reflects HELP repayment.
 1. [ ] **Light mode** — theme toggle (dark/light). CSS variables or Tailwind dark: prefix strategy. Persist preference in localStorage.
-2. [x] **Mobile optimisation** ✅ Done Session 21 — nav scrollable, HouseholdProfile grids all responsive, Impact/Goal sidebars stack on mobile, Compare + Assumptions table overflow fixed.
+2. [x] **Mobile optimisation** ✅ Done Sessions 21–22 — nav scrollable→burger menu, HouseholdProfile grids responsive, Impact/Goal sidebars stack, Compare/Assumptions overflow fixed, chart headers flex-col, pie legend custom grid, Sankey horizontal scroll, life events compact.
 3. [x] **Income time periods** ✅ Done Session 17.
 4. [x] **Property selling costs** ✅ Done Session 17.
 5. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
@@ -116,6 +116,17 @@
 ---
 
 ## Session Log
+
+### Session 22 — 2026-04-05
+
+**What was done:**
+- **Burger menu (mobile Rule 5)** — desktop nav (`hidden sm:flex`) unchanged. Mobile gets hamburger button (sm:hidden) that toggles a full dropdown panel with all nav links + sign out. Tap any link → closes menu.
+- **Investment pie chart legend fix (mobile Rule 3)** — removed built-in Recharts `<Legend>` (was inside chart area, crushing the donut on mobile). Replaced with custom responsive legend grid below the chart (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`); each entry shows colour swatch, label, and dollar value. Pie outer radius increased 110→120 now that legend is outside.
+- **LifeEventsTimeline compact sizing (mobile Rule 2)** — event node `minWidth` reduced 90→76px, connector width 24→14px. Timeline is already `overflow-x-auto`; now fits more events before scrolling.
+- **GapDashboard chart header overflow fix (mobile Rule 1)** — "Gap Period Analysis" card header was `flex justify-between` with range select + 3 tab buttons all in one row. Changed to `flex flex-col sm:flex-row` with `flex-wrap` on the controls side so elements stack on mobile instead of overflowing the card.
+- **Projection chart headers overflow fix (mobile Rule 1)** — all three chart card headers (Net Worth, Annual Cashflow, Investment Breakdown) changed to `flex flex-col sm:flex-row` pattern so the range select and tab buttons wrap below the heading on small screens.
+- **Sankey horizontal scroll (mobile Rule 3)** — Cashflow Flow section now wraps `<CashflowSankey>` in `overflow-x-auto` + inner `min-w-[540px]` div so the diagram can be scrolled left/right on mobile rather than being crushed.
+- **568 tests passing.**
 
 ### Session 21 — 2026-04-06
 
