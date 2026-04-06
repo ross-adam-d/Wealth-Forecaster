@@ -10,7 +10,9 @@ import { PRESERVATION_AGE } from '../constants/index.js'
 import { runSimulation } from '../engine/simulationEngine.js'
 import ChartFullscreen from '../components/ChartFullscreen.jsx'
 
-const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
+const isTouchDevice = typeof window !== 'undefined' && (
+  'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches
+)
 
 function getGapYears(snapshots, scenario) {
   const { personA, personB } = scenario.household

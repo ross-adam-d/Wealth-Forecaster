@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
-const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
+const isTouchDevice = typeof window !== 'undefined' && (
+  'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches
+)
 
 const CATEGORY_COLORS = {
   super:          '#0ea5e9',

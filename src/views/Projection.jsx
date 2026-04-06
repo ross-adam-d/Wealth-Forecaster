@@ -11,7 +11,9 @@ import InvestmentPieChart from '../components/InvestmentPieChart.jsx'
 import ChartFullscreen from '../components/ChartFullscreen.jsx'
 
 // Tooltips stick on touch devices — disable them
-const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches
+const isTouchDevice = typeof window !== 'undefined' && (
+  'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches
+)
 
 function fmt$(n) {
   if (n == null) return '—'
