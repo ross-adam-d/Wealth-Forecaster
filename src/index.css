@@ -55,50 +55,90 @@ html.light {
 }
 
 html.light body {
-  background-color: #f8fafc; /* slate-50 */
+  background-color: #f1f5f9; /* slate-100 — darker page so cards stand out */
   color: #111827; /* gray-900 */
 }
 
-/* ── Background overrides ── */
-html.light .bg-gray-950 { background-color: #f8fafc; } /* slate-50 — page bg */
+/* ── Neutral background overrides ── */
+html.light .bg-gray-950 { background-color: #f1f5f9; } /* slate-100 — page bg */
 html.light .bg-gray-900 { background-color: #ffffff; } /* white — cards, header */
-html.light .bg-gray-800 { background-color: #f1f5f9; } /* slate-100 — inputs, hover */
-html.light .bg-gray-700 { background-color: #e2e8f0; } /* slate-200 — active nav */
+html.light .bg-gray-800 { background-color: #f8fafc; } /* slate-50 — inputs, secondary surfaces */
+html.light .bg-gray-700 { background-color: #e2e8f0; } /* slate-200 — active nav item */
 
-html.light .hover\:bg-gray-800:hover { background-color: #f1f5f9; }
-html.light .hover\:bg-gray-800\/50:hover { background-color: rgba(241, 245, 249, 0.5); }
-html.light .hover\:bg-gray-700:hover { background-color: #e2e8f0; }
-html.light .hover\:border-gray-700:hover { border-color: #cbd5e1; }
+html.light .hover\:bg-gray-800:hover      { background-color: #f8fafc; }
+html.light .hover\:bg-gray-800\/50:hover  { background-color: rgba(248, 250, 252, 0.7); }
+html.light .hover\:bg-gray-800\/30:hover  { background-color: rgba(248, 250, 252, 0.6); }
+html.light .hover\:bg-gray-700:hover      { background-color: #e2e8f0; }
+html.light .hover\:border-gray-700:hover  { border-color: #94a3b8; }
 
-/* ── Text overrides ── */
+/* ── Neutral text overrides ── */
 html.light .text-white    { color: #111827; } /* gray-900 */
 html.light .text-gray-100 { color: #111827; }
 html.light .text-gray-200 { color: #1f2937; } /* gray-800 */
 html.light .text-gray-300 { color: #374151; } /* gray-700 */
-html.light .text-gray-400 { color: #4b5563; } /* gray-600 */
-/* gray-500 stays the same (#6b7280) — readable on both */
-html.light .text-gray-600 { color: #6b7280; } /* slightly lighter disclaimer text */
+html.light .text-gray-400 { color: #374151; } /* gray-700 — bumped for better label contrast */
+html.light .text-gray-500 { color: #4b5563; } /* gray-600 — was unchanged (#6b7280), too faint on light bg */
+html.light .text-gray-600 { color: #6b7280; } /* disclaimer/muted text */
 
 html.light .hover\:text-white:hover { color: #111827; }
 
-/* ── Border overrides ── */
-html.light .border-gray-800 { border-color: #e2e8f0; } /* slate-200 */
-html.light .border-gray-700 { border-color: #cbd5e1; } /* slate-300 */
+/* ── Neutral border overrides ── */
+html.light .border-gray-800    { border-color: #d1d5db; } /* gray-300 — was slate-200, more visible */
+html.light .border-gray-800\/50 { border-color: rgba(209, 213, 219, 0.6); }
+html.light .border-gray-700    { border-color: #94a3b8; } /* slate-400 — visible input borders */
+
+/* ── Status text overrides ──
+   Dark-mode palette (green-400 / amber-400 / red-400) has poor contrast on white.
+   Remap to accessible equivalents. */
+html.light .text-green-400  { color: #15803d; } /* green-700 */
+html.light .text-green-300  { color: #16a34a; } /* green-600 */
+html.light .text-green-500  { color: #15803d; } /* green-700 */
+html.light .text-amber-400  { color: #b45309; } /* amber-700 */
+html.light .text-amber-500  { color: #92400e; } /* amber-800 */
+html.light .text-red-400    { color: #dc2626; } /* red-600 */
+html.light .text-red-300    { color: #dc2626; } /* red-600 */
+html.light .text-red-200    { color: #b91c1c; } /* red-700 */
+html.light .text-red-100    { color: #7f1d1d; } /* red-900 — used in error banners */
+html.light .text-red-500    { color: #b91c1c; } /* red-700 */
+
+html.light .hover\:text-red-400:hover { color: #b91c1c; }
+html.light .hover\:text-red-300:hover { color: #dc2626; }
+
+/* ── Status background overrides ──
+   Dark-on-light: swap dark tinted backgrounds for light tinted equivalents. */
+html.light .bg-green-900\/50  { background-color: #dcfce7; } /* green-100 */
+html.light .bg-amber-900\/50  { background-color: #fef3c7; } /* amber-100 */
+html.light .bg-red-900\/50    { background-color: #fee2e2; } /* red-100 */
+html.light .bg-amber-900\/30  { background-color: #fef9c3; } /* yellow-100 */
+html.light .bg-green-900\/30  { background-color: #f0fdf4; } /* green-50 */
+html.light .bg-red-900\/30    { background-color: #fff1f2; } /* rose-50 */
+html.light .bg-red-950        { background-color: #fef2f2; } /* red-50 */
+html.light .bg-red-950\/40    { background-color: rgba(254, 242, 242, 0.7); }
+html.light .bg-red-900        { background-color: #fee2e2; } /* red-100 — error banner bg */
+html.light .bg-red-800        { background-color: #dc2626; } /* red-600 — keeps action button readable */
+html.light .hover\:bg-red-700:hover { background-color: #b91c1c; } /* red-700 */
+
+/* ── Status border overrides ── */
+html.light .border-green-800  { border-color: #86efac; } /* green-300 */
+html.light .border-amber-800  { border-color: #fcd34d; } /* amber-300 */
+html.light .border-red-800    { border-color: #fca5a5; } /* red-300 */
+html.light .border-red-600    { border-color: #f87171; } /* red-400 */
+html.light .border-red-500    { border-color: #ef4444; } /* red-500 */
 
 /* ── Component class overrides ── */
 html.light .card {
   background-color: #ffffff;
-  border-color: #e2e8f0;
+  border-color: #d1d5db; /* gray-300 — was slate-200, more visible against slate-100 page */
 }
 
 html.light .input {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
+  background-color: #ffffff; /* white — lifts off slate-50 secondary surfaces */
+  border-color: #94a3b8;    /* slate-400 — clearly visible input boundary */
   color: #111827;
 }
 
 html.light .input::placeholder {
-  color: #94a3b8;
+  color: #9ca3af; /* gray-400 */
 }
 
 html.light .btn-ghost {
@@ -111,10 +151,28 @@ html.light .btn-ghost:hover {
 }
 
 html.light .label {
-  color: #4b5563;
+  color: #374151; /* gray-700 — was gray-600, stronger label contrast */
 }
 
-/* ── Scrollbar (optional refinement) ── */
+html.light .badge-viable {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+html.light .badge-at-risk {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+html.light .badge-critical {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* ── Scrollbar ── */
 html.light ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }

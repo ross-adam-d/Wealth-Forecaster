@@ -894,7 +894,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   const isCash = e.target.value === 'cash'
                   onUpdate({
                     purchasedCash: isCash,
-                    ...(isCash ? { mortgageBalance: 0, loanTermYearsRemaining: 0, interestRate: 0, offsetBalance: 0, offsetAnnualTopUp: 0 } : {}),
+                    ...(isCash ? { mortgageBalance: 0, loanTermYearsRemaining: 0, interestRate: 0, offsetBalance: 0 } : {}),
                   })
                 }}
               >
@@ -2334,7 +2334,6 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           loanType: 'pi',
           ioEndYear: null,
           offsetBalance: 0,
-          offsetAnnualTopUp: 0,
           annualRentalIncome: 0,
           annualPropertyExpenses: 0,
           growthRate: 0.04,
@@ -2492,6 +2491,12 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             value={scenario.cashSavings ?? 0}
             onChange={v => updateScenario({ cashSavings: v })}
             hint="Included in liquidity and net worth. If linked to a mortgage offset account, mark that property's offset checkbox — this balance will reduce interest on that loan."
+          />
+          <CurrencyInput
+            label="Minimum cash buffer (emergency fund floor)"
+            value={scenario.minCashBuffer ?? 0}
+            onChange={v => updateScenario({ minCashBuffer: v })}
+            hint="The simulation will top up cash to this floor before routing surplus elsewhere, and will not draw cash below this level during a deficit — other assets are liquidated first."
           />
           <p className="text-xs text-gray-500">
             Cash earns no return in the model. Surplus cashflow accumulates here unless routed elsewhere via the Surplus Strategy.

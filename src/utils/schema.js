@@ -110,7 +110,6 @@ export function createDefaultProperty(isPrimary = false) {
     ioEndYear: null,
     hasOffset: false,
     offsetBalance: 0,
-    offsetAnnualTopUp: 0,
     annualRentalIncome: 0,
     annualPropertyExpenses: 0,
     growthRate: PROPERTY_GROWTH_RATE,
@@ -333,6 +332,7 @@ export function createDefaultScenario(name = 'Base Plan') {
       personB: createDefaultPerson('B'),
     },
     cashSavings: 0,             // current cash/savings account balance (liquid, earns 0%)
+    minCashBuffer: 0,           // minimum cash floor — maintained before surplus routing and protected from drawdown
     super: [
       createDefaultSuper('A'),
       createDefaultSuper('B'),

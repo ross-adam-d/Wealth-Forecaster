@@ -214,6 +214,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     surplusRoutingOrder,
     drawdownOrder: drawdownOrderInput,
     cashSavings: cashSavingsInput = 0,
+    minCashBuffer: minCashBuffer = 0,
   } = scenario
 
   const currentYear = new Date().getFullYear()
@@ -249,7 +250,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   let cashBuffer = (cashSavingsInput || 0) + initialOffsetBalance
   currentProperties = currentProperties.map(p => ({
     ...p,
-    hasOffset: p.hasOffset || (p.offsetBalance > 0) || (p.offsetAnnualTopUp > 0),
+    hasOffset: p.hasOffset || (p.offsetBalance > 0),
     offsetBalance: 0,
   }))
   let firstDeficitYear = null
@@ -832,6 +833,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       }
 
       let remaining = surplus
+
+      // Top up cash to minimum buffer floor before routing surplus elsewhere
+      if (minCashBuffer > 0 && cashBuffer < minCashBuffer) {
+        const topUp = Math.min(remaining, minCashBuffer - cashBuffer)
+        cashBuffer += topUp
+        remaining -= topUp
+      }
+
       for (const dest of effectiveRoutingOrder) {
         if (remaining <= 0) break
         if (dest === SURPLUS_DESTINATIONS.OFFSET) {
@@ -937,7 +946,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         if (remaining <= 0) break
 
         if (source === DRAWDOWN_SOURCES.CASH) {
-          const fromCash = Math.min(remaining, Math.max(0, cashBuffer))
+          const availableCash = Math.max(0, cashBuffer - minCashBuffer)
+          const fromCash = Math.min(remaining, availableCash)
           cashBuffer -= fromCash
           remaining -= fromCash
           cashDrawdown += fromCash
@@ -1153,8 +1163,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       currentCommodities.currentValue +
       bondLiquidity +
       totalOtherAssetsDrawdownable +
-      (superA_result.inPensionPhase ? superA.currentBalance : 0) +
-      (superB_result.inPensionPhase ? superB.currentBalance : 0)
+      (!superA_result.isLocked ? superA.currentBalance : 0) +
+      (!superB_result.isLocked ? superB.currentBalance : 0)
 
     const totalNetWorth =
       totalLiquidAssets +

@@ -60,14 +60,13 @@ function calcGapViability(gapSnapshots) {
 }
 
 function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
-  const fmt = (n) => `$${Math.abs(Math.round(n / 1000))}k`
   const stressLabel = stressed ? ' (stressed)' : ''
 
   if (status === 'viable') {
     return (
       <span className="badge-viable">
         <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-        GAP VIABLE — {fmt(buffer)} buffer at preservation age{stressLabel}
+        GAP VIABLE — {fmt$(buffer)} buffer at preservation age{stressLabel}
       </span>
     )
   }
@@ -75,7 +74,7 @@ function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
     return (
       <span className="badge-at-risk">
         <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-        GAP AT RISK — buffer drops to {fmt(buffer)}{stressLabel}
+        GAP AT RISK — buffer drops to {fmt$(buffer)}{stressLabel}
       </span>
     )
   }
@@ -165,6 +164,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const [showPartTime, setShowPartTime] = useState(false)
   const [chartView, setChartView] = useState('breakdown')    // 'breakdown' | 'total' | 'cashflow'
   const [gapChartRange, setGapChartRange] = useState('full')
+  const [tableOpen, setTableOpen] = useState(true)
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
   const gapCurrentYearForTransform = new Date().getFullYear()
@@ -267,7 +267,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                   depleted by <span className="text-red-200 font-bold">{first.year}</span>
                   {first.ageA != null && <> (age {first.ageA}{first.ageB != null ? `/${first.ageB}` : ''})</>}.
                   {deficitSnaps.length > 1 && <> The plan runs {deficitSnaps.length} years in deficit.</>}
-                  {cumulative > 0 && <> Cumulative shortfall: <span className="text-red-200 font-bold">${Math.round(cumulative / 1000)}k</span>.</>}
+                  {cumulative > 0 && <> Cumulative shortfall: <span className="text-red-200 font-bold">{fmt$(cumulative)}</span>.</>}
                 </p>
                 <p className="text-red-500 text-xs mt-3">
                   To make this plan viable: delay retirement, reduce expenses, increase savings rate, or adjust asset allocation.
@@ -497,10 +497,17 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
       {/* Year-by-year cashflow table */}
       {activeGapSnapshots.length > 0 && (
         <div className="card overflow-x-auto">
-          <h2 className="text-sm font-semibold text-gray-300 mb-4">
-            Year-by-Year Cashflow — Gap Period
-            {isStressed && <span className="ml-2 text-xs text-amber-400 font-normal">(stressed scenario)</span>}
-          </h2>
+          <button
+            className="flex items-center justify-between w-full text-left"
+            onClick={() => setTableOpen(o => !o)}
+          >
+            <h2 className="text-sm font-semibold text-gray-300">
+              Year-by-Year Cashflow — Gap Period
+              {isStressed && <span className="ml-2 text-xs text-amber-400 font-normal">(stressed scenario)</span>}
+            </h2>
+            <span className="text-gray-500 text-xs ml-4 flex-shrink-0">{tableOpen ? '▾' : '▸'}</span>
+          </button>
+          {tableOpen && <div className="mt-4">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
@@ -539,6 +546,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
               })}
             </tbody>
           </table>
+          </div>}
         </div>
       )}
 

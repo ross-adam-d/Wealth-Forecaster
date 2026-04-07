@@ -184,41 +184,13 @@ function extractEvents(scenario, snapshots) {
   return events
 }
 
-/**
- * Assign stagger levels (0, 1, 2) to avoid label overlap.
- * Events within PROXIMITY of each other on the timeline get offset
- * to different vertical tiers with callout lines.
- */
-function assignStaggerLevels(events) {
-  if (events.length === 0) return []
-  const PROXIMITY = 2 // years — events closer than this get staggered
-
-  const result = events.map(e => ({ ...e, level: 0 }))
-  for (let i = 1; i < result.length; i++) {
-    // Check against previous events that are within proximity
-    const nearbyLevels = new Set()
-    for (let j = i - 1; j >= 0 && result[i].sortKey - result[j].sortKey < PROXIMITY; j--) {
-      nearbyLevels.add(result[j].level)
-    }
-    // Pick lowest available level
-    let level = 0
-    while (nearbyLevels.has(level)) level++
-    result[i].level = level
-  }
-  return result
-}
-
-const CALLOUT_HEIGHTS = [0, 24, 48]  // px offset per stagger level
+// Vertical clearance for labels above and below the dot row
+const LABEL_CLEARANCE = 22 // px
 
 export default function LifeEventsTimeline({ scenario, snapshots }) {
   const events = useMemo(() => extractEvents(scenario, snapshots), [scenario, snapshots])
-  const staggered = useMemo(() => assignStaggerLevels(events), [events])
 
-  if (staggered.length === 0) return null
-
-  const maxLevel = Math.max(...staggered.map(e => e.level))
-  // Extra top padding for callout lines
-  const topPadding = maxLevel > 0 ? CALLOUT_HEIGHTS[Math.min(maxLevel, 2)] + 20 : 0
+  if (events.length === 0) return null
 
   return (
     <div className="card overflow-x-auto">
@@ -226,65 +198,62 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
 
       <div
         className="relative min-w-max px-2"
-        style={{ paddingTop: `${topPadding}px`, paddingBottom: '4px' }}
+        style={{ paddingTop: `${LABEL_CLEARANCE}px`, paddingBottom: `${LABEL_CLEARANCE}px` }}
       >
-        {/* Horizontal track line — sits at the dot level */}
         <div className="flex items-center gap-0">
-          {staggered.map((evt, i) => (
-            <div key={`${evt.sortKey}-${evt.label}`} className="flex items-center">
-              {/* Column for this event */}
-              <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '76px' }}>
-                {/* Callout line + label above dot */}
-                <div
-                  className="absolute flex flex-col items-center z-20"
-                  style={{
-                    bottom: '30px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                  }}
-                >
-                  {/* Label */}
-                  <p
-                    className="text-[10px] font-medium whitespace-nowrap"
-                    style={{
-                      color: evt.color,
-                      marginBottom: '2px',
-                      transform: `translateY(-${CALLOUT_HEIGHTS[Math.min(evt.level, 2)]}px)`,
-                    }}
-                  >
-                    {evt.label}
-                  </p>
-                  {/* Callout line — only visible when staggered */}
-                  {evt.level > 0 && (
-                    <div
-                      className="w-px absolute"
+          {events.map((evt, i) => {
+            // Alternate labels above (even) and below (odd)
+            const above = i % 2 === 0
+            return (
+              <div key={`${evt.sortKey}-${evt.label}`} className="flex items-center">
+                <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '76px' }}>
+                  {/* Label above dot */}
+                  {above && (
+                    <p
+                      className="absolute text-[10px] font-medium whitespace-nowrap"
                       style={{
-                        backgroundColor: evt.color,
-                        opacity: 0.3,
-                        height: `${CALLOUT_HEIGHTS[Math.min(evt.level, 2)]}px`,
-                        bottom: '0px',
+                        color: evt.color,
+                        bottom: '30px',
                         left: '50%',
                         transform: 'translateX(-50%)',
                       }}
-                    />
+                    >
+                      {evt.label}
+                    </p>
+                  )}
+
+                  {/* Dot */}
+                  <div
+                    className="w-3 h-3 rounded-full border-2 border-gray-900 flex-shrink-0 relative z-10"
+                    style={{ backgroundColor: evt.color }}
+                  />
+
+                  {/* Date below dot */}
+                  <p className="text-[10px] text-gray-500 mt-1">{evt.display}</p>
+
+                  {/* Label below date */}
+                  {!above && (
+                    <p
+                      className="absolute text-[10px] font-medium whitespace-nowrap"
+                      style={{
+                        color: evt.color,
+                        top: '30px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                      }}
+                    >
+                      {evt.label}
+                    </p>
                   )}
                 </div>
 
-                {/* Dot */}
-                <div
-                  className="w-3 h-3 rounded-full border-2 border-gray-900 flex-shrink-0 relative z-10"
-                  style={{ backgroundColor: evt.color }}
-                />
-                {/* Date below */}
-                <p className="text-[10px] text-gray-500 mt-1">{evt.display}</p>
+                {/* Connector line */}
+                {i < events.length - 1 && (
+                  <div className="h-px bg-gray-700 flex-shrink-0" style={{ width: '14px' }} />
+                )}
               </div>
-
-              {/* Connector line */}
-              {i < staggered.length - 1 && (
-                <div className="h-px bg-gray-700 flex-shrink-0" style={{ width: '14px' }} />
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
