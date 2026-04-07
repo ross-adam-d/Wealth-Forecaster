@@ -118,6 +118,21 @@
 
 ## Session Log
 
+### Session 28 — 2026-04-08
+
+**What was done:**
+- **Gap "no gap" state** — `getGapYears` detects `noGap: true` when `gapStart >= gapEnd` (earliest retirement ≥ preservation age — super already accessible). New `no_gap` status in `ViabilityBadge`: green badge "NO GAP — super accessible at retirement". Header subtitle explains the situation. Chart area replaced with a green ✓ and explanation ("No gap period — you retire after super preservation age") instead of "Enter household details". Previously this scenario showed a false "enter household details" error.
+- **Sankey text readability overhaul** — dropped node-colored text + dark paint-order stroke (made text bold in light mode, still unreadable in dark). Labels now use theme-aware neutral grays: dark mode `#d1d5db` / `#9ca3af`, light mode `#374151` / `#6b7280`. Node color rect still shows category identity. Text is consistently legible in both modes regardless of ribbon color.
+- **Light mode contrast overhaul** — deeper page background `#dde3eb` (between slate-200/300) so white cards visually lift off. Card `box-shadow: 0 1px 3px rgba(0,0,0,0.07)` added — key depth cue. Card border → slate-300 `#cbd5e1`. Input bg → slate-100. Info tile bg → `#e8edf3`. Hover states shifted down scale to match. Palette unchanged; contrast and "pop" significantly improved.
+- **568 tests passing.**
+
+### Session 27 — 2026-04-08
+
+**What was done:**
+- **Full-bleed tables on Projection + Gap** — Projection liquidity table and GapDashboard cashflow table converted from `card overflow-x-auto` to borderless `rounded-xl overflow-hidden` wrapper, matching the Assumptions page style. Inner `overflow-x-auto` on the table div only. Responsive padding (`px-2 sm:px-3`), lighter row borders (`border-gray-800/50`).
+- **Compare real/nominal fix** — Metrics table was displaying raw nominal values regardless of Today's $ toggle (chart was correctly transformed). Fix: `computeResult` now stores `lastYear` and `peakYear`. METRICS entries gain `yearKey` (`retirementYear` / `lastYear` / `peakYear`). Render applies `transform(val, year)` for each monetary metric. Delta summary at bottom also transformed. Non-monetary metrics (years, counts) unaffected.
+- **568 tests passing.**
+
 ### Session 26 — 2026-04-07
 
 **What was done:**
