@@ -27,7 +27,10 @@ function getGapYears(snapshots, scenario) {
   const gapStart = Math.min(retireYearA || Infinity, retireYearB || Infinity)
   const gapEnd = Math.max(preserveYearA || -Infinity, preserveYearB || -Infinity)
 
-  if (!isFinite(gapStart) || !isFinite(gapEnd)) return { gapSnapshots: [], gapStart: null, gapEnd: null, preserveYearA, preserveYearB }
+  if (!isFinite(gapStart) || !isFinite(gapEnd)) return { gapSnapshots: [], gapStart: null, gapEnd: null, preserveYearA, preserveYearB, noGap: false }
+
+  // No gap: earliest retirement is at or after preservation age — super already accessible
+  if (gapStart >= gapEnd) return { gapSnapshots: [], gapStart, gapEnd, preserveYearA, preserveYearB, noGap: true }
 
   return {
     gapSnapshots: snapshots.filter(s => s.year >= gapStart && s.year <= gapEnd),
@@ -35,6 +38,7 @@ function getGapYears(snapshots, scenario) {
     gapEnd,
     preserveYearA,
     preserveYearB,
+    noGap: false,
   }
 }
 
@@ -66,6 +70,14 @@ function calcGapViability(gapSnapshots) {
 function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
   const stressLabel = stressed ? ' (stressed)' : ''
 
+  if (status === 'no_gap') {
+    return (
+      <span className="badge-viable">
+        <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+        NO GAP — super accessible at retirement
+      </span>
+    )
+  }
   if (status === 'viable') {
     return (
       <span className="badge-viable">
@@ -191,7 +203,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const transform = (value, year) => applyRealNominal(value, year, gapCurrentYearForTransform, gapInflationRate, displayReal)
 
   // Base gap data
-  const { gapSnapshots, gapStart, gapEnd, preserveYearA, preserveYearB } = useMemo(
+  const { gapSnapshots, gapStart, gapEnd, preserveYearA, preserveYearB, noGap } = useMemo(
     () => getGapYears(snapshots, scenario),
     [snapshots, scenario]
   )
@@ -213,7 +225,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
 
   const activeGapSnapshots = (isStressed && stressedGapSnapshots) ? stressedGapSnapshots : gapSnapshots
 
-  const viability = useMemo(() => calcGapViability(activeGapSnapshots), [activeGapSnapshots])
+  const viability = useMemo(() => noGap ? { status: 'no_gap', buffer: 0 } : calcGapViability(activeGapSnapshots), [activeGapSnapshots, noGap])
 
   // Index base snapshots by year for delta column
   const baseByYear = useMemo(() => {
@@ -261,9 +273,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
             <TutorialButton onClick={() => setShowTutorial(true)} />
           </div>
           <p className="text-gray-400 text-sm mt-1">
-            {gapStart && gapEnd
-              ? `${gapStart} — ${gapEnd} · ${gapEnd - gapStart} years before super unlocks`
-              : 'Enter retirement ages and dates of birth to see the gap period'}
+            {noGap
+              ? `Retire at ${gapStart} — super already accessible (preservation age ${gapEnd})`
+              : gapStart && gapEnd
+                ? `${gapStart} — ${gapEnd} · ${gapEnd - gapStart} years before super unlocks`
+                : 'Enter retirement ages and dates of birth to see the gap period'}
           </p>
         </div>
         <ViabilityBadge status={viability.status} buffer={viability.buffer} stressed={isStressed} deficitCount={viability.deficitCount} />
@@ -398,6 +412,14 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
               </div>
             )}
           </ChartFullscreen>
+        ) : noGap ? (
+          <div className="h-[340px] flex flex-col items-center justify-center gap-3 text-center px-6">
+            <span className="text-green-400 text-4xl">✓</span>
+            <p className="text-gray-300 font-medium">No gap period — you retire after super preservation age</p>
+            <p className="text-gray-500 text-sm max-w-md">
+              Super is already accessible when you retire. There is no window where you need to fund living expenses without super. Use the Projection tab to review your full financial picture.
+            </p>
+          </div>
         ) : (
           <div className="h-[340px] flex items-center justify-center text-gray-600">
             Enter household details to see gap runway

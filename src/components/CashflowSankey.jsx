@@ -87,6 +87,10 @@ function NodeLabel({ n, side }) {
   const lx  = isLeft ? LEFT_X - 8 : RIGHT_X + NODE_W + 8
   const anchor = isLeft ? 'end' : 'start'
   const nx  = isLeft ? LEFT_X : RIGHT_X
+  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
+  // Use neutral readable colors instead of node color — node rect already shows category color
+  const labelFill  = isLight ? '#374151' : '#d1d5db'   // gray-700 / gray-300
+  const valueFill  = isLight ? '#6b7280' : '#9ca3af'   // gray-500 / gray-400
 
   return (
     <g>
@@ -94,8 +98,7 @@ function NodeLabel({ n, side }) {
       <text
         x={lx} y={n.h >= 18 ? n.y + n.h / 2 - 5 : n.y + n.h / 2}
         textAnchor={anchor} dominantBaseline="middle"
-        fill={n.color} fontSize={10} fontFamily="system-ui, sans-serif"
-        stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"
+        fill={labelFill} fontSize={10} fontFamily="system-ui, sans-serif"
       >
         {n.label}
       </text>
@@ -103,8 +106,7 @@ function NodeLabel({ n, side }) {
         <text
           x={lx} y={n.y + n.h / 2 + 9}
           textAnchor={anchor} dominantBaseline="middle"
-          fill={n.color} fontSize={9} fontFamily="system-ui, sans-serif"
-          stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"
+          fill={valueFill} fontSize={9} fontFamily="system-ui, sans-serif"
         >
           {fmt$(n.value)}
         </text>
@@ -113,8 +115,7 @@ function NodeLabel({ n, side }) {
         <text
           x={lx} y={n.y + n.h / 2}
           textAnchor={anchor} dominantBaseline="middle"
-          fill={n.color} fontSize={9} fontFamily="system-ui, sans-serif"
-          stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"
+          fill={valueFill} fontSize={9} fontFamily="system-ui, sans-serif"
         >
           {'  '}{fmt$(n.value)}
         </text>
