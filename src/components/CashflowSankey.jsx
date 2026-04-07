@@ -95,6 +95,7 @@ function NodeLabel({ n, side }) {
         x={lx} y={n.h >= 18 ? n.y + n.h / 2 - 5 : n.y + n.h / 2}
         textAnchor={anchor} dominantBaseline="middle"
         fill={n.color} fontSize={10} fontFamily="system-ui, sans-serif"
+        stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"
       >
         {n.label}
       </text>
@@ -102,7 +103,8 @@ function NodeLabel({ n, side }) {
         <text
           x={lx} y={n.y + n.h / 2 + 9}
           textAnchor={anchor} dominantBaseline="middle"
-          fill={n.color} fontSize={9} opacity={0.65} fontFamily="system-ui, sans-serif"
+          fill={n.color} fontSize={9} fontFamily="system-ui, sans-serif"
+          stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"
         >
           {fmt$(n.value)}
         </text>
@@ -111,7 +113,8 @@ function NodeLabel({ n, side }) {
         <text
           x={lx} y={n.y + n.h / 2}
           textAnchor={anchor} dominantBaseline="middle"
-          fill={n.color} fontSize={9} opacity={0.65} fontFamily="system-ui, sans-serif"
+          fill={n.color} fontSize={9} fontFamily="system-ui, sans-serif"
+          stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"
         >
           {'  '}{fmt$(n.value)}
         </text>

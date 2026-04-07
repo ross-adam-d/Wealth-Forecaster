@@ -11,12 +11,12 @@ function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1
   const display = type === 'pct' ? `${(value * 100).toFixed(1)}%` : `${value}`
 
   return (
-    <tr className="border-b border-gray-800/50">
-      <td className="py-3 px-4 text-sm">
+    <tr className="border-b border-gray-800/30">
+      <td className="py-3 px-2 sm:px-4 text-sm">
         <span className="text-gray-300">{label}</span>
         {hint && <span className="block text-xs text-gray-600 mt-0.5">{hint}</span>}
       </td>
-      <td className="py-3 px-4 text-right">
+      <td className="py-3 px-2 sm:px-4 text-right">
         {field ? (
           <div className="flex items-center justify-end gap-2">
             <input
@@ -26,7 +26,7 @@ function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1
               step={step ?? (type === 'pct' ? 0.001 : 1)}
               value={value}
               onChange={e => onUpdate({ [field]: Number(e.target.value) })}
-              className="w-32 accent-brand-500"
+              className="w-24 sm:w-32 accent-brand-500"
             />
             <span className="text-white text-sm font-mono w-14 text-right">{display}</span>
           </div>
@@ -40,8 +40,8 @@ function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1
 
 function SectionHeader({ label }) {
   return (
-    <tr className="bg-gray-800/20">
-      <td colSpan={2} className="py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</td>
+    <tr className="bg-gray-800/15">
+      <td colSpan={2} className="py-2 px-2 sm:px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</td>
     </tr>
   )
 }
@@ -97,12 +97,12 @@ export default function Assumptions({ scenario, updateScenario }) {
         </div>
       </div>
 
-      <div className="card overflow-x-auto p-0">
+      <div className="rounded-xl overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-gray-800 bg-gray-800/30">
-              <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assumption</th>
-              <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Value</th>
+            <tr className="border-b border-gray-800/50">
+              <th className="text-left py-3 px-2 sm:px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assumption</th>
+              <th className="text-right py-3 px-2 sm:px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Value</th>
             </tr>
           </thead>
           <tbody>

@@ -23,6 +23,17 @@ function fmt$(n) {
   return `$${Math.round(n)}`
 }
 
+function SimpleTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const total = payload.reduce((s, p) => s + Math.max(0, p.value || 0), 0)
+  return (
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '6px 10px' }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: 0 }}>{label}</p>
+      <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{fmt$(total)}</p>
+    </div>
+  )
+}
+
 function applyRealNominal(value, year, currentYear, inflationRate, isReal) {
   if (!isReal || value == null) return value
   const years = year - currentYear
@@ -392,11 +403,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="debts"          stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOpDebt} name="Other debts" />
+                      <Area type="monotone" dataKey="debts"          stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Other debts" />
                       <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
                       <Area type="monotone" dataKey="bonds"          stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={fillOp} name="Tax-Def. Bonds" />
                       <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={fillOp} name="Other Assets" />
@@ -404,14 +415,14 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
                       <Area type="monotone" dataKey="shares"         stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={fillOp} name="Shares" />
                       <Area type="monotone" dataKey="property"       stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={fillOp} name="Property (equity)" />
-                      <Area type="monotone" dataKey="super"          stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOp} name="Super" />
+                      <Area type="monotone" dataKey="super"          stackId="1" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={fillOp} name="Super" />
                     </AreaChart>
                   ) : netWorthView === 'liquidity' ? (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                       <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Liquid assets" />
@@ -420,8 +431,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                       <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
@@ -430,8 +441,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       <Area type="monotone" dataKey="liqComm"   stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
                       <Area type="monotone" dataKey="liqTB"     stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
                       <Area type="monotone" dataKey="liqShares" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={fillOp} name="Shares" />
-                      <Area type="monotone" dataKey="superA"    stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={fillOp} name="Super A (unlocked)" />
-                      <Area type="monotone" dataKey="superB"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOp} name="Super B (unlocked)" />
+                      <Area type="monotone" dataKey="superA"    stackId="1" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={fillOp} name="Super A (unlocked)" />
+                      <Area type="monotone" dataKey="superB"    stackId="1" stroke="#38bdf8" fill="#38bdf8" fillOpacity={fillOp} name="Super B (unlocked)" />
                     </AreaChart>
                   )}
                 </ResponsiveContainer>
@@ -490,8 +501,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income" />
                       <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Outflows" />
@@ -501,41 +512,41 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
-                      <Bar dataKey="salaryA"  stackId="1" fill="#34d399" fillOpacity={0.8} name={`${personAName} salary`} />
-                      <Bar dataKey="salaryB"  stackId="1" fill="#6ee7b7" fillOpacity={0.8} name={`${personBName} salary`} />
-                      <Bar dataKey="superDraw" stackId="1" fill="#fb923c" fillOpacity={0.8} name="Super drawdown" />
-                      <Bar dataKey="pension"  stackId="1" fill="#fbbf24" fillOpacity={0.8} name="Age Pension" />
+                      <Bar dataKey="salaryA"   stackId="1" fill="#34d399" fillOpacity={0.8} name={`${personAName} salary`} />
+                      <Bar dataKey="salaryB"   stackId="1" fill="#6ee7b7" fillOpacity={0.8} name={`${personBName} salary`} />
+                      <Bar dataKey="superDraw" stackId="1" fill="#0ea5e9" fillOpacity={0.8} name="Super drawdown" />
+                      <Bar dataKey="pension"   stackId="1" fill="#fbbf24" fillOpacity={0.8} name="Age Pension" />
                       <Bar dataKey="dividends" stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Dividends" />
-                      <Bar dataKey="rental"   stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Net rental" />
-                      <Bar dataKey="otherInc" stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other income" />
-                      <Bar dataKey="propSale" stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Property sale" />
+                      <Bar dataKey="rental"    stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Net rental" />
+                      <Bar dataKey="otherInc"  stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other income" />
+                      <Bar dataKey="propSale"  stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Property sale" />
                     </BarChart>
                   ) : cashflowView === 'expenses' ? (
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
-                      <Bar dataKey="livingExp"     stackId="1" fill="#f87171" fillOpacity={0.8} name="Living expenses" />
-                      <Bar dataKey="tax"           stackId="1" fill="#ef4444" fillOpacity={0.6} name="Tax" />
-                      <Bar dataKey="mortgageExp"   stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Mortgage" />
-                      <Bar dataKey="debtExp"       stackId="1" fill="#fb923c" fillOpacity={0.7} name="Debt repay" />
-                      <Bar dataKey="investContrib" stackId="1" fill="#a78bfa" fillOpacity={0.6} name="Invest. contrib" />
+                      <Bar dataKey="livingExp"          stackId="1" fill="#f87171" fillOpacity={0.8} name="Living expenses" />
+                      <Bar dataKey="tax"                stackId="1" fill="#ef4444" fillOpacity={0.6} name="Tax" />
+                      <Bar dataKey="mortgageExp"        stackId="1" fill="#fbbf24" fillOpacity={0.7} name="Mortgage" />
+                      <Bar dataKey="debtExp"            stackId="1" fill="#fb923c" fillOpacity={0.7} name="Debt repay" />
+                      <Bar dataKey="investContrib"      stackId="1" fill="#a78bfa" fillOpacity={0.6} name="Invest. contrib" />
                       <Bar dataKey="saleProceedsRouted" stackId="1" fill="#c084fc" fillOpacity={0.6} name="Sale → invest" />
-                      <Bar dataKey="leaseExp"      stackId="1" fill="#94a3b8" fillOpacity={0.6} name="Novated lease" />
+                      <Bar dataKey="leaseExp"           stackId="1" fill="#94a3b8" fillOpacity={0.6} name="Novated lease" />
                     </BarChart>
                   ) : (
                     <ComposedChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                       <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />}
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <Tooltip content={<SimpleTooltip />} />
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
@@ -575,8 +586,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                   <BarChart data={rangeFilter(netWorthData, investRange)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                     <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                    <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                    {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                    <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                    <Tooltip content={<SimpleTooltip />} />
                     <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                     {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                     <Bar dataKey="liqCash"       stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
@@ -585,12 +596,12 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     <Bar dataKey="liqComm"       stackId="1" fill="#f472b6" fillOpacity={0.7} name="Commodities" />
                     <Bar dataKey="liqTB"         stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Treasury Bonds" />
                     <Bar dataKey="liqShares"     stackId="1" fill="#34d399" fillOpacity={0.7} name="Shares" />
-                    <Bar dataKey="superA"        stackId="1" fill="#f59e0b" fillOpacity={0.7} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
-                    <Bar dataKey="superB"        stackId="1" fill="#fb923c" fillOpacity={0.7} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+                    <Bar dataKey="superA"        stackId="1" fill="#0ea5e9" fillOpacity={0.7} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+                    <Bar dataKey="superB"        stackId="1" fill="#38bdf8" fillOpacity={0.7} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
                     <Bar dataKey="preTenYrBonds" stackId="1" fill="#a78bfa" fillOpacity={0.3} name="Bonds (pre-10yr)" />
                     <Bar dataKey="propertyEq"    stackId="1" fill="#f59e0b" fillOpacity={0.3} name="Property equity" />
-                    <Bar dataKey="lockedSuperA"  stackId="1" fill="#f59e0b" fillOpacity={0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
-                    <Bar dataKey="lockedSuperB"  stackId="1" fill="#fb923c" fillOpacity={0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+                    <Bar dataKey="lockedSuperA"  stackId="1" fill="#0ea5e9" fillOpacity={0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+                    <Bar dataKey="lockedSuperB"  stackId="1" fill="#38bdf8" fillOpacity={0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

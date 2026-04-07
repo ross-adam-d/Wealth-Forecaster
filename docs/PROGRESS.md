@@ -118,6 +118,18 @@
 
 ## Session Log
 
+### Session 26 — 2026-04-07
+
+**What was done:**
+- **Chart color deduplication** — `super` was `#fb923c` (same as `debts`), `superA` was `#f59e0b` (same as `property`). Fixed throughout Projection.jsx and GapDashboard.jsx: super/superA → `#0ea5e9` (sky blue), superB → `#38bdf8` (sky-400 lighter). `debts` changed to `#f87171` (red) to separate from orange debt/mortgage category. `mortgageExp` → `#fbbf24` (amber-400), `debtExp` → `#fb923c` (orange).
+- **Touch tooltips re-enabled** — `SimpleTooltip` component added to Projection.jsx and GapDashboard.jsx. Shows year + sum of positive values. Replaces `!isTouchDevice && <Tooltip>` pattern — now always renders. Works on mobile tap and desktop hover.
+- **Mobile Y-axis width** — all `<YAxis>` elements in Projection.jsx and GapDashboard.jsx gain `width={isTouchDevice ? 40 : 56}` reducing wasted axis space on mobile.
+- **Sankey text visibility** — NodeLabel text elements gain `stroke="rgba(0,0,0,0.75)" strokeWidth="3" paintOrder="stroke"` on both label and value lines. Dark halo ensures text readable on any ribbon color or background.
+- **Assumptions page full-bleed** — removed `card overflow-x-auto` wrapper, replaced with plain `rounded-xl overflow-hidden`. Row borders lightened (`border-gray-800/30`). Slider shortened to `w-24 sm:w-32`. All padding made responsive (`px-2 sm:px-4`). Section headers reduced to `bg-gray-800/15`. No more horizontal scroll on mobile with 3-column layout.
+- **Gap viable badge** — `calcGapViability` now excludes the preservation-year snapshot (where super unlocks, inflating liquidAssets). "Viable" buffer now shows minimum pre-super liquid assets during gap, not total at preservation. Badge text: "pre-super liquidity stays above $X". Consistent with at_risk/critical metrics.
+- **Lease/FBT tiles light mode** — added `html.light .bg-gray-800\/50` → `#f1f5f9` (slate-100) to index.css; also `bg-gray-800/20`, `bg-gray-800/15`, `bg-gray-800/30` overrides. Info tiles in HouseholdProfile (lease payment breakdown, FBT calculation) now readable in light mode.
+- **568 tests passing.**
+
 ### Session 24 — 2026-04-07
 
 **What was done:**

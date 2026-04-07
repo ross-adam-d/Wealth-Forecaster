@@ -41,22 +41,26 @@ function getGapYears(snapshots, scenario) {
 function calcGapViability(gapSnapshots) {
   if (!gapSnapshots.length) return { status: 'unknown', buffer: 0 }
 
-  const deficitSnaps = gapSnapshots.filter(s => s.isDeficit)
-  const minLiquidity = Math.min(...gapSnapshots.map(s => s.totalLiquidAssets))
-  const finalLiquidity = gapSnapshots[gapSnapshots.length - 1]?.totalLiquidAssets || 0
+  // Exclude the preservation year snapshot — at that point super unlocks, inflating liquidAssets.
+  // We want to measure pre-super liquidity only.
+  const prePreservation = gapSnapshots.slice(0, -1)
+  const measureSnaps = prePreservation.length > 0 ? prePreservation : gapSnapshots
+
+  const deficitSnaps = measureSnaps.filter(s => s.isDeficit)
+  const minLiquidity = Math.min(...measureSnaps.map(s => s.totalLiquidAssets))
 
   if (deficitSnaps.length > 0 || minLiquidity < 0) {
     return {
       status: 'critical',
       buffer: minLiquidity,
-      worstYear: gapSnapshots.find(s => s.totalLiquidAssets === minLiquidity)?.year,
+      worstYear: measureSnaps.find(s => s.totalLiquidAssets === minLiquidity)?.year,
       deficitCount: deficitSnaps.length,
     }
   }
   if (minLiquidity < 50_000) {
     return { status: 'at_risk', buffer: minLiquidity }
   }
-  return { status: 'viable', buffer: finalLiquidity }
+  return { status: 'viable', buffer: minLiquidity }
 }
 
 function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
@@ -66,7 +70,7 @@ function ViabilityBadge({ status, buffer, stressed, deficitCount }) {
     return (
       <span className="badge-viable">
         <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-        GAP VIABLE — {fmt$(buffer)} buffer at preservation age{stressLabel}
+        GAP VIABLE — pre-super liquidity stays above {fmt$(buffer)}{stressLabel}
       </span>
     )
   }
@@ -112,8 +116,19 @@ const AREA_COLORS = {
   cash: '#60a5fa',
   shares: '#34d399',
   bonds: '#a78bfa',
-  superA: '#f59e0b',
-  superB: '#fb923c',
+  superA: '#0ea5e9',
+  superB: '#38bdf8',
+}
+
+function SimpleTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const total = payload.reduce((s, p) => s + Math.max(0, p.value || 0), 0)
+  return (
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '6px 10px' }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: 0 }}>{label}</p>
+      <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{fmt$(total)}</p>
+    </div>
+  )
 }
 
 function fmt$(n) {
@@ -336,8 +351,8 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                       <AreaChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                         <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        <Tooltip content={<SimpleTooltip />} />
                         <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                         <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Mortgage debt" />
                         <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOpDebt} name="Other debts" />
@@ -355,8 +370,8 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                       <AreaChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                         <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        <Tooltip content={<SimpleTooltip />} />
                         <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                         <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Total liquid assets" strokeWidth={2} />
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
@@ -367,8 +382,8 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                       <ComposedChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                         <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        <Tooltip content={<SimpleTooltip />} />
                         <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                         <Bar dataKey="income" name="Income (after tax)" fill="#0ea5e9" fillOpacity={0.75} radius={[2, 2, 0, 0]} />

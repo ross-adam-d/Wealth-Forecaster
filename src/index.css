@@ -63,6 +63,10 @@ html.light body {
 html.light .bg-gray-950 { background-color: #f1f5f9; } /* slate-100 — page bg */
 html.light .bg-gray-900 { background-color: #ffffff; } /* white — cards, header */
 html.light .bg-gray-800 { background-color: #f8fafc; } /* slate-50 — inputs, secondary surfaces */
+html.light .bg-gray-800\/50 { background-color: #f1f5f9; } /* slate-100 — info tiles (lease/FBT breakdown) */
+html.light .bg-gray-800\/20 { background-color: rgba(241, 245, 249, 0.6); }
+html.light .bg-gray-800\/15 { background-color: rgba(241, 245, 249, 0.5); }
+html.light .bg-gray-800\/30 { background-color: rgba(241, 245, 249, 0.7); }
 html.light .bg-gray-700 { background-color: #e2e8f0; } /* slate-200 — active nav item */
 
 html.light .hover\:bg-gray-800:hover      { background-color: #f8fafc; }
