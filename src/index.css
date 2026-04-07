@@ -55,24 +55,24 @@ html.light {
 }
 
 html.light body {
-  background-color: #f1f5f9; /* slate-100 — darker page so cards stand out */
+  background-color: #dde3eb; /* slate-200-ish — deeper base so white cards lift off clearly */
   color: #111827; /* gray-900 */
 }
 
 /* ── Neutral background overrides ── */
-html.light .bg-gray-950 { background-color: #f1f5f9; } /* slate-100 — page bg */
+html.light .bg-gray-950 { background-color: #dde3eb; } /* deep page bg */
 html.light .bg-gray-900 { background-color: #ffffff; } /* white — cards, header */
-html.light .bg-gray-800 { background-color: #f8fafc; } /* slate-50 — inputs, secondary surfaces */
-html.light .bg-gray-800\/50 { background-color: #f1f5f9; } /* slate-100 — info tiles (lease/FBT breakdown) */
-html.light .bg-gray-800\/20 { background-color: rgba(241, 245, 249, 0.6); }
-html.light .bg-gray-800\/15 { background-color: rgba(241, 245, 249, 0.5); }
-html.light .bg-gray-800\/30 { background-color: rgba(241, 245, 249, 0.7); }
-html.light .bg-gray-700 { background-color: #e2e8f0; } /* slate-200 — active nav item */
+html.light .bg-gray-800 { background-color: #f1f5f9; } /* slate-100 — inputs, secondary surfaces */
+html.light .bg-gray-800\/50 { background-color: #e8edf3; } /* slightly tinted info tiles */
+html.light .bg-gray-800\/20 { background-color: rgba(226, 232, 240, 0.5); }
+html.light .bg-gray-800\/15 { background-color: rgba(226, 232, 240, 0.4); }
+html.light .bg-gray-800\/30 { background-color: rgba(226, 232, 240, 0.6); }
+html.light .bg-gray-700 { background-color: #cbd5e1; } /* slate-300 — active nav item, hover states */
 
-html.light .hover\:bg-gray-800:hover      { background-color: #f8fafc; }
-html.light .hover\:bg-gray-800\/50:hover  { background-color: rgba(248, 250, 252, 0.7); }
-html.light .hover\:bg-gray-800\/30:hover  { background-color: rgba(248, 250, 252, 0.6); }
-html.light .hover\:bg-gray-700:hover      { background-color: #e2e8f0; }
+html.light .hover\:bg-gray-800:hover      { background-color: #e2e8f0; }
+html.light .hover\:bg-gray-800\/50:hover  { background-color: rgba(226, 232, 240, 0.7); }
+html.light .hover\:bg-gray-800\/30:hover  { background-color: rgba(226, 232, 240, 0.6); }
+html.light .hover\:bg-gray-700:hover      { background-color: #cbd5e1; }
 html.light .hover\:border-gray-700:hover  { border-color: #94a3b8; }
 
 /* ── Neutral text overrides ── */
@@ -87,8 +87,8 @@ html.light .text-gray-600 { color: #6b7280; } /* disclaimer/muted text */
 html.light .hover\:text-white:hover { color: #111827; }
 
 /* ── Neutral border overrides ── */
-html.light .border-gray-800    { border-color: #d1d5db; } /* gray-300 — was slate-200, more visible */
-html.light .border-gray-800\/50 { border-color: rgba(209, 213, 219, 0.6); }
+html.light .border-gray-800    { border-color: #cbd5e1; } /* slate-300 — crisper card borders */
+html.light .border-gray-800\/50 { border-color: rgba(203, 213, 225, 0.6); }
 html.light .border-gray-700    { border-color: #94a3b8; } /* slate-400 — visible input borders */
 
 /* ── Status text overrides ──
@@ -134,7 +134,8 @@ html.light .border-red-500    { border-color: #ef4444; } /* red-500 */
 /* ── Component class overrides ── */
 html.light .card {
   background-color: #ffffff;
-  border-color: #d1d5db; /* gray-300 — was slate-200, more visible against slate-100 page */
+  border-color: #cbd5e1; /* slate-300 — crisper against deeper bg */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
 }
 
 html.light .input {
