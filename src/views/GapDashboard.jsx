@@ -515,9 +515,9 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
 
       {/* Year-by-year cashflow table */}
       {activeGapSnapshots.length > 0 && (
-        <div className="card overflow-x-auto">
+        <div className="rounded-xl overflow-hidden">
           <button
-            className="flex items-center justify-between w-full text-left"
+            className="flex items-center justify-between w-full text-left px-1 py-1"
             onClick={() => setTableOpen(o => !o)}
           >
             <h2 className="text-sm font-semibold text-gray-300">
@@ -526,16 +526,16 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
             </h2>
             <span className="text-gray-500 text-xs ml-4 flex-shrink-0">{tableOpen ? '▾' : '▸'}</span>
           </button>
-          {tableOpen && <div className="mt-4">
+          {tableOpen && <div className="mt-2 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left py-2 px-3 text-gray-500 font-medium">Year</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Income (after tax)</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Outflows (inc. mortgage)</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Net</th>
-                <th className="text-right py-2 px-3 text-gray-500 font-medium">Liquid Assets</th>
-                {isStressed && <th className="text-right py-2 px-3 text-gray-500 font-medium">Δ vs Base</th>}
+              <tr className="border-b border-gray-800/50">
+                <th className="text-left py-2 px-2 sm:px-3 text-gray-500 font-medium">Year</th>
+                <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Income (after tax)</th>
+                <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Outflows (inc. mortgage)</th>
+                <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Net</th>
+                <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Liquid Assets</th>
+                {isStressed && <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Δ vs Base</th>}
               </tr>
             </thead>
             <tbody>

@@ -23,12 +23,15 @@ function computeResult(scenario) {
     const deficitYears = snaps.deficitYears || []
     const retireYear = rd?.retirementYear ?? null
     const retireSnap = retireYear ? snaps.find(s => s.year === retireYear) : null
+    const peakSnap = snaps.reduce((best, s) => s.totalNetWorth > best.totalNetWorth ? s : best, snaps[0])
 
     return {
       name: scenario.name,
       snaps,
       retirementYear: retireYear,
       retirementAge: rd?.retirementAge ?? null,
+      lastYear: last?.year ?? new Date().getFullYear(),
+      peakYear: peakSnap?.year ?? new Date().getFullYear(),
       netWorthAtEnd: last?.totalNetWorth ?? 0,
       netWorthAtRetirement: retireSnap?.totalNetWorth ?? null,
       liquidAtRetirement: retireSnap?.totalLiquidAssets ?? null,
@@ -36,7 +39,7 @@ function computeResult(scenario) {
       deficitCount: deficitYears.length,
       firstDeficitYear: snaps.firstDeficitYear ?? null,
       cumulativeDeficit: snaps.cumulativeDeficit ?? 0,
-      peakNetWorth: Math.max(...snaps.map(s => s.totalNetWorth)),
+      peakNetWorth: peakSnap?.totalNetWorth ?? 0,
       viability: deficitYears.length === 0 ? 'viable' : deficitYears.length < 5 ? 'at-risk' : 'critical',
     }
   } catch {
@@ -45,16 +48,16 @@ function computeResult(scenario) {
 }
 
 const METRICS = [
-  { key: 'retirementYear', label: 'Retirement year', format: v => v ?? '—', better: 'lower' },
-  { key: 'retirementAge', label: 'Retirement age', format: v => v ?? '—', better: 'lower' },
-  { key: 'netWorthAtRetirement', label: 'Net worth at retirement', format: fmt$, better: 'higher' },
-  { key: 'liquidAtRetirement', label: 'Liquid assets at retirement', format: fmt$, better: 'higher' },
-  { key: 'netWorthAtEnd', label: 'Net worth at plan end', format: fmt$, better: 'higher' },
-  { key: 'liquidAtEnd', label: 'Liquid assets at plan end', format: fmt$, better: 'higher' },
-  { key: 'peakNetWorth', label: 'Peak net worth', format: fmt$, better: 'higher' },
-  { key: 'deficitCount', label: 'Deficit years', format: v => v || 'None', better: 'lower' },
-  { key: 'firstDeficitYear', label: 'First deficit year', format: v => v ?? 'None', better: 'higher' },
-  { key: 'cumulativeDeficit', label: 'Cumulative shortfall', format: v => v > 0 ? fmt$(v) : 'None', better: 'lower' },
+  { key: 'retirementYear',        label: 'Retirement year',            format: v => v ?? '—',                    better: 'lower' },
+  { key: 'retirementAge',         label: 'Retirement age',             format: v => v ?? '—',                    better: 'lower' },
+  { key: 'netWorthAtRetirement',  label: 'Net worth at retirement',     format: fmt$, better: 'higher', yearKey: 'retirementYear' },
+  { key: 'liquidAtRetirement',    label: 'Liquid assets at retirement', format: fmt$, better: 'higher', yearKey: 'retirementYear' },
+  { key: 'netWorthAtEnd',         label: 'Net worth at plan end',       format: fmt$, better: 'higher', yearKey: 'lastYear' },
+  { key: 'liquidAtEnd',           label: 'Liquid assets at plan end',   format: fmt$, better: 'higher', yearKey: 'lastYear' },
+  { key: 'peakNetWorth',          label: 'Peak net worth',              format: fmt$, better: 'higher', yearKey: 'peakYear' },
+  { key: 'deficitCount',          label: 'Deficit years',               format: v => v || 'None',                better: 'lower' },
+  { key: 'firstDeficitYear',      label: 'First deficit year',          format: v => v ?? 'None',                better: 'higher' },
+  { key: 'cumulativeDeficit',     label: 'Cumulative shortfall',        format: v => v > 0 ? fmt$(v) : 'None',  better: 'lower' },
 ]
 
 function NonViableIndicator({ show }) {
@@ -319,15 +322,20 @@ export default function Compare({ scenarios, displayReal = true }) {
           </thead>
           <tbody>
             {METRICS.map(metric => {
-              const valA = resultA?.[metric.key]
-              const valB = resultB?.[metric.key]
+              const rawA = resultA?.[metric.key]
+              const rawB = resultB?.[metric.key]
+              // Apply real/nominal transform to monetary metrics using the relevant year
+              const yearA = metric.yearKey ? resultA?.[metric.yearKey] : null
+              const yearB = metric.yearKey ? resultB?.[metric.yearKey] : null
+              const valA = (metric.yearKey && yearA != null) ? transform(rawA, yearA) : rawA
+              const valB = (metric.yearKey && yearB != null) ? transform(rawB, yearB) : rawB
               // Only flag non-viable: deficit years > 0, or has a first deficit year, or has cumulative shortfall
-              const nonViableA = (metric.key === 'deficitCount' && valA > 0)
-                || (metric.key === 'firstDeficitYear' && valA != null)
-                || (metric.key === 'cumulativeDeficit' && valA > 0)
-              const nonViableB = (metric.key === 'deficitCount' && valB > 0)
-                || (metric.key === 'firstDeficitYear' && valB != null)
-                || (metric.key === 'cumulativeDeficit' && valB > 0)
+              const nonViableA = (metric.key === 'deficitCount' && rawA > 0)
+                || (metric.key === 'firstDeficitYear' && rawA != null)
+                || (metric.key === 'cumulativeDeficit' && rawA > 0)
+              const nonViableB = (metric.key === 'deficitCount' && rawB > 0)
+                || (metric.key === 'firstDeficitYear' && rawB != null)
+                || (metric.key === 'cumulativeDeficit' && rawB > 0)
               return (
                 <tr key={metric.key} className="border-b border-gray-800/50 hover:bg-gray-800/20">
                   <td className="py-2.5 px-4 text-gray-400">{metric.label}</td>
@@ -352,8 +360,8 @@ export default function Compare({ scenarios, displayReal = true }) {
           <h3 className="text-sm font-semibold text-gray-300 mb-3">Difference</h3>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'End net worth', delta: resultA.netWorthAtEnd - resultB.netWorthAtEnd },
-              { label: 'Liquid at retirement', delta: (resultA.liquidAtRetirement ?? 0) - (resultB.liquidAtRetirement ?? 0) },
+              { label: 'End net worth', delta: transform(resultA.netWorthAtEnd, resultA.lastYear) - transform(resultB.netWorthAtEnd, resultB.lastYear) },
+              { label: 'Liquid at retirement', delta: transform(resultA.liquidAtRetirement ?? 0, resultA.retirementYear ?? resultA.lastYear) - transform(resultB.liquidAtRetirement ?? 0, resultB.retirementYear ?? resultB.lastYear) },
               { label: 'Deficit years', delta: resultA.deficitCount - resultB.deficitCount },
             ].map(({ label, delta }) => (
               <div key={label} className="text-center">

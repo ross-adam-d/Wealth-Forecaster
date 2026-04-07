@@ -617,24 +617,24 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       <InvestmentPieChart snapshots={snapshots} scenario={scenario} />
 
       {/* Liquidity table */}
-      <div className="card overflow-x-auto">
+      <div className="rounded-xl overflow-hidden">
         <button
-          className="flex items-center justify-between w-full text-left"
+          className="flex items-center justify-between w-full text-left px-1 py-1"
           onClick={() => setLiquidityTableOpen(o => !o)}
         >
           <h2 className="text-sm font-semibold text-gray-300">Liquidity Table</h2>
           <span className="text-gray-500 text-xs ml-4 flex-shrink-0">{liquidityTableOpen ? '▾' : '▸'}</span>
         </button>
-        {liquidityTableOpen && <table className="w-full text-sm mt-4">
+        {liquidityTableOpen && <div className="overflow-x-auto mt-2"><table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left py-2 px-3 text-gray-500 font-medium">Year</th>
-              <th className="text-right py-2 px-3 text-gray-500 font-medium">Liquid Assets</th>
-              <th className="text-right py-2 px-3 text-gray-500 font-medium">Bonds (pre-10yr)</th>
-              <th className="text-right py-2 px-3 text-gray-500 font-medium">Property equity</th>
-              <th className="text-right py-2 px-3 text-gray-500 font-medium">Super (locked)</th>
-              <th className="text-right py-2 px-3 text-gray-500 font-medium">Debts</th>
-              <th className="text-right py-2 px-3 text-gray-500 font-medium">Total net worth</th>
+            <tr className="border-b border-gray-800/50">
+              <th className="text-left py-2 px-2 sm:px-3 text-gray-500 font-medium">Year</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Liquid Assets</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Bonds (pre-10yr)</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Property equity</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Super (locked)</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Debts</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Total net worth</th>
             </tr>
           </thead>
           <tbody>
@@ -666,7 +666,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               )
             })}
           </tbody>
-        </table>}
+        </table></div>}
       </div>
 
       {/* Cashflow Flow diagram */}
