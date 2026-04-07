@@ -112,6 +112,8 @@ html.light .bg-red-900\/50    { background-color: #fee2e2; } /* red-100 */
 html.light .bg-amber-900\/30  { background-color: #fef9c3; } /* yellow-100 */
 html.light .bg-green-900\/30  { background-color: #f0fdf4; } /* green-50 */
 html.light .bg-red-900\/30    { background-color: #fff1f2; } /* rose-50 */
+html.light .bg-blue-950        { background-color: #eff6ff; } /* blue-50 — retirement year sticky cell */
+html.light .bg-blue-900\/10   { background-color: rgba(239, 246, 255, 0.5); } /* retirement year row tint */
 html.light .bg-red-950        { background-color: #fef2f2; } /* red-50 */
 html.light .bg-red-950\/40    { background-color: rgba(254, 242, 242, 0.7); }
 html.light .bg-red-900        { background-color: #fee2e2; } /* red-100 — error banner bg */

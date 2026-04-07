@@ -152,6 +152,8 @@ function extractEvents(scenario, snapshots) {
 
   // One-off and large recurring expenses
   const LARGE_EXPENSE_THRESHOLD = 10_000
+  const simEndYear = snapshots[snapshots.length - 1]?.year || new Date().getFullYear() + 40
+
   function walkExpenses(items) {
     if (!items) return
     for (const item of items) {
@@ -164,8 +166,16 @@ function extractEvents(scenario, snapshots) {
         const yr = item.activeFrom || item.startYear
         if (yr) push(yr, item.label || 'One-off expense', EVENT_COLORS.expense)
       } else if (item.amountType === 'recurring' && amt >= LARGE_EXPENSE_THRESHOLD) {
-        const yr = item.activeFrom || item.startYear
-        if (yr) push(yr, `${item.label || 'Recurring'} (every ${item.recurringEveryYears || '?'}yr)`, EVENT_COLORS.expense)
+        const startYr = item.activeFrom || item.startYear
+        const intervalYrs = item.recurringEveryYears || 0
+        if (startYr && intervalYrs > 0) {
+          const endYr = item.activeTo ? Math.min(item.activeTo, simEndYear) : simEndYear
+          for (let yr = startYr; yr <= endYr; yr += intervalYrs) {
+            push(yr, item.label || 'Recurring expense', EVENT_COLORS.expense)
+          }
+        } else if (startYr) {
+          push(startYr, item.label || 'Recurring expense', EVENT_COLORS.expense)
+        }
       }
     }
   }
@@ -206,7 +216,7 @@ export default function LifeEventsTimeline({ scenario, snapshots }) {
             const above = i % 2 === 0
             return (
               <div key={`${evt.sortKey}-${evt.label}`} className="flex items-center">
-                <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '76px' }}>
+                <div className="flex flex-col items-center flex-shrink-0 relative" style={{ minWidth: '84px' }}>
                   {/* Label above dot */}
                   {above && (
                     <p

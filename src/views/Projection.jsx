@@ -49,6 +49,11 @@ const PROJECTION_TUTORIAL = [
 ]
 
 export default function Projection({ snapshots, scenario, retirementDate, displayReal = true }) {
+  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
+  const fillOp = isLight ? 0.75 : 0.5
+  const fillOpDebt = isLight ? 0.7 : 0.4
+  const fillOpSingle = isLight ? 0.65 : 0.3
+
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('projectionTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [showAllYears, setShowAllYears] = useState(false)
   const [cashflowDetailOpen, setCashflowDetailOpen] = useState(false)
@@ -56,6 +61,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [sankeyYearIdx, setSankeyYearIdx] = useState(0)
   const [netWorthRange, setNetWorthRange] = useState('full')
   const [netWorthView, setNetWorthView] = useState('networth') // networth | liquidity | breakdown
+  const [liquidityTableOpen, setLiquidityTableOpen] = useState(true)
   const [cashflowRange, setCashflowRange] = useState('full')
   const [cashflowView, setCashflowView] = useState('summary') // summary | income | expenses | surplus
   const [investRange, setInvestRange] = useState('full')
@@ -390,15 +396,15 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="debts"          stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
-                      <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
-                      <Area type="monotone" dataKey="bonds"          stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Tax-Def. Bonds" />
-                      <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.5} name="Other Assets" />
-                      <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
-                      <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
-                      <Area type="monotone" dataKey="shares"         stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
-                      <Area type="monotone" dataKey="property"       stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Property (equity)" />
-                      <Area type="monotone" dataKey="super"          stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super" />
+                      <Area type="monotone" dataKey="debts"          stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOpDebt} name="Other debts" />
+                      <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
+                      <Area type="monotone" dataKey="bonds"          stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={fillOp} name="Tax-Def. Bonds" />
+                      <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={fillOp} name="Other Assets" />
+                      <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
+                      <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
+                      <Area type="monotone" dataKey="shares"         stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={fillOp} name="Shares" />
+                      <Area type="monotone" dataKey="property"       stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={fillOp} name="Property (equity)" />
+                      <Area type="monotone" dataKey="super"          stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOp} name="Super" />
                     </AreaChart>
                   ) : netWorthView === 'liquidity' ? (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
@@ -408,7 +414,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={0.3} name="Liquid assets" />
+                      <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Liquid assets" />
                     </AreaChart>
                   ) : (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
@@ -418,14 +424,14 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
                       <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={0.5} name="Cash" />
-                      <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.5} name="Tax-Def. Bonds" />
-                      <Area type="monotone" dataKey="liqOther"  stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.5} name="Other assets" />
-                      <Area type="monotone" dataKey="liqComm"   stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
-                      <Area type="monotone" dataKey="liqTB"     stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
-                      <Area type="monotone" dataKey="liqShares" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={0.5} name="Shares" />
-                      <Area type="monotone" dataKey="superA"    stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.5} name="Super A (unlocked)" />
-                      <Area type="monotone" dataKey="superB"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={0.5} name="Super B (unlocked)" />
+                      <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
+                      <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={fillOp} name="Tax-Def. Bonds" />
+                      <Area type="monotone" dataKey="liqOther"  stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={fillOp} name="Other assets" />
+                      <Area type="monotone" dataKey="liqComm"   stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
+                      <Area type="monotone" dataKey="liqTB"     stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
+                      <Area type="monotone" dataKey="liqShares" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={fillOp} name="Shares" />
+                      <Area type="monotone" dataKey="superA"    stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={fillOp} name="Super A (unlocked)" />
+                      <Area type="monotone" dataKey="superB"    stackId="1" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOp} name="Super B (unlocked)" />
                     </AreaChart>
                   )}
                 </ResponsiveContainer>
@@ -601,8 +607,14 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
 
       {/* Liquidity table */}
       <div className="card overflow-x-auto">
-        <h2 className="text-sm font-semibold text-gray-300 mb-4">Liquidity Table</h2>
-        <table className="w-full text-sm">
+        <button
+          className="flex items-center justify-between w-full text-left"
+          onClick={() => setLiquidityTableOpen(o => !o)}
+        >
+          <h2 className="text-sm font-semibold text-gray-300">Liquidity Table</h2>
+          <span className="text-gray-500 text-xs ml-4 flex-shrink-0">{liquidityTableOpen ? '▾' : '▸'}</span>
+        </button>
+        {liquidityTableOpen && <table className="w-full text-sm mt-4">
           <thead>
             <tr className="border-b border-gray-800">
               <th className="text-left py-2 px-3 text-gray-500 font-medium">Year</th>
@@ -643,7 +655,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               )
             })}
           </tbody>
-        </table>
+        </table>}
       </div>
 
       {/* Cashflow Flow diagram */}

@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../utils/supabase.js'
 import ScenarioCards from './ScenarioCards.jsx'
 import { Tutorial, useTutorial } from './Tutorial.jsx'
@@ -34,6 +34,11 @@ const NAV = [
 ]
 
 export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots, isLight, toggleTheme }) {
+  const mainRef = useRef(null)
+  const { pathname } = useLocation()
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0)
+  }, [pathname])
   const deficitYears = snapshots?.deficitYears || []
   const firstDeficitYear = snapshots?.firstDeficitYear
   const cumulativeDeficit = snapshots?.cumulativeDeficit || 0
@@ -216,7 +221,7 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
       </div>
 
       {/* Main content */}
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto">
         {children}
       </main>
 

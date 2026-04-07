@@ -165,6 +165,10 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const [chartView, setChartView] = useState('breakdown')    // 'breakdown' | 'total' | 'cashflow'
   const [gapChartRange, setGapChartRange] = useState('full')
   const [tableOpen, setTableOpen] = useState(true)
+  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
+  const fillOp = isLight ? 0.75 : 0.5
+  const fillOpDebt = isLight ? 0.7 : 0.4
+  const fillOpSingle = isLight ? 0.65 : 0.25
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
   const gapCurrentYearForTransform = new Date().getFullYear()
@@ -335,15 +339,15 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                         <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
                         {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
                         <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                        <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={0.4} name="Mortgage debt" />
-                        <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={0.4} name="Other debts" />
-                        <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={0.5} name="Cash" />
-                        <Area type="monotone" dataKey="shares"         stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={0.5} name="Shares" />
-                        <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.5} name="Treasury Bonds" />
-                        <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={0.5} name="Commodities" />
-                        <Area type="monotone" dataKey="bonds"          stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={0.5} name="Tax-Def. Bonds" />
-                        <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
-                        <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
+                        <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Mortgage debt" />
+                        <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOpDebt} name="Other debts" />
+                        <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={fillOp} name="Cash" />
+                        <Area type="monotone" dataKey="shares"         stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={fillOp} name="Shares" />
+                        <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
+                        <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
+                        <Area type="monotone" dataKey="bonds"          stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={fillOp} name="Tax-Def. Bonds" />
+                        <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={fillOp} name="Super A (unlocked)" />
+                        <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={fillOp} name="Super B (unlocked)" />
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
                         {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
                       </AreaChart>
@@ -354,7 +358,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                         <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 12 }} />
                         {!isTouchDevice && <Tooltip formatter={(v, name) => [fmt$(v), name]} contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} labelStyle={{ color: '#f9fafb' }} />}
                         <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-                        <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={0.25} name="Total liquid assets" strokeWidth={2} />
+                        <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Total liquid assets" strokeWidth={2} />
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
                         {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
                         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />

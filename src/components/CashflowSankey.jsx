@@ -70,6 +70,7 @@ function layoutCol(nodes) {
 }
 
 function Ribbon({ x0, y0, h0, x1, y1, h1, color }) {
+  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
   const mx = (x0 + x1) / 2
   const d = [
     `M ${x0} ${y0}`,
@@ -78,7 +79,7 @@ function Ribbon({ x0, y0, h0, x1, y1, h1, color }) {
     `C ${mx} ${y1 + h1}, ${mx} ${y0 + h0}, ${x0} ${y0 + h0}`,
     'Z',
   ].join(' ')
-  return <path d={d} fill={color} fillOpacity={0.28} stroke="none" />
+  return <path d={d} fill={color} fillOpacity={isLight ? 0.6 : 0.28} stroke="none" />
 }
 
 function NodeLabel({ n, side }) {

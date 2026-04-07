@@ -919,10 +919,11 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
         if (!p.payOffWhenAble || p.mortgageBalance <= 0) continue
         const fullMortgage = propertyResults[i].mortgageBalance
         if (fullMortgage <= 0) continue
-        const availableLiquidity = cashBuffer + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution + saleProceedsSharesContribution) + Math.max(0, tbResult.closingValue + tbAdjustment + saleProceedsTBContribution) + Math.max(0, commResult.closingValue + commAdjustment + saleProceedsCommContribution)
+        const availableCashForPayoff = Math.max(0, cashBuffer - minCashBuffer)
+        const availableLiquidity = availableCashForPayoff + Math.max(0, sharesResult.closingValue + sharesAdjustment + surplusSharesContribution + fixedSharesContribution + saleProceedsSharesContribution) + Math.max(0, tbResult.closingValue + tbAdjustment + saleProceedsTBContribution) + Math.max(0, commResult.closingValue + commAdjustment + saleProceedsCommContribution)
         if (availableLiquidity >= fullMortgage) {
           let toPay = fullMortgage
-          const fromCashPay = Math.min(toPay, Math.max(0, cashBuffer))
+          const fromCashPay = Math.min(toPay, availableCashForPayoff)
           cashBuffer -= fromCashPay
           toPay -= fromCashPay
           if (toPay > 0) {
