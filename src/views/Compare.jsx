@@ -4,7 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine,
 } from 'recharts'
-import { runSimulation, solveRetirementDate } from '../engine/simulationEngine.js'
+import { runSimulation } from '../engine/simulationEngine.js'
 
 function fmt$(n) {
   if (n == null) return '—'
@@ -18,10 +18,12 @@ function computeResult(scenario) {
   if (!scenario) return null
   try {
     const snaps = runSimulation(scenario)
-    const rd = solveRetirementDate(scenario)
+    const personA = scenario.household.personA
+    const birthYear = personA.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() : null
+    const retireAge = personA.retirementAge ?? null
+    const retireYear = (birthYear && retireAge) ? birthYear + retireAge : null
     const last = snaps[snaps.length - 1]
     const deficitYears = snaps.deficitYears || []
-    const retireYear = rd?.retirementYear ?? null
     const retireSnap = retireYear ? snaps.find(s => s.year === retireYear) : null
     const peakSnap = snaps.reduce((best, s) => s.totalNetWorth > best.totalNetWorth ? s : best, snaps[0])
 
@@ -29,7 +31,7 @@ function computeResult(scenario) {
       name: scenario.name,
       snaps,
       retirementYear: retireYear,
-      retirementAge: rd?.retirementAge ?? null,
+      retirementAge: retireAge,
       lastYear: last?.year ?? new Date().getFullYear(),
       peakYear: peakSnap?.year ?? new Date().getFullYear(),
       netWorthAtEnd: last?.totalNetWorth ?? 0,
