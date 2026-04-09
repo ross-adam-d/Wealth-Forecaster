@@ -118,6 +118,12 @@
 
 ## Session Log
 
+### Session 29 — 2026-04-09
+
+**What was done:**
+- **Compare page retirement age bug fix** — `computeResult` was calling `solveRetirementDate()` (the solver that finds the earliest *viable* retirement age, iterating from 40). For a Downsize scenario, property sale proceeds meant the plan was viable at 40, so it returned 40 instead of the configured 47. Also caused net worth/liquidity at retirement to show `—` because the solved year (e.g. 2023) predated the simulation start and no snapshot existed. Fixed by reading `retirementAge` and `dateOfBirth` directly from the scenario household. Removed unused `solveRetirementDate` import.
+- **568 tests passing** (no engine changes).
+
 ### Session 28 — 2026-04-08
 
 **What was done:**
