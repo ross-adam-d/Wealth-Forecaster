@@ -4,6 +4,7 @@ import { supabase } from './utils/supabase.js'
 import { useScenario } from './hooks/useScenario.js'
 import { useSimulation } from './hooks/useSimulation.js'
 import { useTheme } from './hooks/useTheme.js'
+import { useLivePrices } from './hooks/useLivePrices.js'
 import Layout from './components/Layout.jsx'
 import GapDashboard from './views/GapDashboard.jsx'
 import Projection from './views/Projection.jsx'
@@ -45,6 +46,7 @@ export default function App() {
   const { snapshots, retirementDate } = useSimulation(activeScenario)
   const [displayReal, setDisplayReal] = useState(true)
   const { isLight, toggleTheme } = useTheme()
+  useLivePrices(scenarios, updateScenario, activeId)
 
   if (authLoading) {
     return (

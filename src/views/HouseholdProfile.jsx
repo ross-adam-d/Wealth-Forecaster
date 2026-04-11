@@ -1215,7 +1215,7 @@ function SharesForm({ shares, onUpdate }) {
       )}
       <HoldingsSubForm
         holdings={s.holdings}
-        fields={['dividendYield']}
+        fields={['ticker', 'dividendYield']}
         createDefault={createDefaultShareHolding}
         label="share holding"
         onUpdate={holdings => onUpdate({ holdings })}
@@ -1226,16 +1226,48 @@ function SharesForm({ shares, onUpdate }) {
 
 // ── Holdings sub-form (reusable for shares, treasury bonds, commodities, super) ──
 
+function livePriceAge(fetchedAt) {
+  if (!fetchedAt) return null
+  const ms = Date.now() - new Date(fetchedAt).getTime()
+  const mins = Math.floor(ms / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
+function fmt$(n) {
+  if (n == null) return '—'
+  const abs = Math.abs(n)
+  if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000)     return `$${Math.round(n / 1_000)}k`
+  return `$${Math.round(n)}`
+}
+
 function HoldingCard({ holding, fields, onUpdate, onRemove }) {
   const [open, setOpen] = useState(true)
+  const hasTicker     = fields.includes('ticker')
+  const tickerEntered = hasTicker && (holding.ticker || '').trim().length > 0
+  const hasLivePrice  = tickerEntered && holding.livePrice != null
+  const liveValue     = hasLivePrice ? (holding.units || 0) * holding.livePrice : null
+
+  const headerLabel = holding.ticker
+    ? `${holding.ticker}${holding.name ? ` — ${holding.name}` : ''}`
+    : (holding.name || 'Unnamed holding')
+
   return (
     <div className="border border-gray-700 rounded-lg overflow-hidden">
       <button
         className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-800/40 text-left"
         onClick={() => setOpen(o => !o)}
       >
-        <span className="text-sm text-gray-300">
-          {holding.name || 'Unnamed holding'}
+        <span className="text-sm text-gray-300 flex items-center gap-2">
+          {headerLabel}
+          {hasLivePrice && (
+            <span className="text-xs text-green-400 font-normal">
+              {fmt$(liveValue)}
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-3">
           <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
@@ -1247,6 +1279,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
           </button>
         </div>
       </button>
+
       {open && (
         <div className="p-4 space-y-3">
           <div>
@@ -1255,24 +1288,151 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
               className="input w-full"
               value={holding.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
-              placeholder="e.g. VAS, BHP, Gold ETF"
+              placeholder="e.g. VAS ETF, Commonwealth Bank"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <CurrencyInput
-              label="Current value"
-              value={holding.currentValue}
-              onChange={v => onUpdate({ currentValue: v })}
-            />
+
+          {/* Ticker section */}
+          {hasTicker && (
+            <div className="space-y-3 border-t border-gray-700/50 pt-3">
+              <div>
+                <label className="label">ASX / Exchange Ticker <span className="text-gray-600 font-normal">(optional)</span></label>
+                <div className="flex items-center gap-2">
+                  <input
+                    className="input flex-1"
+                    value={holding.ticker || ''}
+                    onChange={e => onUpdate({ ticker: e.target.value.toUpperCase() })}
+                    placeholder="e.g. CBA.AX, VAS.AX, AAPL"
+                  />
+                  {tickerEntered && (
+                    hasLivePrice ? (
+                      <span className="text-xs text-green-400 whitespace-nowrap flex-shrink-0">
+                        ${holding.livePrice.toFixed(2)} {holding.livePriceCurrency ?? ''}
+                        <span className="text-gray-500 ml-1">· {livePriceAge(holding.livePriceFetchedAt)}</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-amber-400 whitespace-nowrap flex-shrink-0">Fetching…</span>
+                    )
+                  )}
+                </div>
+                {tickerEntered && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    ASX tickers need <span className="text-gray-500">.AX</span> suffix (e.g. CBA.AX). US tickers use symbol only (e.g. AAPL).
+                  </p>
+                )}
+              </div>
+
+              {tickerEntered && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">Units held</label>
+                      <input
+                        className="input w-full"
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={holding.units || ''}
+                        onChange={e => onUpdate({ units: parseFloat(e.target.value) || 0 })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <CurrencyInput
+                      label="Purchase price / unit"
+                      value={holding.purchasePrice}
+                      onChange={v => onUpdate({ purchasePrice: v })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <MonthYearInput
+                      label="Purchase date"
+                      value={holding.purchaseDate}
+                      onChange={v => onUpdate({ purchaseDate: v })}
+                      placeholder="Year"
+                      minYear={1970}
+                      maxYear={new Date().getFullYear()}
+                    />
+                    <div />
+                  </div>
+
+                  {/* Live value summary */}
+                  {hasLivePrice && (holding.units || 0) > 0 && (
+                    <div className="bg-green-900/20 border border-green-800/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-green-400">
+                        Live portfolio value: <span className="font-semibold">{fmt$(liveValue)}</span>
+                        <span className="text-green-600 ml-1">({holding.units} units × ${holding.livePrice.toFixed(2)})</span>
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        This overrides the "Current value" field in projections.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Sold toggle */}
+                  <div>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                      <input
+                        type="checkbox"
+                        className="accent-brand-500"
+                        checked={!!holding.saleDate}
+                        onChange={e => onUpdate({ saleDate: e.target.checked ? (holding.saleDate || `${new Date().getFullYear()}-01`) : null })}
+                      />
+                      Sold / disposed
+                    </label>
+                  </div>
+
+                  {holding.saleDate && (
+                    <div className="grid grid-cols-2 gap-3 pl-4 border-l border-gray-700">
+                      <MonthYearInput
+                        label="Sale date"
+                        value={holding.saleDate}
+                        onChange={v => onUpdate({ saleDate: v })}
+                        placeholder="Year"
+                        minYear={1970}
+                        maxYear={new Date().getFullYear() + 1}
+                      />
+                      <CurrencyInput
+                        label="Sale price / unit"
+                        value={holding.salePrice}
+                        onChange={v => onUpdate({ salePrice: v })}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Current value — shown when no live price available */}
+          {(!hasTicker || !hasLivePrice) && (
+            <div className="grid grid-cols-2 gap-3">
+              <CurrencyInput
+                label={hasLivePrice ? 'Current value (fallback)' : 'Current value'}
+                value={holding.currentValue}
+                onChange={v => onUpdate({ currentValue: v })}
+              />
+              <PctInput
+                label="Return rate"
+                value={holding.returnRate}
+                onChange={v => onUpdate({ returnRate: v })}
+                min={-20}
+                max={50}
+                step={0.5}
+              />
+            </div>
+          )}
+          {hasTicker && hasLivePrice && (
             <PctInput
-              label="Return rate"
+              label="Return rate (for projection)"
               value={holding.returnRate}
               onChange={v => onUpdate({ returnRate: v })}
               min={-20}
               max={50}
               step={0.5}
+              hint="Used to project future value — live price sets today's starting point"
             />
-          </div>
+          )}
+
           {fields.includes('dividendYield') && (
             <div className="grid grid-cols-2 gap-3">
               <PctInput
@@ -1454,9 +1614,9 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
       )}
       <HoldingsSubForm
         holdings={b.holdings}
-        fields={['couponRate']}
+        fields={['ticker', 'couponRate']}
         createDefault={createDefaultTreasuryBondHolding}
-        label="bond holding"
+        label="bond ETF holding"
         onUpdate={holdings => onUpdate({ holdings })}
       />
     </div>

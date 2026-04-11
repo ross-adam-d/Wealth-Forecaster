@@ -23,6 +23,17 @@ import { aggregateHoldings, distributeProportionally } from '../utils/holdings.j
 import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE, DRAWDOWN_SOURCES, DEFAULT_DRAWDOWN_ORDER, SUPER_CONTRIBUTIONS_TAX_RATE } from '../constants/index.js'
 
 /**
+ * Resolve the effective current value for a holding.
+ * When a ticker + live price + units are present, the live market value overrides
+ * the manually entered currentValue. Falls back to currentValue otherwise.
+ */
+function resolveHoldingCurrentValue(h) {
+  return (h.ticker && h.livePrice != null && h.units > 0)
+    ? h.units * h.livePrice
+    : (h.currentValue || 0)
+}
+
+/**
  * Get the age of a person in a given simulation year.
  */
 function getAge(dateOfBirth, year) {
@@ -235,8 +246,16 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   const superProfileB = superAccounts.find(s => s.personLabel === 'B') || {}
   let superA = { ...superProfileA, currentBalance: superProfileA.currentBalance || 0 }
   let superB = { ...superProfileB, currentBalance: superProfileB.currentBalance || 0 }
-  let currentShares = { ...shares }
-  let currentTreasuryBonds = { ...(treasuryBondsInput || { currentValue: 0, holdings: [], annualContribution: 0, contributionMode: 'fixed', annualIncreaseRate: 0, couponRate: 0, preserveCapital: false, preserveCapitalFromAge: null, ratePeriods: [] }) }
+  // Resolve ticker-based holding values once at sim start (units × livePrice overrides currentValue)
+  let currentShares = {
+    ...shares,
+    holdings: (shares.holdings || []).map(h => ({ ...h, currentValue: resolveHoldingCurrentValue(h) })),
+  }
+  const tbBase = treasuryBondsInput || { currentValue: 0, holdings: [], annualContribution: 0, contributionMode: 'fixed', annualIncreaseRate: 0, couponRate: 0, preserveCapital: false, preserveCapitalFromAge: null, ratePeriods: [] }
+  let currentTreasuryBonds = {
+    ...tbBase,
+    holdings: (tbBase.holdings || []).map(h => ({ ...h, currentValue: resolveHoldingCurrentValue(h) })),
+  }
   let currentCommodities = { ...(commoditiesInput || { currentValue: 0, holdings: [], annualContribution: 0, contributionMode: 'fixed', annualIncreaseRate: 0, ratePeriods: [] }) }
   let currentBonds = investmentBonds.map(b => ({ ...b }))
   let currentOtherAssets = otherAssetsInput.map(a => ({ ...a }))

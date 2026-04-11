@@ -127,6 +127,14 @@ export function createDefaultShareHolding() {
   return {
     id: crypto.randomUUID(),
     name: '',
+    ticker: '',               // e.g. 'CBA.AX', 'VAS.AX', 'AAPL' — empty = manual value
+    units: 0,                 // number of units held
+    purchaseDate: null,       // 'YYYY-MM' — for CGT
+    purchasePrice: 0,         // per-unit cost base (AUD)
+    saleDate: null,           // 'YYYY-MM' — null = still held
+    salePrice: 0,             // per-unit sale price (AUD)
+    livePrice: null,          // cached from Yahoo Finance API
+    livePriceFetchedAt: null, // ISO timestamp of last fetch
     currentValue: 0,
     returnRate: SHARES_RETURN_RATE,
     dividendYield: DIVIDEND_YIELD,
@@ -170,6 +178,14 @@ export function createDefaultTreasuryBondHolding() {
   return {
     id: crypto.randomUUID(),
     name: '',
+    ticker: '',               // e.g. 'VAF.AX', 'VBND.AX' — ETF tickers only
+    units: 0,
+    purchaseDate: null,       // 'YYYY-MM' — for CGT
+    purchasePrice: 0,
+    saleDate: null,
+    salePrice: 0,
+    livePrice: null,
+    livePriceFetchedAt: null,
     currentValue: 0,
     returnRate: TREASURY_BONDS_RETURN_RATE,
     couponRate: TREASURY_BONDS_COUPON_RATE,
