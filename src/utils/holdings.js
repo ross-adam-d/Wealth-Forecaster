@@ -16,9 +16,9 @@ export function aggregateHoldings(holdings, rateField = 'returnRate') {
   if (!holdings || holdings.length === 0) return null
 
   const totalValue = holdings.reduce((sum, h) => sum + (h.currentValue || 0), 0)
-  if (totalValue === 0) {
-    return { currentValue: 0, returnRate: 0, dividendYield: 0, frankingPct: 0, couponRate: 0 }
-  }
+  // Return null (not a zero object) when no holding has a value — caller falls back to
+  // the top-level category value (e.g. shares.currentValue entered before tickers loaded).
+  if (totalValue === 0) return null
 
   const weighted = (field) =>
     holdings.reduce((s, h) => s + (h[field] || 0) * (h.currentValue || 0), 0) / totalValue

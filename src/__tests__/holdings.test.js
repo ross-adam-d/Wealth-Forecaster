@@ -8,10 +8,11 @@ describe('aggregateHoldings', () => {
     expect(aggregateHoldings(undefined)).toBe(null)
   })
 
-  it('returns zero rates when total value is 0', () => {
-    const result = aggregateHoldings([{ currentValue: 0, returnRate: 0.05 }])
-    expect(result.currentValue).toBe(0)
-    expect(result.returnRate).toBe(0)
+  it('returns null when total value is 0 (caller falls back to top-level value)', () => {
+    // Holdings with zero values should not override the category-level currentValue —
+    // this happens e.g. when tickers are entered but live prices haven't loaded yet.
+    expect(aggregateHoldings([{ currentValue: 0, returnRate: 0.05 }])).toBe(null)
+    expect(aggregateHoldings([{ currentValue: 0 }, { currentValue: 0 }])).toBe(null)
   })
 
   it('computes weighted average for shares holdings', () => {

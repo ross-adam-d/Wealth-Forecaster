@@ -41,7 +41,10 @@ export function useLivePrices(scenarios, updateScenario, activeId) {
 
     fetchingRef.current = true
 
-    fetch(`/api/stock-price?tickers=${[...staleTickers].join(',')}`)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 12_000)  // 12s — abort if Yahoo hangs
+
+    fetch(`/api/stock-price?tickers=${[...staleTickers].join(',')}`, { signal: controller.signal })
       .then(r => (r.ok ? r.json() : null))
       .then(priceMap => {
         if (!priceMap) return
@@ -68,6 +71,9 @@ export function useLivePrices(scenarios, updateScenario, activeId) {
         })
       })
       .catch(() => { /* silent — stale prices just stay stale */ })
-      .finally(() => { fetchingRef.current = false })
+      .finally(() => {
+        clearTimeout(timeoutId)
+        fetchingRef.current = false
+      })
   }, [activeId]) // eslint-disable-line react-hooks/exhaustive-deps
 }

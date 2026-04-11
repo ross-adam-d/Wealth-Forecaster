@@ -30,8 +30,12 @@ export default async function handler(req, res) {
   const symbols = tickerList.join(',')
   const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,currency,shortName`
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 8_000)  // 8s — Yahoo Finance sometimes hangs
+
   try {
     const upstream = await fetch(url, {
+      signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
@@ -39,6 +43,7 @@ export default async function handler(req, res) {
         'Referer': 'https://finance.yahoo.com/',
       },
     })
+    clearTimeout(timeoutId)
 
     if (!upstream.ok) {
       return res.status(502).json({ error: `upstream ${upstream.status}` })
@@ -67,6 +72,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400')
     return res.status(200).json(priceMap)
   } catch {
-    return res.status(502).json({ error: 'fetch failed' })
+    clearTimeout(timeoutId)
+    return res.status(502).json({ error: 'fetch failed or timed out' })
   }
 }
