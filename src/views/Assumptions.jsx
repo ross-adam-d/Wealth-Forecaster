@@ -1,4 +1,10 @@
 import { useState } from 'react'
+
+function numVal(raw) {
+  if (raw === '' || raw == null) return ''
+  const n = Number(raw)
+  return isNaN(n) ? '' : n
+}
 import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import {
   INFLATION_RATE, WAGE_GROWTH_RATE, SUPER_ACCUMULATION_RATE, SUPER_PENSION_RATE,
@@ -89,11 +95,17 @@ export default function Assumptions({ scenario, updateScenario }) {
           <input
             className="input w-28"
             type="number"
-            min={70}
-            max={MAX_SIMULATION_END_AGE}
-            value={scenario.simulationEndAge}
-            onChange={e => updateScenario({ simulationEndAge: Number(e.target.value) })}
+            step="1"
+            value={scenario.simulationEndAge ?? ''}
+            onChange={e => updateScenario({ simulationEndAge: numVal(e.target.value) })}
+            onWheel={e => e.target.blur()}
           />
+          {(() => {
+            const age = Number(scenario.simulationEndAge)
+            if (!scenario.simulationEndAge && scenario.simulationEndAge !== 0) return null
+            if (age < 70 || age > MAX_SIMULATION_END_AGE) return <p className="text-xs text-amber-400 mt-1">Must be between 70 and {MAX_SIMULATION_END_AGE}</p>
+            return null
+          })()}
         </div>
       </div>
 

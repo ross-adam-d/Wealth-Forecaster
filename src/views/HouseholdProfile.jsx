@@ -56,9 +56,10 @@ function CurrencyInput({ label, value, onChange, hint, max }) {
         <input
           className="input w-full pl-7"
           type="number"
-          min={0}
+          step="1"
           value={value ?? ''}
           onChange={e => onChange(numVal(e.target.value))}
+          onWheel={e => e.target.blur()}
           placeholder="0"
         />
       </div>
@@ -69,6 +70,8 @@ function CurrencyInput({ label, value, onChange, hint, max }) {
 }
 
 function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint }) {
+  const displayVal = value != null && value !== '' ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''
+  const outOfRange = displayVal !== '' && (Number(displayVal) < min || Number(displayVal) > max)
   return (
     <div>
       <label className="label">{label}</label>
@@ -76,19 +79,19 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
         <input
           className="input w-full pr-8"
           type="number"
-          min={min}
-          max={max}
           step={step}
-          value={value != null && value !== '' ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''}
+          value={displayVal}
           onChange={e => {
             const v = numVal(e.target.value)
             onChange(v === '' ? '' : v / 100)
           }}
+          onWheel={e => e.target.blur()}
           placeholder="0"
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
       </div>
-      {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
+      {outOfRange && <p className="text-xs text-amber-400 mt-1">Must be between {min}% and {max}%</p>}
+      {hint && !outOfRange && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
     </div>
   )
 }
@@ -209,9 +212,10 @@ function PersonForm({ person, label, onUpdate }) {
               <input
                 className="input w-full pl-7"
                 type="number"
-                min={0}
+                step="1"
                 value={p.currentSalary ?? ''}
                 onChange={e => onUpdate({ currentSalary: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
                 placeholder="0"
               />
             </div>
@@ -239,12 +243,13 @@ function PersonForm({ person, label, onUpdate }) {
           <input
             className="input w-full"
             type="number"
-            min={40}
-            max={80}
+            step="1"
             value={p.retirementAge ?? ''}
             onChange={e => onUpdate({ retirementAge: numVal(e.target.value) })}
+            onWheel={e => e.target.blur()}
             placeholder="60"
           />
+          {!p.retirementAge && <p className="text-xs text-amber-400 mt-1">Required for projections</p>}
         </div>
       </div>
 
@@ -297,14 +302,14 @@ function PersonForm({ person, label, onUpdate }) {
                 <input
                   className="input w-full"
                   type="number"
-                  min={2020}
-                  max={2080}
+                  step="1"
                   value={change.fromYear ?? ''}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
                     changes[ci] = { ...changes[ci], fromYear: numVal(e.target.value) }
                     onUpdate({ salaryChanges: changes })
                   }}
+                  onWheel={e => e.target.blur()}
                   placeholder="Year"
                 />
               </div>
@@ -313,14 +318,14 @@ function PersonForm({ person, label, onUpdate }) {
                 <input
                   className="input w-full"
                   type="number"
-                  min={2020}
-                  max={2080}
+                  step="1"
                   value={change.toYear ?? ''}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
                     changes[ci] = { ...changes[ci], toYear: numVal(e.target.value) || null }
                     onUpdate({ salaryChanges: changes })
                   }}
+                  onWheel={e => e.target.blur()}
                   placeholder="Ongoing"
                 />
               </div>
@@ -331,13 +336,14 @@ function PersonForm({ person, label, onUpdate }) {
                   <input
                     className="input w-full pl-7"
                     type="number"
-                    min={0}
+                    step="1"
                     value={change.salary ?? ''}
                     onChange={e => {
                       const changes = [...(p.salaryChanges || [])]
                       changes[ci] = { ...changes[ci], salary: numVal(e.target.value) }
                       onUpdate({ salaryChanges: changes })
                     }}
+                    onWheel={e => e.target.blur()}
                     placeholder="0"
                   />
                 </div>
@@ -396,9 +402,10 @@ function PersonForm({ person, label, onUpdate }) {
                   <input
                     className="input w-full pl-7"
                     type="number"
-                    min={0}
+                    step="1"
                     value={p.hecs.extraAnnual || ''}
                     onChange={e => onUpdate({ hecs: { ...p.hecs, extraAnnual: numVal(e.target.value) || 0 } })}
+                    onWheel={e => e.target.blur()}
                     placeholder="0"
                   />
                 </div>
@@ -502,10 +509,10 @@ function PersonForm({ person, label, onUpdate }) {
                 <input
                   className="input w-full"
                   type="number"
-                  min={1}
-                  max={10}
+                  step="1"
                   value={p.packaging.novatedLease.termYears || ''}
                   onChange={e => updateLease({ termYears: numVal(e.target.value) || null })}
+                  onWheel={e => e.target.blur()}
                   placeholder="5"
                 />
               </div>
@@ -527,8 +534,10 @@ function PersonForm({ person, label, onUpdate }) {
                 <input
                   className="input w-full"
                   type="number"
+                  step="1"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
                   onChange={e => updateLease({ annualKmTotal: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
                   placeholder="0"
                 />
               </div>
@@ -537,8 +546,10 @@ function PersonForm({ person, label, onUpdate }) {
                 <input
                   className="input w-full"
                   type="number"
+                  step="1"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
                   onChange={e => updateLease({ annualKmBusiness: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
                   placeholder="0"
                 />
               </div>
@@ -936,8 +947,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   <input
                     className="input w-full"
                     type="number"
-                    min={0}
-                    max={30}
+                    step="1"
                     value={p.loanTermYearsRemaining || ''}
                     onChange={e => {
                       const yrs = numVal(e.target.value)
@@ -946,6 +956,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                       if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
                       onUpdate(patch)
                     }}
+                    onWheel={e => e.target.blur()}
                     placeholder="0"
                   />
                 </div>
@@ -968,10 +979,10 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   <input
                     className="input w-full"
                     type="number"
-                    min={2024}
-                    max={2060}
+                    step="1"
                     value={p.ioEndYear || ''}
                     onChange={e => onUpdate({ ioEndYear: numVal(e.target.value) })}
+                    onWheel={e => e.target.blur()}
                     placeholder="e.g. 2028"
                   />
                   <p className="text-xs text-amber-400 mt-1">
@@ -1219,10 +1230,10 @@ function SharesForm({ shares, onUpdate }) {
           <input
             className="input w-48"
             type="number"
-            min={40}
-            max={100}
+            step="1"
             value={s.preserveCapitalFromAge || ''}
             onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
+            onWheel={e => e.target.blur()}
             placeholder="e.g. 65"
           />
         </div>
@@ -1344,10 +1355,10 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                       <input
                         className="input w-full"
                         type="number"
-                        min={0}
-                        step={1}
-                        value={holding.units || ''}
-                        onChange={e => onUpdate({ units: parseFloat(e.target.value) || 0 })}
+                        step="1"
+                        value={holding.units ?? ''}
+                        onChange={e => onUpdate({ units: numVal(e.target.value) })}
+                        onWheel={e => e.target.blur()}
                         placeholder="0"
                       />
                     </div>
@@ -1618,10 +1629,10 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
           <input
             className="input w-48"
             type="number"
-            min={40}
-            max={100}
+            step="1"
             value={b.preserveCapitalFromAge || ''}
             onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
+            onWheel={e => e.target.blur()}
             placeholder="e.g. 65"
           />
         </div>
@@ -1985,10 +1996,10 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                   <input
                     className="input w-full"
                     type="number"
-                    min={1}
-                    max={50}
+                    step="1"
                     value={item.recurringEveryYears || ''}
                     onChange={e => onUpdate({ recurringEveryYears: numVal(e.target.value) || null })}
+                    onWheel={e => e.target.blur()}
                     placeholder="e.g. 10"
                   />
                 </div>
@@ -2202,8 +2213,10 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                     <input
                       className="input w-full pl-7"
                       type="number"
+                      step="1"
                       value={item.adjustmentRate || ''}
                       onChange={e => onUpdate({ adjustmentRate: numVal(e.target.value) })}
+                      onWheel={e => e.target.blur()}
                       placeholder="0"
                     />
                   </div>
@@ -2324,10 +2337,10 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                 <input
                   className="input w-full"
                   type="number"
-                  min={1}
-                  max={30}
+                  step="1"
                   value={item.termYears || ''}
                   onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
+                  onWheel={e => e.target.blur()}
                   placeholder="5"
                 />
               </div>
@@ -2336,10 +2349,10 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                 <input
                   className="input w-full"
                   type="number"
-                  min={2020}
-                  max={2070}
+                  step="1"
                   value={item.startYear || ''}
                   onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
+                  onWheel={e => e.target.blur()}
                   placeholder="Already held"
                 />
               </div>

@@ -75,14 +75,14 @@ export default function MonthYearInput({
         <input
           className="input flex-1"
           type="number"
-          min={minYear}
-          max={maxYear}
+          step="1"
           placeholder={placeholder}
           value={year}
           onChange={e => {
             const raw = e.target.value
             emit(raw === '' ? '' : raw, month)
           }}
+          onWheel={e => e.target.blur()}
         />
       </div>
     </div>

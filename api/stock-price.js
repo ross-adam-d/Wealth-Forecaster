@@ -13,7 +13,9 @@
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 
 async function fetchOne(ticker, signal) {
-  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`
+  // Use 5d range so we always have recent closes to fall back to when the market
+  // is closed (regularMarketTime === 0 means no live session data today).
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`
   try {
     const res = await fetch(url, {
       signal,
@@ -21,10 +23,28 @@ async function fetchOne(ticker, signal) {
     })
     if (!res.ok) return null
     const data = await res.json()
-    const meta = data?.chart?.result?.[0]?.meta
-    if (!meta || meta.regularMarketPrice == null) return null
+    const result = data?.chart?.result?.[0]
+    const meta = result?.meta
+    if (!meta) return null
+
+    // When the market has traded today, regularMarketPrice is the live price.
+    // When regularMarketTime is 0 the price can be stale/wrong — use the most
+    // recent valid close from the chart series instead.
+    let price = null
+    if (meta.regularMarketTime > 0 && meta.regularMarketPrice != null) {
+      price = meta.regularMarketPrice
+    } else {
+      // Walk chart closes backwards to find the last non-null value
+      const closes = result?.indicators?.quote?.[0]?.close ?? []
+      for (let i = closes.length - 1; i >= 0; i--) {
+        if (closes[i] != null) { price = closes[i]; break }
+      }
+    }
+
+    if (price == null) return null
+
     return {
-      price:     meta.regularMarketPrice,
+      price,
       currency:  meta.currency ?? null,
       name:      meta.shortName ?? meta.longName ?? null,
       fetchedAt: new Date().toISOString(),
