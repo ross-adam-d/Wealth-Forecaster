@@ -20,7 +20,7 @@ import { processOtherIncome } from '../modules/otherIncome.js'
 import { processAllDebts } from '../modules/debts.js'
 import { calcAgePension } from '../modules/agePension.js'
 import { aggregateHoldings, distributeProportionally } from '../utils/holdings.js'
-import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE, DRAWDOWN_SOURCES, DEFAULT_DRAWDOWN_ORDER } from '../constants/index.js'
+import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE, DRAWDOWN_SOURCES, DEFAULT_DRAWDOWN_ORDER, SUPER_CONTRIBUTIONS_TAX_RATE } from '../constants/index.js'
 
 /**
  * Get the age of a person in a given simulation year.
@@ -644,6 +644,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const div293TaxB = superContribB_pre.div293Tax || 0
     const totalDiv293Tax = div293TaxA + div293TaxB
 
+    // Super contributions tax — 15% withheld inside fund on concessional contributions
+    const superContribTaxA = (superContribA_pre.totalConcessional || 0) * SUPER_CONTRIBUTIONS_TAX_RATE
+    const superContribTaxB = (superContribB_pre.totalConcessional || 0) * SUPER_CONTRIBUTIONS_TAX_RATE
+
     // Novated lease post-tax costs: employee post-tax contribution + residual balloon (final year)
     // Pre-tax package reduction is already deducted from netTakeHome (salary packaging)
     const totalLeasePostTaxCost =
@@ -1210,6 +1214,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       div293TaxA,
       div293TaxB,
       totalDiv293Tax,
+      superContribTaxA,
+      superContribTaxB,
       // Super
       superA: superA_result,
       superB: superB_result,

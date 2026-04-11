@@ -34,6 +34,31 @@ function SimpleTooltip({ active, payload, label }) {
   )
 }
 
+function TaxTooltip({ active, payload, label, fmt$ }) {
+  if (!active || !payload?.length) return null
+  const ratePt = payload.find(p => p.dataKey === 'effectiveRate')
+  const bars   = payload.filter(p => p.dataKey !== 'effectiveRate' && (p.value || 0) > 100)
+  const total  = bars.reduce((s, p) => s + (p.value || 0), 0)
+  return (
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', minWidth: 180 }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: '0 0 4px' }}>{label}</p>
+      {bars.map(p => (
+        <p key={p.dataKey} style={{ color: p.fill, fontSize: 12, margin: '2px 0' }}>
+          {p.name}: {fmt$(p.value)}
+        </p>
+      ))}
+      <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '6px 0 4px', borderTop: '1px solid #374151', paddingTop: 4 }}>
+        Total: {fmt$(total)}
+      </p>
+      {ratePt && (
+        <p style={{ color: '#e2e8f0', fontSize: 12, margin: '2px 0 0' }}>
+          Effective rate: {ratePt.value}%
+        </p>
+      )}
+    </div>
+  )
+}
+
 function applyRealNominal(value, year, currentYear, inflationRate, isReal) {
   if (!isReal || value == null) return value
   const years = year - currentYear
@@ -76,6 +101,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [cashflowRange, setCashflowRange] = useState('full')
   const [cashflowView, setCashflowView] = useState('summary') // summary | income | expenses | surplus
   const [investRange, setInvestRange] = useState('full')
+  const [taxOpen, setTaxOpen] = useState(false)
+  const [taxRange, setTaxRange] = useState('full')
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
@@ -150,6 +177,31 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       surplus: transform(Math.max(0, s.netCashflow), s.year),
       deficit: transform(Math.min(0, s.netCashflow), s.year),
       isDeficit: s.isDeficit,
+    }
+  })
+
+  // Tax breakdown chart data
+  const taxData = snapshots.map(s => {
+    const iTaxA = s.taxA?.netTax ?? 0
+    const iTaxB = s.taxB?.netTax ?? 0
+    const med   = (s.taxA?.medicareLevy ?? 0) + (s.taxB?.medicareLevy ?? 0)
+    const hecs  = (s.hecsRepaymentA ?? 0) + (s.hecsRepaymentB ?? 0)
+    const d293  = (s.div293TaxA ?? 0) + (s.div293TaxB ?? 0)
+    const sct   = (s.superContribTaxA ?? 0) + (s.superContribTaxB ?? 0)
+    const personalTax = iTaxA + iTaxB + med + hecs
+    const assessable  = (s.taxA?.assessableIncome ?? 0) + (s.taxB?.assessableIncome ?? 0)
+    const effectiveRate = assessable > 0
+      ? Math.round((personalTax / assessable) * 1000) / 10
+      : 0
+    return {
+      year: s.year,
+      incomeTaxA:     transform(iTaxA, s.year),
+      incomeTaxB:     transform(iTaxB, s.year),
+      medicare:       transform(med,   s.year),
+      hecs:           transform(hecs,  s.year),
+      div293:         transform(d293,  s.year),
+      superContribTax: transform(sct,  s.year),
+      effectiveRate,
     }
   })
 
@@ -560,6 +612,95 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             </div>
           )}
         </ChartFullscreen>
+      </div>
+
+      {/* Tax summary */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setTaxOpen(o => !o)}
+        >
+          <div>
+            <span className="text-sm font-semibold text-gray-300">Tax Summary</span>
+            <span className="ml-2 text-xs text-gray-600">annual tax burden by type + effective rate</span>
+          </div>
+          <span className="text-gray-500 text-xs">{taxOpen ? '▾' : '▸'}</span>
+        </button>
+
+        {taxOpen && (
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-600">
+                Super contributions tax (15%) is deducted within the fund — not a household cash outflow.
+                Effective rate = personal income tax / assessable income (excludes super contributions tax).
+              </p>
+              <select
+                value={taxRange}
+                onChange={e => setTaxRange(e.target.value)}
+                className="input text-xs py-1 px-2 h-7 ml-3 flex-shrink-0"
+              >
+                <option value="10">Next 10 years</option>
+                <option value="20">Next 20 years</option>
+                <option value="40">Next 40 years</option>
+                <option value="full">Full plan</option>
+              </select>
+            </div>
+            <ChartFullscreen title="Tax Summary">
+              {(isFullscreen) => (
+                <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
+                  <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
+                    <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 340}>
+                      <ComposedChart data={rangeFilter(taxData, taxRange)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#e5e7eb' : '#1f2937'} />
+                        <XAxis dataKey="year" tick={{ fill: isLight ? '#374151' : '#9ca3af', fontSize: 11 }} />
+                        <YAxis
+                          yAxisId="left"
+                          tickFormatter={v => fmt$(v)}
+                          tick={{ fill: isLight ? '#374151' : '#9ca3af', fontSize: 11 }}
+                          width={isTouchDevice ? 40 : 56}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          tickFormatter={v => `${v}%`}
+                          tick={{ fill: isLight ? '#374151' : '#9ca3af', fontSize: 11 }}
+                          width={36}
+                          domain={[0, 60]}
+                        />
+                        <Tooltip content={<TaxTooltip fmt$={fmt$} />} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: isLight ? '#374151' : '#9ca3af' }} />
+                        {retireYear && (
+                          <ReferenceLine
+                            yAxisId="left"
+                            x={retireYear}
+                            stroke="#60a5fa"
+                            strokeDasharray="4 4"
+                            label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }}
+                          />
+                        )}
+                        <Bar yAxisId="left" dataKey="incomeTaxA"      stackId="1" fill="#ef4444" fillOpacity={0.85} name={`Income tax — ${personAName}`} />
+                        <Bar yAxisId="left" dataKey="incomeTaxB"      stackId="1" fill="#f87171" fillOpacity={0.85} name={`Income tax — ${personBName}`} />
+                        <Bar yAxisId="left" dataKey="medicare"        stackId="1" fill="#fb923c" fillOpacity={0.85} name="Medicare levy" />
+                        <Bar yAxisId="left" dataKey="hecs"            stackId="1" fill="#fbbf24" fillOpacity={0.85} name="HECS/HELP" />
+                        <Bar yAxisId="left" dataKey="div293"          stackId="1" fill="#c084fc" fillOpacity={0.85} name="Division 293" />
+                        <Bar yAxisId="left" dataKey="superContribTax" stackId="1" fill="#94a3b8" fillOpacity={0.6}  name="Super contributions tax (15%)" />
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="effectiveRate"
+                          stroke="#e2e8f0"
+                          strokeWidth={1.5}
+                          dot={false}
+                          name="Effective rate (%)"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </ChartFullscreen>
+          </div>
+        )}
       </div>
 
       {/* Investment breakdown */}
