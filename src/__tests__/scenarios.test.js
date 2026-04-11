@@ -1120,7 +1120,9 @@ describe('Scenario-specific behaviour', () => {
 
     s.shares = {
       ...s.shares,
-      currentValue: 200_000,
+      // Parent currentValue is 0 — the full $200k is tracked via holdings (additive model).
+      // If parent > 0, it represents additional unallocated capital that would blend the rate.
+      currentValue: 0,
       annualContribution: 10_000,
       contributionMode: 'fixed',
       dividendYield: 0.04,

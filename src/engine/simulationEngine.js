@@ -20,6 +20,7 @@ import { processOtherIncome } from '../modules/otherIncome.js'
 import { processAllDebts } from '../modules/debts.js'
 import { calcAgePension } from '../modules/agePension.js'
 import { aggregateHoldings, distributeProportionally } from '../utils/holdings.js'
+import { resolveRatePeriodRate } from './ratePeriodEngine.js'
 import { SURPLUS_DESTINATIONS, BOND_CONTRIBUTION_MODES, INVESTMENT_BOND_125_PCT_RULE, DRAWDOWN_SOURCES, DEFAULT_DRAWDOWN_ORDER, SUPER_CONTRIBUTIONS_TAX_RATE } from '../constants/index.js'
 
 /**
@@ -426,22 +427,60 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     }
     const totalDownsizer = downsizerA.amount + downsizerB.amount
 
-    // ── Holdings aggregation — override category-level values from individual holdings ──
-    // Shares holdings
+    // ── Holdings aggregation — total = parent (unallocated) + individual holdings ──
+    // Parent currentValue is the "bulk/unallocated" portion; holdings are specific positions.
+    // Rates are blended proportionally between the two pools.
+
+    // Shares
     const sharesAgg = aggregateHoldings(currentShares.holdings)
-    const effectiveShares = sharesAgg
-      ? { ...currentShares, currentValue: sharesAgg.currentValue, dividendYield: sharesAgg.dividendYield, frankingPct: sharesAgg.frankingPct, ratePeriods: [{ fromYear: year, toYear: year, rate: sharesAgg.returnRate }] }
-      : currentShares
-    // Treasury bonds holdings
+    const sharesHoldingsValue = sharesAgg?.currentValue ?? 0
+    const sharesTotalValue = currentShares.currentValue + sharesHoldingsValue
+    const effectiveShares = (() => {
+      if (!sharesAgg || sharesHoldingsValue === 0) return currentShares
+      const hw = sharesTotalValue > 0 ? sharesHoldingsValue / sharesTotalValue : 0
+      const uw = 1 - hw
+      const parentRate = resolveRatePeriodRate(currentShares.ratePeriods, year, yearAssumptions.sharesReturnRate)
+      return {
+        ...currentShares,
+        currentValue:  sharesTotalValue,
+        dividendYield: currentShares.dividendYield * uw + sharesAgg.dividendYield * hw,
+        frankingPct:   currentShares.frankingPct   * uw + sharesAgg.frankingPct   * hw,
+        ratePeriods:   [{ fromYear: year, toYear: year, rate: parentRate * uw + sharesAgg.returnRate * hw }],
+      }
+    })()
+
+    // Treasury bonds
     const tbAgg = aggregateHoldings(currentTreasuryBonds.holdings)
-    const effectiveTB = tbAgg
-      ? { ...currentTreasuryBonds, currentValue: tbAgg.currentValue, couponRate: tbAgg.couponRate, ratePeriods: [{ fromYear: year, toYear: year, rate: tbAgg.returnRate }] }
-      : currentTreasuryBonds
-    // Commodities holdings
+    const tbHoldingsValue = tbAgg?.currentValue ?? 0
+    const tbTotalValue = currentTreasuryBonds.currentValue + tbHoldingsValue
+    const effectiveTB = (() => {
+      if (!tbAgg || tbHoldingsValue === 0) return currentTreasuryBonds
+      const hw = tbTotalValue > 0 ? tbHoldingsValue / tbTotalValue : 0
+      const uw = 1 - hw
+      const parentRate = resolveRatePeriodRate(currentTreasuryBonds.ratePeriods, year, yearAssumptions.treasuryBondsReturnRate)
+      return {
+        ...currentTreasuryBonds,
+        currentValue: tbTotalValue,
+        couponRate:   (currentTreasuryBonds.couponRate ?? 0) * uw + (tbAgg.couponRate ?? 0) * hw,
+        ratePeriods:  [{ fromYear: year, toYear: year, rate: parentRate * uw + tbAgg.returnRate * hw }],
+      }
+    })()
+
+    // Commodities
     const commAgg = aggregateHoldings(currentCommodities.holdings)
-    const effectiveComm = commAgg
-      ? { ...currentCommodities, currentValue: commAgg.currentValue, ratePeriods: [{ fromYear: year, toYear: year, rate: commAgg.returnRate }] }
-      : currentCommodities
+    const commHoldingsValue = commAgg?.currentValue ?? 0
+    const commTotalValue = currentCommodities.currentValue + commHoldingsValue
+    const effectiveComm = (() => {
+      if (!commAgg || commHoldingsValue === 0) return currentCommodities
+      const hw = commTotalValue > 0 ? commHoldingsValue / commTotalValue : 0
+      const uw = 1 - hw
+      const parentRate = resolveRatePeriodRate(currentCommodities.ratePeriods, year, yearAssumptions.commoditiesReturnRate)
+      return {
+        ...currentCommodities,
+        currentValue: commTotalValue,
+        ratePeriods:  [{ fromYear: year, toYear: year, rate: parentRate * uw + commAgg.returnRate * hw }],
+      }
+    })()
 
     // ── Step 7: Shares — growth phase only (contribution resolved after cashflow) ──
     const sharesResult = processSharesYear({
@@ -1114,33 +1153,37 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra + downsizerA.amount) }
     superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra + downsizerB.amount) }
     // Apply shares growth + resolved contributions + deficit drawdowns
+    // Split new total back into parent (unallocated) + holdings portions proportionally.
     const newSharesValue = Math.max(0, sharesResult.closingValue + sharesNetAdjustment)
+    const sharesHoldingsFrac = sharesTotalValue > 0 ? sharesHoldingsValue / sharesTotalValue : 0
     currentShares = {
       ...currentShares,
-      currentValue: newSharesValue,
+      currentValue: Math.max(0, newSharesValue * (1 - sharesHoldingsFrac)),
       priorYearContribution: finalSharesContribution,
       holdings: currentShares.holdings?.length > 0
-        ? distributeProportionally(currentShares.holdings, newSharesValue).map((v, i) => ({ ...currentShares.holdings[i], currentValue: Math.max(0, v) }))
+        ? distributeProportionally(currentShares.holdings, newSharesValue * sharesHoldingsFrac).map((v, i) => ({ ...currentShares.holdings[i], currentValue: Math.max(0, v) }))
         : currentShares.holdings,
     }
     // Treasury bonds
     const newTBValue = Math.max(0, tbResult.closingValue + tbNetAdjustment)
+    const tbHoldingsFrac = tbTotalValue > 0 ? tbHoldingsValue / tbTotalValue : 0
     currentTreasuryBonds = {
       ...currentTreasuryBonds,
-      currentValue: newTBValue,
+      currentValue: Math.max(0, newTBValue * (1 - tbHoldingsFrac)),
       priorYearContribution: finalTBContribution,
       holdings: currentTreasuryBonds.holdings?.length > 0
-        ? distributeProportionally(currentTreasuryBonds.holdings, newTBValue).map((v, i) => ({ ...currentTreasuryBonds.holdings[i], currentValue: Math.max(0, v) }))
+        ? distributeProportionally(currentTreasuryBonds.holdings, newTBValue * tbHoldingsFrac).map((v, i) => ({ ...currentTreasuryBonds.holdings[i], currentValue: Math.max(0, v) }))
         : currentTreasuryBonds.holdings,
     }
     // Commodities
     const newCommValue = Math.max(0, commResult.closingValue + commNetAdjustment)
+    const commHoldingsFrac = commTotalValue > 0 ? commHoldingsValue / commTotalValue : 0
     currentCommodities = {
       ...currentCommodities,
-      currentValue: newCommValue,
+      currentValue: Math.max(0, newCommValue * (1 - commHoldingsFrac)),
       priorYearContribution: finalCommContribution,
       holdings: currentCommodities.holdings?.length > 0
-        ? distributeProportionally(currentCommodities.holdings, newCommValue).map((v, i) => ({ ...currentCommodities.holdings[i], currentValue: Math.max(0, v) }))
+        ? distributeProportionally(currentCommodities.holdings, newCommValue * commHoldingsFrac).map((v, i) => ({ ...currentCommodities.holdings[i], currentValue: Math.max(0, v) }))
         : currentCommodities.holdings,
     }
     currentBonds = currentBonds.map((bond, i) => ({
@@ -1182,9 +1225,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const totalLiquidAssets =
       cashBuffer +
-      currentShares.currentValue +
-      currentTreasuryBonds.currentValue +
-      currentCommodities.currentValue +
+      newSharesValue +
+      newTBValue +
+      newCommValue +
       bondLiquidity +
       totalOtherAssetsDrawdownable +
       (!superA_result.isLocked ? superA.currentBalance : 0) +
@@ -1250,18 +1293,18 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       totalLandTax,
       totalSellingCosts,
       totalPurchaseCashOutflow,
-      // Shares
-      sharesValue: currentShares.currentValue,
+      // Shares — total (parent + holdings) so charts and net worth reflect full value
+      sharesValue: newSharesValue,
       sharesResult,
       sharesContribution: finalSharesContribution,
       sharesDrawdown,
-      // Treasury bonds
-      treasuryBondsValue: currentTreasuryBonds.currentValue,
+      // Treasury bonds — total (parent + holdings)
+      treasuryBondsValue: newTBValue,
       tbResult,
       tbContribution: finalTBContribution,
       tbDrawdown,
-      // Commodities
-      commoditiesValue: currentCommodities.currentValue,
+      // Commodities — total (parent + holdings)
+      commoditiesValue: newCommValue,
       commResult,
       commContribution: finalCommContribution,
       commDrawdown,
