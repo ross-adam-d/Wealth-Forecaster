@@ -1,7 +1,8 @@
 # Wealth-Forecaster — Enhancement Build Plan
 
 **Scoped:** 2026-04-11  
-**Status:** Ready to build — Phase 1 next
+**Completed:** 2026-04-11 (Session 30)  
+**Status:** All four phases complete ✅
 
 ---
 
@@ -11,12 +12,10 @@ Three major enhancements across four build phases:
 
 | Phase | Feature | Deps | Status |
 |---|---|---|---|
-| 1 | Tax forecasts in Projection tab | None | ⏳ Next |
-| 2 | Actuals dashboard (current net worth, history) | None | ⏳ Queued |
-| 3 | Ticker-based holdings + live prices | None | ⏳ Queued |
-| 4 | CGT calculator (shares + property) | Phase 3 data model | ⏳ Queued |
-
-Phases 1–3 are independent. Phase 4 requires Phase 3 complete first.
+| 1 | Tax forecasts in Projection tab | None | ✅ Done |
+| 2 | Actuals dashboard (current net worth, history) | None | ✅ Done |
+| 3 | Ticker-based holdings + live prices | None | ✅ Done |
+| 4 | CGT calculator (shares + property) | Phase 3 data model | ✅ Done |
 
 ---
 
