@@ -118,6 +118,15 @@
 
 ## Session Log
 
+### Session 30 — 2026-04-11
+
+**What was done:**
+- **Phase 1 — Tax forecast in Projection**: `superContribTaxA/B` added to engine snapshots; Tax Summary chart gains "Super contributions tax (15%)" stacked bar (slate, 0.6 opacity) + footnote clarifying it's not a cash outflow.
+- **Phase 2 — Actuals dashboard**: New `/actuals` route with net worth, liquid assets, debt, income, expenses, monthly surplus metric cards + asset/liability stacked bars + history line chart. Auto-snapshot on save (>7 days or >2% net worth shift, capped at 100 entries). `actualsHistory` added to schema.
+- **Phase 3 — Live stock/bond tickers**: Per-holding `ticker`, `units`, `purchaseDate`, `purchasePrice`, `saleDate`, `salePrice` fields across shares and treasury bond holdings. `livePrice` + `livePriceFetchedAt` auto-updated via `useLivePrices` hook on `activeId` change. Vercel serverless proxy at `api/stock-price.js` (Yahoo Finance v7, 24h stale window, 20-ticker cap). HoldingCard UI shows ticker badge, live price age, portfolio value, sold checkbox + sale date/price fields.
+- **Phase 4 — CGT Calculator**: New `src/utils/cgt.js` — `computeCGTSummary(scenario, snapshots)` handles shares, bond ETFs, and property disposals in the current Australian FY (1 Jul–30 Jun). 50% CGT discount for assets held >12 months. PPOR shown but excluded from net gain. Carried-forward losses reduce taxable gain. Property uses `saleEvent.actualSalePrice` if set; falls back to engine snapshot opening value. "Capital Gains — FY20XX–XX" collapsible section added to Projection page: disposal table (asset, type, dates, cost base, proceeds, gross gain, discount, net gain), summary tiles (gains, losses, net, carried fwd), and help text. `actualSalePrice` field added to property saleEvent form (shown only for current/past FY sales). `capitalLossesCarriedForward` input added to Share Portfolio section.
+- **568 tests passing.**
+
 ### Session 29 — 2026-04-09
 
 **What was done:**

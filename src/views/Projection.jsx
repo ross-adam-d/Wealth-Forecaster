@@ -9,6 +9,7 @@ import CashflowSankey from '../components/CashflowSankey.jsx'
 import LifeEventsTimeline from '../components/LifeEventsTimeline.jsx'
 import InvestmentPieChart from '../components/InvestmentPieChart.jsx'
 import ChartFullscreen from '../components/ChartFullscreen.jsx'
+import { computeCGTSummary } from '../utils/cgt.js'
 
 // Tooltips stick on touch devices — disable them
 const isTouchDevice = typeof window !== 'undefined' && (
@@ -103,6 +104,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [investRange, setInvestRange] = useState('full')
   const [taxOpen, setTaxOpen] = useState(false)
   const [taxRange, setTaxRange] = useState('full')
+  const [cgtOpen, setCgtOpen] = useState(false)
   const currentYear = new Date().getFullYear()
   const inflationRate = scenario.assumptions.inflationRate
 
@@ -204,6 +206,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       effectiveRate,
     }
   })
+
+  const cgtSummary = useMemo(
+    () => computeCGTSummary(scenario, snapshots),
+    [scenario, snapshots]
+  )
 
   const retireYear = retirementDate?.retirementYear
 
@@ -699,6 +706,114 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                 </div>
               )}
             </ChartFullscreen>
+          </div>
+        )}
+      </div>
+
+      {/* Capital Gains — current FY */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setCgtOpen(o => !o)}
+        >
+          <div>
+            <span className="text-sm font-semibold text-gray-300">Capital Gains — {cgtSummary.fyLabel}</span>
+            <span className="ml-2 text-xs text-gray-600">
+              {cgtSummary.hasAny
+                ? `${cgtSummary.disposals.filter(d => !d.isPPOR).length} disposal${cgtSummary.disposals.filter(d => !d.isPPOR).length !== 1 ? 's' : ''} · net gain ${fmt$(cgtSummary.netCapitalGain)}`
+                : 'no disposals this FY'}
+            </span>
+          </div>
+          <span className="text-gray-500 text-xs">{cgtOpen ? '▾' : '▸'}</span>
+        </button>
+
+        {cgtOpen && (
+          <div className="mt-5 space-y-4">
+            {!cgtSummary.hasAny ? (
+              <p className="text-sm text-gray-500">
+                No assets disposed in {cgtSummary.fyLabel}. Add a sale date to share holdings or a sale event to property to see CGT estimates here.
+              </p>
+            ) : (
+              <>
+                {/* Disposal table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: 700 }}>
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Asset</th>
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Type</th>
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Purchased</th>
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Sold</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Cost base</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Proceeds</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Gross gain</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">50% disc.</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Net gain</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cgtSummary.disposals.map(d => (
+                        <tr key={d.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                          <td className="py-2 px-3 text-gray-200">
+                            {d.name}
+                            {d.isEstimate && <span className="ml-1 text-xs text-amber-500">est.</span>}
+                            {d.isPPOR && <span className="ml-1 text-xs text-green-500">PPOR exempt</span>}
+                          </td>
+                          <td className="py-2 px-3 text-gray-400 capitalize">{d.type}</td>
+                          <td className="py-2 px-3 text-gray-500">{d.purchaseDate ? d.purchaseDate.slice(0, 7) : '—'}</td>
+                          <td className="py-2 px-3 text-gray-500">{d.saleDate ? d.saleDate.slice(0, 7) : '—'}</td>
+                          <td className="py-2 px-3 text-right text-gray-300">{fmt$(d.costBase)}</td>
+                          <td className="py-2 px-3 text-right text-gray-300">{fmt$(d.proceeds)}</td>
+                          <td className={`py-2 px-3 text-right font-medium ${d.grossGain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {d.grossGain >= 0 ? '+' : ''}{fmt$(d.grossGain)}
+                          </td>
+                          <td className="py-2 px-3 text-right text-gray-500">
+                            {d.discountApplied ? '✓' : d.isPPOR ? '—' : '✗'}
+                          </td>
+                          <td className={`py-2 px-3 text-right font-semibold ${d.isPPOR ? 'text-green-500' : d.netGain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {d.isPPOR ? 'Exempt' : (d.netGain >= 0 ? '+' : '') + fmt$(d.netGain)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total gains</p>
+                    <p className="text-base font-semibold text-green-400">{fmt$(cgtSummary.totalGains)}</p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total losses</p>
+                    <p className="text-base font-semibold text-red-400">{fmt$(cgtSummary.totalLosses)}</p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Net capital gain</p>
+                    <p className={`text-base font-semibold ${cgtSummary.netCapitalGain > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                      {fmt$(cgtSummary.netCapitalGain)}
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Losses carried fwd</p>
+                    <p className="text-base font-semibold text-gray-300">{fmt$(cgtSummary.carriedForward)}</p>
+                  </div>
+                </div>
+
+                {cgtSummary.newLossesCarriedForward > 0 && (
+                  <p className="text-xs text-amber-500">
+                    {fmt$(cgtSummary.newLossesCarriedForward)} in net losses will carry forward to offset future gains.
+                  </p>
+                )}
+
+                <p className="text-xs text-gray-600">
+                  Net gain is added to taxable income and taxed at your marginal rate.
+                  Set carried-forward losses in Household Profile → Shares section.
+                  Values marked "est." use engine-projected sale price — set an actual sale price in Property settings for accuracy.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>

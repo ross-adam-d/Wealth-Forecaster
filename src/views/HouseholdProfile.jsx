@@ -13,6 +13,7 @@ import { calcStampDuty, calcLandTax } from '../modules/property.js'
 import { DEFAULT_SELLING_COSTS_PCT } from '../constants/index.js'
 import MonthYearInput from '../components/MonthYearInput.jsx'
 import { extractYear } from '../utils/format.js'
+import { currentAustralianFY } from '../utils/cgt.js'
 import {
   createDefaultShareHolding,
   createDefaultSuperHolding,
@@ -1104,6 +1105,19 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   min={0} max={15} step={0.1}
                   hint={`Estimated ${((p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT) * (p.currentValue || 0)).toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })} at current value`}
                 />
+                {(() => {
+                  const { fyEndYear } = currentAustralianFY()
+                  const saleYearVal = extractYear(p.saleEvent.year)
+                  if (!saleYearVal || saleYearVal > fyEndYear) return null
+                  return (
+                    <CurrencyInput
+                      label="Actual sale price (current/past FY)"
+                      value={p.saleEvent.actualSalePrice}
+                      onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, actualSalePrice: v } })}
+                      hint="Used for CGT calculation — overrides projected value"
+                    />
+                  )
+                })()}
               </div>
             )}
           </div>
@@ -2666,6 +2680,14 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
       <Section title="Share Portfolio">
         <SharesForm shares={scenario.shares} onUpdate={updateShares} />
+        <div className="mt-4 pt-4 border-t border-gray-800">
+          <CurrencyInput
+            label="Capital losses carried forward (prior FY)"
+            value={scenario.capitalLossesCarriedForward ?? 0}
+            onChange={v => updateScenario({ capitalLossesCarriedForward: v })}
+            hint="Net capital losses from prior years that offset this FY's gains"
+          />
+        </div>
       </Section>
 
       <Section title="Treasury / Corporate Bonds" defaultOpen={false}>
