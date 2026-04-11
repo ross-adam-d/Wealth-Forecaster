@@ -1,12 +1,10 @@
 /**
- * useLivePrices — silently refreshes stale ticker prices in the active scenario.
- *
- * On mount and whenever the active scenario changes, collects all share and
- * treasury bond holdings that have a ticker but a stale (or missing) livePrice,
- * batches them into a single API call, and patches the scenario in-place.
+ * useLivePrices — refreshes stale ticker prices whenever the active scenario's
+ * stale-ticker set changes (on mount, scenario switch, OR when a new ticker is added).
  *
  * A price is considered stale if it was fetched more than 24 hours ago.
- * Runs once per activeId change; a ref guard prevents concurrent fetches.
+ * The effect key is a sorted comma-separated string of stale tickers — it only
+ * re-fires when that set actually changes, preventing spurious re-fetches.
  */
 
 import { useEffect, useRef } from 'react'
@@ -21,30 +19,31 @@ function isStale(fetchedAt) {
 export function useLivePrices(scenarios, updateScenario, activeId) {
   const fetchingRef = useRef(false)
 
+  const scenario = scenarios?.find(s => s.id === activeId)
+
+  // Compute stale tickers on every render — cheap, and lets the effect
+  // re-fire the moment a new ticker is entered (without needing activeId to change).
+  const staleTickers = new Set()
+  for (const h of (scenario?.shares?.holdings || [])) {
+    if (h.ticker && isStale(h.livePriceFetchedAt)) staleTickers.add(h.ticker.toUpperCase())
+  }
+  for (const h of (scenario?.treasuryBonds?.holdings || [])) {
+    if (h.ticker && isStale(h.livePriceFetchedAt)) staleTickers.add(h.ticker.toUpperCase())
+  }
+
+  // Stable string key — sorted so order doesn't matter, empty = nothing to fetch
+  const staleKey = [...staleTickers].sort().join(',')
+
   useEffect(() => {
+    if (!staleKey || !scenario) return
     if (fetchingRef.current) return
-
-    const scenario = scenarios?.find(s => s.id === activeId)
-    if (!scenario) return
-
-    // Collect unique stale tickers
-    const staleTickers = new Set()
-
-    for (const h of (scenario.shares?.holdings || [])) {
-      if (h.ticker && isStale(h.livePriceFetchedAt)) staleTickers.add(h.ticker.toUpperCase())
-    }
-    for (const h of (scenario.treasuryBonds?.holdings || [])) {
-      if (h.ticker && isStale(h.livePriceFetchedAt)) staleTickers.add(h.ticker.toUpperCase())
-    }
-
-    if (staleTickers.size === 0) return
 
     fetchingRef.current = true
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 12_000)  // 12s — abort if Yahoo hangs
+    const timeoutId = setTimeout(() => controller.abort(), 12_000)
 
-    fetch(`/api/stock-price?tickers=${[...staleTickers].join(',')}`, { signal: controller.signal })
+    fetch(`/api/stock-price?tickers=${staleKey}`, { signal: controller.signal })
       .then(r => (r.ok ? r.json() : null))
       .then(priceMap => {
         if (!priceMap) return
@@ -75,5 +74,5 @@ export function useLivePrices(scenarios, updateScenario, activeId) {
         clearTimeout(timeoutId)
         fetchingRef.current = false
       })
-  }, [activeId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [staleKey]) // eslint-disable-line react-hooks/exhaustive-deps
 }
