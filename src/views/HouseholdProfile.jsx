@@ -1501,19 +1501,38 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
 function HoldingsSubForm({ holdings, fields, createDefault, label, onUpdate }) {
   const totalValue = (holdings || []).reduce((s, h) => s + (h.currentValue || 0), 0)
   const [expanded, setExpanded] = useState((holdings || []).length > 0)
+  const hasTickers = fields.includes('ticker') && (holdings || []).some(h => (h.ticker || '').trim())
+
+  const handleRefreshPrices = () => {
+    const cleared = (holdings || []).map(h =>
+      (h.ticker || '').trim() ? { ...h, livePrice: null, livePriceFetchedAt: null } : h
+    )
+    onUpdate(cleared)
+  }
 
   return (
     <div className="border border-gray-700/50 rounded-lg p-3 mt-3">
-      <button
-        className="w-full flex items-center justify-between text-left"
-        onClick={() => setExpanded(o => !o)}
-      >
-        <span className="text-xs font-medium text-gray-400">
-          Individual Holdings ({(holdings || []).length})
-          {totalValue > 0 && ` — $${Math.round(totalValue).toLocaleString()}`}
-        </span>
-        <span className="text-gray-500 text-xs">{expanded ? '▾' : '▸'}</span>
-      </button>
+      <div className="w-full flex items-center justify-between">
+        <button
+          className="flex-1 flex items-center gap-2 text-left"
+          onClick={() => setExpanded(o => !o)}
+        >
+          <span className="text-xs font-medium text-gray-400">
+            Individual Holdings ({(holdings || []).length})
+            {totalValue > 0 && ` — $${Math.round(totalValue).toLocaleString()}`}
+          </span>
+          <span className="text-gray-500 text-xs">{expanded ? '▾' : '▸'}</span>
+        </button>
+        {hasTickers && (
+          <button
+            className="text-xs text-brand-500 hover:text-brand-400 flex-shrink-0 ml-2"
+            onClick={handleRefreshPrices}
+            title="Force re-fetch all live prices"
+          >
+            ↻ Refresh prices
+          </button>
+        )}
+      </div>
       {expanded && (
         <div className="mt-3 space-y-2">
           {(holdings || []).map((h, i) => (
