@@ -118,6 +118,26 @@
 
 ## Session Log
 
+### Session 31 — 2026-04-12
+
+**What was done:**
+
+- **Holdings additive fix** — Parent `currentValue` (unallocated bulk) + individual holdings values are now summed, not substituted. Previously, adding a holding with no live price yet (currentValue=0) caused the engine to override the parent value with 0, making the plan unviable. Fix in `simulationEngine.js`: `sharesTotalValue = parent.currentValue + holdingsValue`. Rates blended proportionally. Year-end split preserves the parent/holdings fraction across years. Snapshot `sharesValue`/`treasuryBondsValue`/`commoditiesValue` and `totalLiquidAssets` now use the full totals (`newSharesValue` etc.) not the post-split parent-only values. Test scenario updated to use `currentValue: 0` on parent (holdings-only portfolio) for the rate-blend assertion. 568 tests.
+
+- **Live price: Yahoo Finance v8 + outside-market-hours fallback** — Yahoo Finance v7 `/quote` endpoint returns 401; switched `api/stock-price.js` to v8 `/chart/{ticker}` (per-ticker, parallel `Promise.all`, no auth required). PMGOLD.AX was returning `17.94` (stale `meta.regularMarketPrice` when market closed / `regularMarketTime=0`); switched to `range=5d` and fall back to last non-null close from `indicators.quote[0].close` when no live session. Now returns correct ~$67 last-close on weekends.
+
+- **Live price: useLivePrices fires on ticker entry** — Effect dependency changed from `[activeId]` to `[staleKey]` (sorted comma-separated string of stale tickers). Prices now fetch immediately when a ticker is typed, not just on scenario switch.
+
+- **Live price: Refresh prices button** — "↻ Refresh prices" link in `HoldingsSubForm` header (shown when any holding has a ticker). Clears `livePrice` and `livePriceFetchedAt` on all ticker-linked holdings, making them stale and triggering an immediate re-fetch. Fixes the case where a corrected API returns a better price but the 24h cache prevents pickup.
+
+- **Number input UX overhaul** — Removed `min`/`max` HTML attributes from all `type="number"` inputs in `HouseholdProfile.jsx`, `Assumptions.jsx`, and `MonthYearInput.jsx`. Browser was blocking clearing and blur-resetting fields to min when user tried to type a new value. Added `onWheel={e => e.target.blur()}` to every number input to prevent scroll wheel from silently changing values. Added explicit `step="1"` to all integer fields. Fixed units-held `parseFloat(e.target.value) || 0` → `numVal()` so field can be cleared. `PctInput` now shows "Must be between X% and Y%" warning when value is outside min/max props instead of restricting entry. Retirement age shows "Required for projections" when empty.
+
+- **SPA 404 fix** — Added `vercel.json` with rewrite rules: `/api/(.*)` → serverless fn, `(.*)` → `index.html`. Page refresh and direct URL access now work for all testers (was returning `404: NOT_FOUND`).
+
+**568 tests passing. Deployed.**
+
+---
+
 ### Session 30 — 2026-04-11
 
 **What was done:**
