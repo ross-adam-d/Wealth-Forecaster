@@ -6,6 +6,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { createDefaultScenario } from '../utils/schema.js'
 import { AUTOSAVE_DEBOUNCE_MS } from '../constants/index.js'
 import { supabase } from '../utils/supabase.js'
+import { computeActuals } from '../utils/actuals.js'
 
 export function useScenario(userId) {
   const [scenarios, setScenarios] = useState([createDefaultScenario()])
@@ -45,16 +46,47 @@ export function useScenario(userId) {
     })()
   }, [userId])
 
+  // Append an actuals snapshot if the scenario has meaningful data and
+  // enough time has passed (>7 days) or net worth has shifted by >2%.
+  function withActualsSnapshot(scenario) {
+    const actuals = computeActuals(scenario)
+    if (actuals.totalAssets === 0 && actuals.totalLiabilities === 0) return scenario
+
+    const history = scenario.actualsHistory || []
+    const last = history[history.length - 1]
+    const today = new Date().toISOString().split('T')[0]
+
+    if (last?.date === today) return scenario // already snapshotted today
+
+    const daysSinceLast = last
+      ? Math.floor((Date.now() - new Date(last.date).getTime()) / 86_400_000)
+      : Infinity
+    const netWorthShift = last
+      ? Math.abs((actuals.netWorth - last.netWorth) / (Math.abs(last.netWorth) || 1))
+      : 1
+
+    if (daysSinceLast < 7 && netWorthShift < 0.02) return scenario
+
+    const newEntry = {
+      date: today,
+      netWorth:     Math.round(actuals.netWorth),
+      liquidAssets: Math.round(actuals.liquidAssets),
+      totalDebt:    Math.round(actuals.totalDebt),
+    }
+    return { ...scenario, actualsHistory: [...history, newEntry].slice(-100) }
+  }
+
   // Debounced auto-save
   const triggerAutoSave = useCallback((updatedScenarios) => {
     if (!userId) return
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       for (const scenario of updatedScenarios) {
+        const toSave = withActualsSnapshot(scenario)
         await supabase.from('scenarios').upsert({
-          id: scenario.id,
+          id: toSave.id,
           user_id: userId,
-          data: scenario,
+          data: toSave,
           updated_at: new Date().toISOString(),
         })
       }

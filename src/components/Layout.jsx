@@ -24,6 +24,7 @@ const WELCOME_STEPS = [
 ]
 
 const NAV = [
+  { to: '/actuals',    label: 'Actuals' },
   { to: '/gap',        label: 'The Gap' },
   { to: '/projection', label: 'Projection' },
   { to: '/impact',     label: 'Impact' },

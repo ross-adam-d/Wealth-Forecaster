@@ -349,5 +349,7 @@ export function createDefaultScenario(name = 'Base Plan') {
     events: [],
     surplusRoutingOrder: ['offset', 'shares', 'treasuryBonds', 'commodities', 'cash'],
     drawdownOrder: ['cash', 'shares', 'treasuryBonds', 'commodities', 'bonds', 'otherAssets', 'super'],
+    actualsHistory: [],   // [{ date: 'YYYY-MM-DD', netWorth, liquidAssets, totalDebt }] — auto-appended on save
+    capitalLossesCarriedForward: 0,
   }
 }

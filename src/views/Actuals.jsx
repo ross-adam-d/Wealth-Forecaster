@@ -1,0 +1,257 @@
+import { useMemo } from 'react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
+import { computeActuals } from '../utils/actuals.js'
+
+function fmt$(n) {
+  if (n == null) return '—'
+  const abs = Math.abs(n)
+  const sign = n < 0 ? '-' : ''
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000)     return `${sign}$${Math.round(abs / 1_000)}k`
+  return `${sign}$${Math.round(abs)}`
+}
+
+function formatHistoryDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' })
+}
+
+function MetricCard({ label, value, sub, valueColor = 'text-white' }) {
+  return (
+    <div className="card">
+      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
+    </div>
+  )
+}
+
+function StackedBar({ items }) {
+  const total = items.reduce((s, i) => s + Math.max(0, i.value), 0)
+  if (total === 0) return <p className="text-xs text-gray-600">No values entered</p>
+  return (
+    <div>
+      <div className="flex w-full h-4 rounded-full overflow-hidden" style={{ gap: '2px' }}>
+        {items.filter(i => i.value > 0).map(i => (
+          <div
+            key={i.label}
+            style={{ width: `${(i.value / total) * 100}%`, backgroundColor: i.color, minWidth: '2px' }}
+            title={`${i.label}: ${fmt$(i.value)}`}
+          />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
+        {items.filter(i => i.value > 0).map(i => (
+          <span key={i.label} className="text-xs text-gray-400 flex items-center gap-1.5">
+            <span
+              className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
+              style={{ backgroundColor: i.color }}
+            />
+            <span className="text-gray-500">{i.label}</span>
+            <span className="text-gray-300 font-medium">{fmt$(i.value)}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function HistoryTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px' }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: '0 0 4px' }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.dataKey} style={{ color: p.stroke, fontSize: 12, margin: '2px 0' }}>
+          {p.name}: {fmt$(p.value)}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+export default function Actuals({ scenario, isLight }) {
+  const actuals = useMemo(() => computeActuals(scenario), [scenario])
+  const history = scenario.actualsHistory || []
+
+  const assetItems = [
+    { label: 'Cash',         value: actuals.cashSavings,    color: '#94a3b8' },
+    { label: 'Shares',       value: actuals.sharesValue,    color: '#a78bfa' },
+    { label: 'Tr. Bonds',    value: actuals.tbValue,        color: '#22d3ee' },
+    { label: 'Commodities',  value: actuals.commValue,      color: '#f472b6' },
+    { label: 'Property',     value: actuals.propertyValues, color: '#f59e0b' },
+    { label: 'Super',        value: actuals.superBalances,  color: '#0ea5e9' },
+    { label: 'Inv. Bonds',   value: actuals.bondBalances,   color: '#34d399' },
+    { label: 'Other',        value: actuals.otherValues,    color: '#6b7280' },
+  ]
+
+  const debtItems = [
+    { label: 'Mortgage',     value: actuals.mortgageBalance, color: '#f87171' },
+    { label: 'Other debts',  value: actuals.otherDebt,       color: '#fb923c' },
+    { label: 'HECS/HELP',    value: actuals.hecsBalance,     color: '#fbbf24' },
+  ]
+
+  const historyData = useMemo(() =>
+    history.map(h => ({
+      label: formatHistoryDate(h.date),
+      netWorth:     h.netWorth,
+      liquidAssets: h.liquidAssets,
+      totalDebt:    h.totalDebt,
+    })),
+    [history]
+  )
+
+  const netWorthColor = actuals.netWorth >= 0 ? 'text-green-400' : 'text-red-400'
+  const surplusColor  = actuals.monthlySurplus >= 0 ? 'text-green-400' : 'text-red-400'
+  const gridColor     = isLight ? '#e5e7eb' : '#1f2937'
+  const tickColor     = isLight ? '#374151' : '#9ca3af'
+
+  const personAName = scenario.household?.personA?.name || 'Person A'
+  const personBName = scenario.household?.personB?.name || 'Person B'
+  const singlePerson = !scenario.household?.personB?.dateOfBirth &&
+    !scenario.household?.personB?.currentSalary
+
+  return (
+    <div className="px-4 py-4 space-y-4">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Actuals</h1>
+        <p className="text-sm text-gray-400 mt-1">
+          Current financial position derived from your Household data.
+          {' '}Snapshots are recorded automatically when you save with meaningful changes.
+        </p>
+      </div>
+
+      {/* Row 1 — Balance sheet metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <MetricCard
+          label="Net Worth"
+          value={fmt$(actuals.netWorth)}
+          sub={`${fmt$(actuals.totalAssets)} assets − ${fmt$(actuals.totalLiabilities)} liabilities`}
+          valueColor={netWorthColor}
+        />
+        <MetricCard
+          label="Liquid Assets"
+          value={fmt$(actuals.liquidAssets)}
+          sub="Cash + shares + bonds + commodities"
+        />
+        <MetricCard
+          label="Total Debt"
+          value={actuals.totalDebt > 0 ? fmt$(actuals.totalDebt) : '—'}
+          sub={actuals.totalDebt > 0
+            ? [
+                actuals.mortgageBalance > 0 && `Mortgage ${fmt$(actuals.mortgageBalance)}`,
+                actuals.otherDebt > 0 && `Other ${fmt$(actuals.otherDebt)}`,
+                actuals.hecsBalance > 0 && `HECS ${fmt$(actuals.hecsBalance)}`,
+              ].filter(Boolean).join(' · ')
+            : 'No debts recorded'
+          }
+          valueColor={actuals.totalDebt > 0 ? 'text-red-400' : 'text-gray-400'}
+        />
+      </div>
+
+      {/* Row 2 — Cashflow metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <MetricCard
+          label="Annual Income"
+          value={fmt$(actuals.annualIncome)}
+          sub={singlePerson ? personAName : `${personAName} + ${personBName}`}
+        />
+        <MetricCard
+          label="Annual Expenses"
+          value={fmt$(actuals.totalOutflows)}
+          sub={[
+            actuals.annualExpenses > 0 && `Living ${fmt$(actuals.annualExpenses)}`,
+            actuals.annualMortgageRepayments > 0 && `Mortgage ${fmt$(actuals.annualMortgageRepayments)}`,
+            actuals.annualDebtRepayments > 0 && `Debt ${fmt$(actuals.annualDebtRepayments)}`,
+          ].filter(Boolean).join(' · ') || 'No expenses recorded'}
+          valueColor="text-white"
+        />
+        <MetricCard
+          label="Monthly Surplus"
+          value={fmt$(actuals.monthlySurplus)}
+          sub="Pre-tax income minus outflows ÷ 12"
+          valueColor={surplusColor}
+        />
+      </div>
+
+      {/* Asset composition */}
+      <div className="card">
+        <h2 className="text-sm font-semibold text-gray-300 mb-4">Asset Composition</h2>
+        <StackedBar items={assetItems} />
+        <p className="text-xs text-gray-600 mt-3">
+          Super and property are illiquid — not available before preservation age or sale.
+          Liquid assets (cash, shares, bonds) are shown separately above.
+        </p>
+      </div>
+
+      {/* Liability breakdown — only if debts exist */}
+      {actuals.totalLiabilities > 0 && (
+        <div className="card">
+          <h2 className="text-sm font-semibold text-gray-300 mb-4">Liability Breakdown</h2>
+          <StackedBar items={debtItems} />
+        </div>
+      )}
+
+      {/* Net worth history chart */}
+      <div className="card">
+        <h2 className="text-sm font-semibold text-gray-300 mb-1">Net Worth History</h2>
+        <p className="text-xs text-gray-600 mb-4">
+          Auto-recorded snapshots when net worth shifts by 2%+ or after 7 days.
+        </p>
+
+        {historyData.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="text-gray-500 text-sm">No snapshot history yet.</p>
+            <p className="text-gray-600 text-xs mt-1">
+              Save your scenario to record your first snapshot. The chart will appear here as history builds.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div style={{ minWidth: '400px' }}>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={historyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="label" tick={{ fill: tickColor, fontSize: 11 }} />
+                  <YAxis
+                    tickFormatter={v => fmt$(v)}
+                    tick={{ fill: tickColor, fontSize: 11 }}
+                    width={56}
+                  />
+                  <Tooltip content={<HistoryTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
+                  <Line
+                    type="monotone"
+                    dataKey="netWorth"
+                    stroke="#4ade80"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#4ade80' }}
+                    name="Net Worth"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="liquidAssets"
+                    stroke="#0ea5e9"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#0ea5e9' }}
+                    name="Liquid Assets"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalDebt"
+                    stroke="#f87171"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#f87171' }}
+                    name="Total Debt"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

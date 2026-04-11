@@ -12,6 +12,7 @@ import HouseholdProfile from './views/HouseholdProfile.jsx'
 import Assumptions from './views/Assumptions.jsx'
 import Compare from './views/Compare.jsx'
 import RetirementGoal from './views/RetirementGoal.jsx'
+import Actuals from './views/Actuals.jsx'
 import Login from './views/Login.jsx'
 
 export default function App() {
@@ -78,7 +79,8 @@ export default function App() {
   return (
     <Layout {...sharedProps} snapshots={snapshots}>
       <Routes>
-        <Route path="/" element={<Navigate to="/gap" replace />} />
+        <Route path="/" element={<Navigate to="/actuals" replace />} />
+        <Route path="/actuals" element={<Actuals {...sharedProps} />} />
         <Route path="/gap" element={<GapDashboard {...sharedProps} />} />
         <Route path="/projection" element={<Projection {...sharedProps} />} />
         <Route path="/impact" element={<ImpactAnalyser {...sharedProps} />} />
