@@ -46,10 +46,10 @@ function numVal(raw) {
   return isNaN(n) ? '' : n
 }
 
-function CurrencyInput({ label, value, onChange, hint, max }) {
+function CurrencyInput({ label, value, onChange, hint, max, className = '' }) {
   const over = max != null && Number(value) > max
   return (
-    <div>
+    <div className={`max-w-56 ${className}`}>
       <label className="compact-label">{label}</label>
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
@@ -69,11 +69,11 @@ function CurrencyInput({ label, value, onChange, hint, max }) {
   )
 }
 
-function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint }) {
+function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint, className = '' }) {
   const displayVal = value != null && value !== '' ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''
   const outOfRange = displayVal !== '' && (Number(displayVal) < min || Number(displayVal) > max)
   return (
-    <div>
+    <div className={`max-w-36 ${className}`}>
       <label className="compact-label">{label}</label>
       <div className="relative">
         <input

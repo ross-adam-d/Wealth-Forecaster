@@ -196,6 +196,8 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const fillOp = isLight ? 0.75 : 0.5
   const fillOpDebt = isLight ? 0.7 : 0.4
   const fillOpSingle = isLight ? 0.65 : 0.25
+  const gridColor = isLight ? '#e5e7eb' : '#1f2937'
+  const tickColor = isLight ? '#374151' : '#9ca3af'
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
   const gapCurrentYearForTransform = new Date().getFullYear()
@@ -363,11 +365,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                   <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 340}>
                     {chartView === 'breakdown' ? (
                       <AreaChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 12 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                         <Tooltip content={<SimpleTooltip />} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                         <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Mortgage debt" />
                         <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOpDebt} name="Other debts" />
                         <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={fillOp} name="Cash" />
@@ -382,11 +384,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                       </AreaChart>
                     ) : chartView === 'total' ? (
                       <AreaChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 12 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                         <Tooltip content={<SimpleTooltip />} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                         <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Total liquid assets" strokeWidth={2} />
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
                         {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
@@ -394,11 +396,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                       </AreaChart>
                     ) : (
                       <ComposedChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                        <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 12 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                         <Tooltip content={<SimpleTooltip />} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                         <Bar dataKey="income" name="Income (after tax)" fill="#0ea5e9" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
                         <Bar dataKey="outflows" name="Outflows (inc. mortgage)" fill="#f87171" fillOpacity={0.75} radius={[2, 2, 0, 0]} />

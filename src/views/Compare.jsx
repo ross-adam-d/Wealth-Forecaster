@@ -101,6 +101,9 @@ export default function Compare({ scenarios, displayReal = true }) {
 
   const currentYear = new Date().getFullYear()
   const inflationRate = scenarioA?.assumptions?.inflationRate ?? 0.025
+  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
+  const gridColor = isLight ? '#e5e7eb' : '#1f2937'
+  const tickColor = isLight ? '#374151' : '#9ca3af'
 
   const transform = (value, year) => {
     if (!displayReal || value == null) return value
@@ -282,11 +285,11 @@ export default function Compare({ scenarios, displayReal = true }) {
 
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={rangeFilter(chartData)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: '#9ca3af', fontSize: 11 }} />
-              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+              <XAxis dataKey="year" type="number" domain={['dataMin', 'dataMax']} tick={{ fill: tickColor, fontSize: 11 }} />
+              <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} />
               <Tooltip formatter={(v, name) => [fmt$(v), name]} {...tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+              <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
               {resultA.retirementYear && <ReferenceLine x={resultA.retirementYear} stroke={COLOR_A} strokeDasharray="4 4" strokeOpacity={0.5} />}
               {resultB.retirementYear && resultB.retirementYear !== resultA.retirementYear && (
                 <ReferenceLine x={resultB.retirementYear} stroke={COLOR_B} strokeDasharray="4 4" strokeOpacity={0.5} />

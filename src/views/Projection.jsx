@@ -90,6 +90,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const fillOp = isLight ? 0.75 : 0.5
   const fillOpDebt = isLight ? 0.7 : 0.4
   const fillOpSingle = isLight ? 0.65 : 0.3
+  const gridColor = isLight ? '#e5e7eb' : '#1f2937'
+  const tickColor = isLight ? '#374151' : '#9ca3af'
 
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('projectionTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [showAllYears, setShowAllYears] = useState(false)
@@ -460,11 +462,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                 <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 360}>
                   {netWorthView === 'networth' ? (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                       <Area type="monotone" dataKey="debts"          stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Other debts" />
                       <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
@@ -478,21 +480,21 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     </AreaChart>
                   ) : netWorthView === 'liquidity' ? (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                       <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Liquid assets" />
                     </AreaChart>
                   ) : (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                       <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
                       <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={fillOp} name="Tax-Def. Bonds" />
@@ -558,22 +560,22 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                 <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 320}>
                   {cashflowView === 'summary' ? (
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income" />
                       <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Outflows" />
                       <Bar dataKey="net"      fill="#4ade80" fillOpacity={0.6} name="Net" />
                     </BarChart>
                   ) : cashflowView === 'income' ? (
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
                       <Bar dataKey="salaryA"   stackId="1" fill="#34d399" fillOpacity={0.8} name={`${personAName} salary`} />
                       <Bar dataKey="salaryB"   stackId="1" fill="#6ee7b7" fillOpacity={0.8} name={`${personBName} salary`} />
@@ -586,11 +588,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     </BarChart>
                   ) : cashflowView === 'expenses' ? (
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
                       <Bar dataKey="livingExp"          stackId="1" fill="#f87171" fillOpacity={0.8} name="Living expenses" />
                       <Bar dataKey="tax"                stackId="1" fill="#ef4444" fillOpacity={0.6} name="Tax" />
@@ -602,11 +604,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     </BarChart>
                   ) : (
                     <ComposedChart data={rangeFilter(cashflowData, cashflowRange)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                      <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} />
-                      <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                      <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
                       <Bar dataKey="surplus" fill="#4ade80" fillOpacity={0.7} name="Surplus" />
@@ -658,24 +660,24 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                   <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
                     <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 340}>
                       <ComposedChart data={rangeFilter(taxData, taxRange)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isLight ? '#e5e7eb' : '#1f2937'} />
-                        <XAxis dataKey="year" tick={{ fill: isLight ? '#374151' : '#9ca3af', fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                         <YAxis
                           yAxisId="left"
                           tickFormatter={v => fmt$(v)}
-                          tick={{ fill: isLight ? '#374151' : '#9ca3af', fontSize: 11 }}
+                          tick={{ fill: tickColor, fontSize: 11 }}
                           width={isTouchDevice ? 40 : 56}
                         />
                         <YAxis
                           yAxisId="right"
                           orientation="right"
                           tickFormatter={v => `${v}%`}
-                          tick={{ fill: isLight ? '#374151' : '#9ca3af', fontSize: 11 }}
+                          tick={{ fill: tickColor, fontSize: 11 }}
                           width={36}
                           domain={[0, 60]}
                         />
                         <Tooltip content={<TaxTooltip fmt$={fmt$} />} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: isLight ? '#374151' : '#9ca3af' }} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                         {retireYear && (
                           <ReferenceLine
                             yAxisId="left"
@@ -840,11 +842,11 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               <div style={isFullscreen ? { height: '100%' } : { minWidth: '700px' }}>
                 <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 400}>
                   <BarChart data={rangeFilter(netWorthData, investRange)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                    <XAxis dataKey="year" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                    <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: '#9ca3af', fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                    <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                    <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                     <Tooltip content={<SimpleTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
+                    <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                     {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
                     <Bar dataKey="liqCash"       stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
                     <Bar dataKey="liqBonds"      stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Tax-Def. Bonds" />
