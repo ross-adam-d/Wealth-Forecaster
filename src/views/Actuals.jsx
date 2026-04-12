@@ -119,7 +119,7 @@ function SinglePie({ data, title, onBack, onSliceClick }) {
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie
             data={dataWithPct}
@@ -127,8 +127,8 @@ function SinglePie({ data, title, onBack, onSliceClick }) {
             nameKey="name"
             cx="50%"
             cy="50%"
-            innerRadius={46}
-            outerRadius={84}
+            innerRadius={58}
+            outerRadius={108}
             paddingAngle={2}
             activeIndex={activeIdx}
             activeShape={renderActiveShape}
@@ -145,15 +145,15 @@ function SinglePie({ data, title, onBack, onSliceClick }) {
         </PieChart>
       </ResponsiveContainer>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
+      <div className="flex flex-col gap-1 mt-2">
         {dataWithPct.map((entry, i) => (
           <div key={i} className="flex items-center gap-1.5 min-w-0">
             <span
               className="w-2 h-2 rounded-sm flex-shrink-0"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-xs text-gray-400 truncate flex-1 min-w-0">{entry.name}</span>
-            <span className="text-xs text-gray-500 flex-shrink-0 tabular-nums">{fmt$(entry.value)}</span>
+            <span className="text-xs text-gray-400 truncate">{entry.name}</span>
+            <span className="text-xs text-gray-500 flex-shrink-0 tabular-nums ml-auto">{fmt$(entry.value)}</span>
           </div>
         ))}
       </div>
