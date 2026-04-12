@@ -128,7 +128,16 @@
 
 - **Actuals drilldown pie chart** — Replaced the asset composition stacked bar with a two-pane drilldown pie. Left pane: top-level asset categories. Click a wedge → right pane shows per-holding detail (individual holdings by name + unallocated bulk). Hover explodes the active wedge (+8px via Recharts `activeShape`/`Sector`). Tooltip shows `$value (pct%)`. "← Overview" back button to dismiss drilldown. Cash is not clickable (no sub-items). Also fixed `computeActuals` to include individual holdings values in shares/tbonds/commodities totals, matching the simulation engine's additive model.
 
-**568 tests passing. Committed `97b6fc8`.**
+- **Pie chart polish** — `outerRadius` 84→108, `innerRadius` 46→58, height 200→260px. Legend changed from 2-column grid to single-column flex list; label and value on the same row with `ml-auto` flush right.
+
+- **PWA wrapper** — App is now installable on iOS, Android and desktop:
+  - `vite-plugin-pwa` with `generateSW`/Workbox strategy; precaches all static assets; `NetworkFirst` for `/api/*` so live stock prices always try network first
+  - Icons generated from `public/icon.svg` (blue bar-chart) via `@vite-pwa/assets-generator`: 64, 192, 512px, maskable-512px, apple-touch-180px, favicon.ico
+  - `index.html`: `viewport-fit=cover`, `theme-color`, `apple-mobile-web-app-*` meta tags for iOS full-screen launch
+  - `start_url: /actuals` — install opens directly to the dashboard
+  - Silent `autoUpdate`: service worker refreshes in the background after each deploy
+
+**568 tests passing. Committed `726595d`.**
 
 ---
 
