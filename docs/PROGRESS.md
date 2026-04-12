@@ -126,7 +126,9 @@
 
 - **Chart light-mode colors** — Added `gridColor` and `tickColor` derived variables to `Projection.jsx`, `GapDashboard.jsx`, and `Compare.jsx`. All hardcoded `CartesianGrid stroke="#1f2937"`, `XAxis/YAxis tick={{ fill: '#9ca3af' }}`, and `Legend wrapperStyle color` replaced with the variables. Charts now render correctly in both dark and light mode. `Actuals.jsx` was already correct. The one existing inline ternary in the Projection tax chart normalized to use the same variables.
 
-**568 tests passing. Committed `38d29bb`.**
+- **Actuals drilldown pie chart** — Replaced the asset composition stacked bar with a two-pane drilldown pie. Left pane: top-level asset categories. Click a wedge → right pane shows per-holding detail (individual holdings by name + unallocated bulk). Hover explodes the active wedge (+8px via Recharts `activeShape`/`Sector`). Tooltip shows `$value (pct%)`. "← Overview" back button to dismiss drilldown. Cash is not clickable (no sub-items). Also fixed `computeActuals` to include individual holdings values in shares/tbonds/commodities totals, matching the simulation engine's additive model.
+
+**568 tests passing. Committed `97b6fc8`.**
 
 ---
 
