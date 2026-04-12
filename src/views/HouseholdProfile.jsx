@@ -23,18 +23,18 @@ import {
 
 // ── Shared primitives ─────────────────────────────────────────────────────
 
-function Section({ title, children, defaultOpen = true }) {
+function Section({ title, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="card">
+    <div>
       <button
-        className="w-full flex items-center justify-between text-left"
+        className="w-full flex items-center justify-between py-3 text-left"
         onClick={() => setOpen(o => !o)}
       >
-        <span className="text-sm font-semibold text-gray-300">{title}</span>
-        <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{title}</span>
+        <span className="text-gray-600 text-xs">{open ? '▾' : '▸'}</span>
       </button>
-      {open && <div className="mt-5">{children}</div>}
+      {open && <div className="pb-5">{children}</div>}
     </div>
   )
 }
@@ -50,11 +50,11 @@ function CurrencyInput({ label, value, onChange, hint, max }) {
   const over = max != null && Number(value) > max
   return (
     <div>
-      <label className="label">{label}</label>
+      <label className="compact-label">{label}</label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
         <input
-          className="input w-full pl-7"
+          className="compact-input w-full pl-6"
           type="number"
           step="1"
           value={value ?? ''}
@@ -63,8 +63,8 @@ function CurrencyInput({ label, value, onChange, hint, max }) {
           placeholder="0"
         />
       </div>
-      {hint && !over && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
-      {over && <p className="text-xs text-amber-400 mt-1">Exceeds cap of ${max.toLocaleString()}</p>}
+      {hint && !over && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
+      {over && <p className="text-xs text-amber-400 mt-0.5">Exceeds cap of ${max.toLocaleString()}</p>}
     </div>
   )
 }
@@ -74,10 +74,10 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
   const outOfRange = displayVal !== '' && (Number(displayVal) < min || Number(displayVal) > max)
   return (
     <div>
-      <label className="label">{label}</label>
+      <label className="compact-label">{label}</label>
       <div className="relative">
         <input
-          className="input w-full pr-8"
+          className="compact-input w-full pr-7"
           type="number"
           step={step}
           value={displayVal}
@@ -88,10 +88,10 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
           onWheel={e => e.target.blur()}
           placeholder="0"
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">%</span>
       </div>
-      {outOfRange && <p className="text-xs text-amber-400 mt-1">Must be between {min}% and {max}%</p>}
-      {hint && !outOfRange && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
+      {outOfRange && <p className="text-xs text-amber-400 mt-0.5">Must be between {min}% and {max}%</p>}
+      {hint && !outOfRange && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
     </div>
   )
 }
@@ -179,23 +179,23 @@ function PersonForm({ person, label, onUpdate }) {
   }, [hasLease, leasePaymentCalc, p.packaging?.novatedLease])
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-300">Person {label}</h3>
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {label}</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="label">Name</label>
+          <label className="compact-label">Name</label>
           <input
-            className="input w-full"
+            className="compact-input w-full"
             value={p.name || ''}
             onChange={e => onUpdate({ name: e.target.value })}
             placeholder="e.g. Alex"
           />
         </div>
         <div>
-          <label className="label">Date of birth</label>
+          <label className="compact-label">Date of birth</label>
           <input
-            className="input w-full"
+            className="compact-input w-full"
             type="date"
             value={p.dateOfBirth || ''}
             onChange={e => onUpdate({ dateOfBirth: e.target.value })}
@@ -205,12 +205,12 @@ function PersonForm({ person, label, onUpdate }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="col-span-2">
-          <label className="label">Current salary (gross)</label>
+          <label className="compact-label">Current salary (gross)</label>
           <div className="flex gap-2">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
               <input
-                className="input w-full pl-7"
+                className="compact-input w-full pl-7"
                 type="number"
                 step="1"
                 value={p.currentSalary ?? ''}
@@ -220,7 +220,7 @@ function PersonForm({ person, label, onUpdate }) {
               />
             </div>
             <select
-              className="input w-28 flex-shrink-0"
+              className="compact-input w-28 flex-shrink-0"
               value={p.salaryPeriod || 'annual'}
               onChange={e => onUpdate({ salaryPeriod: e.target.value })}
             >
@@ -239,9 +239,9 @@ function PersonForm({ person, label, onUpdate }) {
           )}
         </div>
         <div>
-          <label className="label">Retirement age</label>
+          <label className="compact-label">Retirement age</label>
           <input
-            className="input w-full"
+            className="compact-input w-full"
             type="number"
             step="1"
             value={p.retirementAge ?? ''}
@@ -279,7 +279,7 @@ function PersonForm({ person, label, onUpdate }) {
           <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2">
             <div className="flex items-center justify-between mb-2">
               <input
-                className="input flex-1 text-xs mr-2"
+                className="compact-input flex-1 text-xs mr-2"
                 value={change.note || ''}
                 onChange={e => {
                   const changes = [...(p.salaryChanges || [])]
@@ -298,9 +298,9 @@ function PersonForm({ person, label, onUpdate }) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="label">From</label>
+                <label className="compact-label">From</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={change.fromYear ?? ''}
@@ -314,9 +314,9 @@ function PersonForm({ person, label, onUpdate }) {
                 />
               </div>
               <div>
-                <label className="label">To</label>
+                <label className="compact-label">To</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={change.toYear ?? ''}
@@ -330,11 +330,11 @@ function PersonForm({ person, label, onUpdate }) {
                 />
               </div>
               <div>
-                <label className="label">Salary</label>
+                <label className="compact-label">Salary</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                   <input
-                    className="input w-full pl-7"
+                    className="compact-input w-full pl-7"
                     type="number"
                     step="1"
                     value={change.salary ?? ''}
@@ -349,9 +349,9 @@ function PersonForm({ person, label, onUpdate }) {
                 </div>
               </div>
               <div>
-                <label className="label">Period</label>
+                <label className="compact-label">Period</label>
                 <select
-                  className="input w-full"
+                  className="compact-input w-full"
                   value={change.salaryPeriod || 'annual'}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
@@ -395,12 +395,12 @@ function PersonForm({ person, label, onUpdate }) {
               onChange={v => onUpdate({ hecs: { ...p.hecs, balance: v || 0 } })}
             />
             <div>
-              <label className="label">Extra annual repayment (optional)</label>
+              <label className="compact-label">Extra annual repayment (optional)</label>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                   <input
-                    className="input w-full pl-7"
+                    className="compact-input w-full pl-7"
                     type="number"
                     step="1"
                     value={p.hecs.extraAnnual || ''}
@@ -418,9 +418,9 @@ function PersonForm({ person, label, onUpdate }) {
       </div>
 
       <div>
-        <label className="label">Employer type</label>
+        <label className="compact-label">Employer type</label>
         <select
-          className="input w-full"
+          className="compact-input w-full"
           value={p.employerType || 'standard'}
           onChange={e => onUpdate({ employerType: e.target.value })}
         >
@@ -471,7 +471,7 @@ function PersonForm({ person, label, onUpdate }) {
       {/* Novated lease */}
       <div>
         <div className="flex items-center justify-between">
-          <span className="label mb-0">Novated lease</span>
+          <span className="compact-label mb-0">Novated lease</span>
           {hasLease ? (
             <div className="flex gap-2">
               <button className="btn-ghost text-xs py-1" onClick={() => setLeaseOpen(o => !o)}>
@@ -505,9 +505,9 @@ function PersonForm({ person, label, onUpdate }) {
                 onChange={v => updateLease({ residualValue: v })}
               />
               <div>
-                <label className="label">Term (years)</label>
+                <label className="compact-label">Term (years)</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.termYears || ''}
@@ -530,9 +530,9 @@ function PersonForm({ person, label, onUpdate }) {
                 onChange={v => updateLease({ annualRunningCosts: v })}
               />
               <div>
-                <label className="label">Total km / year</label>
+                <label className="compact-label">Total km / year</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
@@ -542,9 +542,9 @@ function PersonForm({ person, label, onUpdate }) {
                 />
               </div>
               <div>
-                <label className="label">Business km / year</label>
+                <label className="compact-label">Business km / year</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
@@ -557,18 +557,18 @@ function PersonForm({ person, label, onUpdate }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">Lease start (month/year)</label>
+                <label className="compact-label">Lease start (month/year)</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="month"
                   value={p.packaging.novatedLease.activeYears?.from || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })}
                 />
               </div>
               <div>
-                <label className="label">Lease end (month/year)</label>
+                <label className="compact-label">Lease end (month/year)</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="month"
                   value={p.packaging.novatedLease.activeYears?.to || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: e.target.value || null } })}
@@ -625,9 +625,9 @@ function PersonForm({ person, label, onUpdate }) {
             {!p.packaging.novatedLease.offsetWithECM && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">FBT method</label>
+                  <label className="compact-label">FBT method</label>
                   <select
-                    className="input w-full"
+                    className="compact-input w-full"
                     value={p.packaging.novatedLease.method}
                     onChange={e => updateLease({ method: e.target.value })}
                   >
@@ -684,8 +684,8 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
   const nccBreached = (s.voluntaryNonConcessional || 0) > NON_CONCESSIONAL_CAP
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-300">Person {personLabel}</h3>
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {personLabel}</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <CurrencyInput
@@ -694,9 +694,9 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
           onChange={v => onUpdate({ currentBalance: v })}
         />
         <div>
-          <label className="label">Employer scheme</label>
+          <label className="compact-label">Employer scheme</label>
           <select
-            className="input w-full"
+            className="compact-input w-full"
             value={s.employerScheme || 'sg'}
             onChange={e => onUpdate({ employerScheme: e.target.value })}
           >
@@ -787,7 +787,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
 
 function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
   const p = property || {}
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const title = p.isPrimaryResidence ? 'Primary Residence' : `Investment Property ${index}`
 
   return (
@@ -824,9 +824,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">State / Territory</label>
+              <label className="compact-label">State / Territory</label>
               <select
-                className="input w-full"
+                className="compact-input w-full"
                 value={p.state || ''}
                 onChange={e => onUpdate({ state: e.target.value || null })}
               >
@@ -889,18 +889,18 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="label">Purchase date</label>
+              <label className="compact-label">Purchase date</label>
               <input
-                className="input w-full"
+                className="compact-input w-full"
                 type="date"
                 value={p.purchaseDate || ''}
                 onChange={e => onUpdate({ purchaseDate: e.target.value })}
               />
             </div>
             <div>
-              <label className="label">Purchase method</label>
+              <label className="compact-label">Purchase method</label>
               <select
-                className="input w-full"
+                className="compact-input w-full"
                 value={p.purchasedCash ? 'cash' : 'mortgage'}
                 onChange={e => {
                   const isCash = e.target.value === 'cash'
@@ -943,9 +943,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   step={0.05}
                 />
                 <div>
-                  <label className="label">Loan term remaining (yrs)</label>
+                  <label className="compact-label">Loan term remaining (yrs)</label>
                   <input
-                    className="input w-full"
+                    className="compact-input w-full"
                     type="number"
                     step="1"
                     value={p.loanTermYearsRemaining || ''}
@@ -961,9 +961,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   />
                 </div>
                 <div>
-                  <label className="label">Loan type</label>
+                  <label className="compact-label">Loan type</label>
                   <select
-                    className="input w-full"
+                    className="compact-input w-full"
                     value={p.loanType || 'pi'}
                     onChange={e => onUpdate({ loanType: e.target.value })}
                   >
@@ -975,9 +975,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
 
               {p.loanType === 'io' && (
                 <div>
-                  <label className="label">IO period ends (year)</label>
+                  <label className="compact-label">IO period ends (year)</label>
                   <input
-                    className="input w-full"
+                    className="compact-input w-full"
                     type="number"
                     step="1"
                     value={p.ioEndYear || ''}
@@ -1039,7 +1039,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">CGT ownership — Person A</label>
+              <label className="compact-label">CGT ownership — Person A</label>
               <div className="flex items-center gap-2">
                 <input
                   type="range" min={0} max={100} step={5}
@@ -1084,9 +1084,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     nullable={false}
                   />
                   <div>
-                    <label className="label">Route proceeds to</label>
+                    <label className="compact-label">Route proceeds to</label>
                     <select
-                      className="input w-full"
+                      className="compact-input w-full"
                       value={p.saleEvent.destination || 'cash'}
                       onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}
                     >
@@ -1158,7 +1158,7 @@ function SharesForm({ shares, onUpdate }) {
         />
       </div>
       <div>
-        <label className="label">Contribution mode</label>
+        <label className="compact-label">Contribution mode</label>
         <div className="flex gap-2 mt-1">
           <button
             className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
@@ -1226,9 +1226,9 @@ function SharesForm({ shares, onUpdate }) {
       </div>
       {s.preserveCapital && (
         <div>
-          <label className="label">Preserve capital from age</label>
+          <label className="compact-label">Preserve capital from age</label>
           <input
-            className="input w-48"
+            className="compact-input w-48"
             type="number"
             step="1"
             value={s.preserveCapitalFromAge || ''}
@@ -1308,9 +1308,9 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
       {open && (
         <div className="p-4 space-y-3">
           <div>
-            <label className="label">Name</label>
+            <label className="compact-label">Name</label>
             <input
-              className="input w-full"
+              className="compact-input w-full"
               value={holding.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="e.g. VAS ETF, Commonwealth Bank"
@@ -1321,10 +1321,10 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
           {hasTicker && (
             <div className="space-y-3 border-t border-gray-700/50 pt-3">
               <div>
-                <label className="label">ASX / Exchange Ticker <span className="text-gray-600 font-normal">(optional)</span></label>
+                <label className="compact-label">ASX / Exchange Ticker <span className="text-gray-600 font-normal">(optional)</span></label>
                 <div className="flex items-center gap-2">
                   <input
-                    className="input flex-1"
+                    className="compact-input flex-1"
                     value={holding.ticker || ''}
                     onChange={e => onUpdate({ ticker: e.target.value.toUpperCase() })}
                     placeholder="e.g. CBA.AX, VAS.AX, AAPL"
@@ -1351,9 +1351,9 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="label">Units held</label>
+                      <label className="compact-label">Units held</label>
                       <input
-                        className="input w-full"
+                        className="compact-input w-full"
                         type="number"
                         step="1"
                         value={holding.units ?? ''}
@@ -1585,7 +1585,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
         />
       </div>
       <div>
-        <label className="label">Contribution mode</label>
+        <label className="compact-label">Contribution mode</label>
         <div className="flex gap-2 mt-1">
           <button
             className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
@@ -1644,9 +1644,9 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
       </div>
       {b.preserveCapital && (
         <div>
-          <label className="label">Preserve capital from age</label>
+          <label className="compact-label">Preserve capital from age</label>
           <input
-            className="input w-48"
+            className="compact-input w-48"
             type="number"
             step="1"
             value={b.preserveCapitalFromAge || ''}
@@ -1687,7 +1687,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
         />
       </div>
       <div>
-        <label className="label">Contribution mode</label>
+        <label className="compact-label">Contribution mode</label>
         <div className="flex gap-2 mt-1">
           <button
             className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
@@ -1745,7 +1745,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
 
 function BondForm({ bond, onUpdate, onRemove }) {
   const b = bond || {}
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const currentYear = new Date().getFullYear()
   const inceptionYear = b.inceptionDate ? new Date(b.inceptionDate).getFullYear() : null
   const yearsElapsed = inceptionYear != null ? currentYear - inceptionYear : null
@@ -1785,9 +1785,9 @@ function BondForm({ bond, onUpdate, onRemove }) {
       {open && (
         <div className="p-4 space-y-4">
           <div>
-            <label className="label">Bond name / label</label>
+            <label className="compact-label">Bond name / label</label>
             <input
-              className="input w-full"
+              className="compact-input w-full"
               value={b.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="e.g. Education fund"
@@ -1807,7 +1807,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
             />
           </div>
           <div>
-            <label className="label">Contribution mode</label>
+            <label className="compact-label">Contribution mode</label>
             <div className="flex gap-2 mt-1">
               <button
                 className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
@@ -1853,9 +1853,9 @@ function BondForm({ bond, onUpdate, onRemove }) {
             </p>
           )}
           <div>
-            <label className="label">Bond inception date</label>
+            <label className="compact-label">Bond inception date</label>
             <input
-              className="input w-full"
+              className="compact-input w-full"
               type="date"
               value={b.inceptionDate || ''}
               onChange={e => onUpdate({ inceptionDate: e.target.value })}
@@ -1902,7 +1902,7 @@ function recurringDisplayLabel(node) {
 }
 
 function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYear }) {
-  const [open, setOpen] = useState(depth < 2)
+  const [open, setOpen] = useState(false)
   const totalAmt = calcExpenseTotal(item)
   const ownAmt = item.amountType === 'monthly' ? (item.amount || 0) * 12 : (item.amount || 0)
   const hasChildren = (item.children || []).length > 0
@@ -1987,9 +1987,9 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                 onChange={v => onUpdate({ amount: v })}
               />
               <div>
-                <label className="label">Amount type</label>
+                <label className="compact-label">Amount type</label>
                 <select
-                  className="input w-full"
+                  className="compact-input w-full"
                   value={item.amountType || 'annual'}
                   onChange={e => {
                     const newType = e.target.value
@@ -2011,9 +2011,9 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
             {item.amountType === 'recurring' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Every X years</label>
+                  <label className="compact-label">Every X years</label>
                   <input
-                    className="input w-full"
+                    className="compact-input w-full"
                     type="number"
                     step="1"
                     value={item.recurringEveryYears || ''}
@@ -2143,9 +2143,9 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
               onChange={v => onUpdate({ amount: v })}
             />
             <div>
-              <label className="label">Amount type</label>
+              <label className="compact-label">Amount type</label>
               <select
-                className="input w-full"
+                className="compact-input w-full"
                 value={item.amountType || 'annual'}
                 onChange={e => onUpdate({ amountType: e.target.value })}
               >
@@ -2158,9 +2158,9 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Attributed to</label>
+              <label className="compact-label">Attributed to</label>
               <select
-                className="input w-full"
+                className="compact-input w-full"
                 value={item.person || 'A'}
                 onChange={e => onUpdate({ person: e.target.value })}
               >
@@ -2204,9 +2204,9 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
           {item.amountType !== 'one_off' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">Annual adjustment</label>
+                <label className="compact-label">Annual adjustment</label>
                 <select
-                  className="input w-full"
+                  className="compact-input w-full"
                   value={item.adjustmentType || 'none'}
                   onChange={e => onUpdate({ adjustmentType: e.target.value, adjustmentRate: 0 })}
                 >
@@ -2226,11 +2226,11 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
               )}
               {item.adjustmentType === 'dollar' && (
                 <div>
-                  <label className="label">$ per year</label>
+                  <label className="compact-label">$ per year</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                     <input
-                      className="input w-full pl-7"
+                      className="compact-input w-full pl-7"
                       type="number"
                       step="1"
                       value={item.adjustmentRate || ''}
@@ -2246,9 +2246,9 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
           )}
 
           <div>
-            <label className="label">Post-retirement routing</label>
+            <label className="compact-label">Post-retirement routing</label>
             <select
-              className="input w-full"
+              className="compact-input w-full"
               value={item.routeTo || 'cashflow'}
               onChange={e => onUpdate({ routeTo: e.target.value })}
             >
@@ -2352,9 +2352,9 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
           {item.type !== 'credit_card' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">Term (years)</label>
+                <label className="compact-label">Term (years)</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={item.termYears || ''}
@@ -2364,9 +2364,9 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                 />
               </div>
               <div>
-                <label className="label">Start year</label>
+                <label className="compact-label">Start year</label>
                 <input
-                  className="input w-full"
+                  className="compact-input w-full"
                   type="number"
                   step="1"
                   value={item.startYear || ''}
@@ -2432,9 +2432,9 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                   onChange={v => onUpdate({ monthlyRepayment: v })}
                 />
                 <div>
-                  <label className="label">Mode</label>
+                  <label className="compact-label">Mode</label>
                   <select
-                    className="input w-full"
+                    className="compact-input w-full"
                     value={item.repaymentMode || 'payoff'}
                     onChange={e => onUpdate({ repaymentMode: e.target.value })}
                   >
@@ -2621,15 +2621,15 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
     })
 
   return (
-    <div className="px-6 py-6 max-w-6xl mx-auto space-y-6">
+    <div className="px-6 py-4 max-w-5xl mx-auto">
       {showTutorial && <Tutorial steps={HOUSEHOLD_TUTORIAL} onClose={closeTutorial} />}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mb-3">
         <h1 className="text-lg font-semibold text-white">Household Profile</h1>
         <TutorialButton onClick={() => setShowTutorial(true)} />
       </div>
 
       {validationWarnings.length > 0 && (
-        <div className="bg-amber-900/50 border border-amber-800 rounded-lg px-4 py-3">
+        <div className="bg-amber-900/50 border border-amber-800 rounded-lg px-4 py-3 mb-3">
           <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-1">Missing required fields</p>
           <ul className="text-sm text-amber-400 space-y-0.5">
             {validationWarnings.map((w, i) => <li key={i}>{w}</li>)}
@@ -2637,18 +2637,20 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       )}
 
+      <div className="divide-y divide-gray-800/40 border-t border-gray-800/40">
+
       <Section title="People">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <PersonForm person={personA} label="A" onUpdate={updatePersonA} />
           <PersonForm person={personB} label="B" onUpdate={updatePersonB} />
         </div>
-        <p className="text-xs text-gray-600 mt-4">
+        <p className="text-xs text-gray-600 mt-3">
           Preservation age is auto-set to 60 for anyone born after 1 July 1964.
         </p>
       </Section>
 
       <Section title="Superannuation">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <SuperForm
             superProfile={superA}
             personLabel="A"
@@ -2722,15 +2724,15 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title="Treasury / Corporate Bonds" defaultOpen={false}>
+      <Section title="Treasury / Corporate Bonds">
         <TreasuryBondsForm bonds={scenario.treasuryBonds} onUpdate={updateTreasuryBonds} />
       </Section>
 
-      <Section title="Commodities" defaultOpen={false}>
+      <Section title="Commodities">
         <CommoditiesForm commodities={scenario.commodities} onUpdate={updateCommodities} />
       </Section>
 
-      <Section title={`Tax-Deferred Bonds — 10yr (${scenario.investmentBonds.length})`} defaultOpen={false}>
+      <Section title={`Tax-Deferred Bonds — 10yr (${scenario.investmentBonds.length})`}>
         <div className="space-y-3">
           {scenario.investmentBonds.map((b, i) => (
             <BondForm
@@ -2754,7 +2756,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title={`Expenses (${expenseItems.length} groups)`} defaultOpen={false}>
+      <Section title={`Expenses (${expenseItems.length} groups)`}>
         <p className="text-xs text-gray-500 mb-3">
           Organise expenses into groups, categories, and items (up to 3 levels). Each level can hold its own amount.
         </p>
@@ -2784,7 +2786,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title={`Other Income (${(scenario.otherIncome || []).length})`} defaultOpen={false}>
+      <Section title={`Other Income (${(scenario.otherIncome || []).length})`}>
         <p className="text-sm text-gray-500 mb-3">
           Consulting, part-time work, gifts, pensions, trust distributions, or any non-salary income.
         </p>
@@ -2836,7 +2838,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title={`Other Assets (${(scenario.otherAssets || []).length})`} defaultOpen={false}>
+      <Section title={`Other Assets (${(scenario.otherAssets || []).length})`}>
         <p className="text-sm text-gray-500 mb-3">
           Private equity, business interests, collectibles, or any asset not covered above.
         </p>
@@ -2845,7 +2847,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             <div key={asset.id} className="bg-gray-800/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <input
-                  className="input flex-1 text-sm py-1.5 mr-3"
+                  className="compact-input flex-1 text-sm py-1.5 mr-3"
                   placeholder="Asset name (e.g. Private Equity Fund)"
                   value={asset.name}
                   onChange={e => {
@@ -2898,7 +2900,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                 />
               </div>
               <div>
-                <label className="label">Contribution mode</label>
+                <label className="compact-label">Contribution mode</label>
                 <div className="flex gap-2 mt-1">
                   <button
                     className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
@@ -2989,7 +2991,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title={`Debts (${(scenario.debts || []).length})`} defaultOpen={false}>
+      <Section title={`Debts (${(scenario.debts || []).length})`}>
         <p className="text-sm text-gray-500 mb-3">
           Personal loans, car leases, credit cards — any non-mortgage liabilities. Repayments are deducted from cashflow.
         </p>
@@ -3039,7 +3041,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </div>
       </Section>
 
-      <Section title="Surplus Strategy" defaultOpen={false}>
+      <Section title="Surplus Strategy">
         <p className="text-sm text-gray-500 mb-4">
           When income exceeds expenses, where should the surplus go? Funds flow through in priority order.
           Only assets set to "From surplus" mode appear here.
@@ -3085,7 +3087,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                 <div key={dest} className="flex items-center gap-3">
                   <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
                   <select
-                    className="input flex-1 text-sm py-1.5"
+                    className="compact-input flex-1 text-sm py-1.5"
                     value={dest}
                     onChange={e => {
                       const newOrder = [...order]
@@ -3128,7 +3130,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         </p>
       </Section>
 
-      <Section title="Drawdown Strategy" defaultOpen={false}>
+      <Section title="Drawdown Strategy">
         <p className="text-sm text-gray-500 mb-4">
           When expenses exceed income (post-retirement), which assets should be sold first to cover the shortfall?
         </p>
@@ -3152,7 +3154,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                 <div key={dest} className="flex items-center gap-3">
                   <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
                   <select
-                    className="input flex-1 text-sm py-1.5"
+                    className="compact-input flex-1 text-sm py-1.5"
                     value={dest}
                     onChange={e => {
                       const newOrder = [...order]
@@ -3190,6 +3192,8 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           Assets are drawn in this order until the shortfall is covered. Super is only available in pension phase. Tax-deferred bonds draw tax-free tranches first.
         </p>
       </Section>
+
+      </div>{/* end divide-y container */}
     </div>
   )
 }

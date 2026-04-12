@@ -44,6 +44,15 @@
   .badge-critical {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-red-900/50 text-red-400 border border-red-800;
   }
+
+  /* Compact variants for dense data-entry pages (HouseholdProfile) */
+  .compact-input {
+    @apply bg-gray-800 border border-gray-700 rounded-lg px-3 py-1 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent;
+  }
+
+  .compact-label {
+    @apply text-xs text-gray-500 mb-0.5 block;
+  }
 }
 
 /* ── Light mode overrides ────────────────────────────────────────────────────
@@ -159,6 +168,20 @@ html.light .btn-ghost:hover {
 
 html.light .label {
   color: #374151; /* gray-700 — was gray-600, stronger label contrast */
+}
+
+html.light .compact-input {
+  background-color: #ffffff;
+  border-color: #94a3b8;
+  color: #111827;
+}
+
+html.light .compact-input::placeholder {
+  color: #9ca3af;
+}
+
+html.light .compact-label {
+  color: #4b5563;
 }
 
 html.light .badge-viable {
