@@ -118,6 +118,18 @@
 
 ## Session Log
 
+### Session 33 — 2026-04-12
+
+**What was done:**
+
+- **HouseholdProfile input widths** — `CurrencyInput` outer div capped at `max-w-56` (224px); `PctInput` outer div capped at `max-w-36` (144px). Both accept optional `className` prop for override. Single-field rows no longer stretch to half-page width inside person columns.
+
+- **Chart light-mode colors** — Added `gridColor` and `tickColor` derived variables to `Projection.jsx`, `GapDashboard.jsx`, and `Compare.jsx`. All hardcoded `CartesianGrid stroke="#1f2937"`, `XAxis/YAxis tick={{ fill: '#9ca3af' }}`, and `Legend wrapperStyle color` replaced with the variables. Charts now render correctly in both dark and light mode. `Actuals.jsx` was already correct. The one existing inline ternary in the Projection tax chart normalized to use the same variables.
+
+**568 tests passing. Committed `38d29bb`.**
+
+---
+
 ### Session 32 — 2026-04-12
 
 **What was done:**
