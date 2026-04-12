@@ -59,11 +59,10 @@ export default function MonthYearInput({
 
   return (
     <div>
-      {label && <label className="label">{label}</label>}
-      <div className="flex gap-2">
+      {label && <label className="compact-label">{label}</label>}
+      <div className="flex gap-1">
         <select
-          className="input flex-shrink-0"
-          style={{ width: '80px' }}
+          className="compact-input w-20 flex-shrink-0"
           value={month}
           onChange={e => emit(year, e.target.value)}
         >
@@ -73,7 +72,7 @@ export default function MonthYearInput({
           ))}
         </select>
         <input
-          className="input flex-1"
+          className="compact-input w-20"
           type="number"
           step="1"
           placeholder={placeholder}

@@ -182,11 +182,11 @@ function PersonForm({ person, label, onUpdate }) {
     <div className="space-y-3">
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {label}</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
         <div>
           <label className="compact-label">Name</label>
           <input
-            className="compact-input w-full"
+            className="compact-input w-28"
             value={p.name || ''}
             onChange={e => onUpdate({ name: e.target.value })}
             placeholder="e.g. Alex"
@@ -195,22 +195,32 @@ function PersonForm({ person, label, onUpdate }) {
         <div>
           <label className="compact-label">Date of birth</label>
           <input
-            className="compact-input w-full"
+            className="compact-input w-36"
             type="date"
             value={p.dateOfBirth || ''}
             onChange={e => onUpdate({ dateOfBirth: e.target.value })}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <label className="compact-label">Current salary (gross)</label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
+        <div>
+          <label className="compact-label">Retire age</label>
+          <input
+            className="compact-input w-14"
+            type="number"
+            step="1"
+            value={p.retirementAge ?? ''}
+            onChange={e => onUpdate({ retirementAge: numVal(e.target.value) })}
+            onWheel={e => e.target.blur()}
+            placeholder="60"
+          />
+          {!p.retirementAge && <p className="text-xs text-amber-400 mt-0.5">Required</p>}
+        </div>
+        <div>
+          <label className="compact-label">Gross salary</label>
+          <div className="flex gap-1">
+            <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
               <input
-                className="compact-input w-full pl-7"
+                className="compact-input w-28 pl-7"
                 type="number"
                 step="1"
                 value={p.currentSalary ?? ''}
@@ -220,7 +230,7 @@ function PersonForm({ person, label, onUpdate }) {
               />
             </div>
             <select
-              className="compact-input w-28 flex-shrink-0"
+              className="compact-input w-24 flex-shrink-0"
               value={p.salaryPeriod || 'annual'}
               onChange={e => onUpdate({ salaryPeriod: e.target.value })}
             >
@@ -231,25 +241,12 @@ function PersonForm({ person, label, onUpdate }) {
             </select>
           </div>
           {p.salaryPeriod && p.salaryPeriod !== 'annual' && p.currentSalary > 0 && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-0.5">
               = ${(p.salaryPeriod === 'weekly' ? p.currentSalary * 52
                 : p.salaryPeriod === 'fortnightly' ? p.currentSalary * 26
                 : p.currentSalary * 12).toLocaleString()}/yr
             </p>
           )}
-        </div>
-        <div>
-          <label className="compact-label">Retirement age</label>
-          <input
-            className="compact-input w-full"
-            type="number"
-            step="1"
-            value={p.retirementAge ?? ''}
-            onChange={e => onUpdate({ retirementAge: numVal(e.target.value) })}
-            onWheel={e => e.target.blur()}
-            placeholder="60"
-          />
-          {!p.retirementAge && <p className="text-xs text-amber-400 mt-1">Required for projections</p>}
         </div>
       </div>
 
@@ -388,30 +385,19 @@ function PersonForm({ person, label, onUpdate }) {
           )}
         </div>
         {p.hecs && (
-          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
-            <CurrencyInput
-              label="Current HECS balance"
-              value={p.hecs.balance}
-              onChange={v => onUpdate({ hecs: { ...p.hecs, balance: v || 0 } })}
-            />
-            <div>
-              <label className="compact-label">Extra annual repayment (optional)</label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    className="compact-input w-full pl-7"
-                    type="number"
-                    step="1"
-                    value={p.hecs.extraAnnual || ''}
-                    onChange={e => onUpdate({ hecs: { ...p.hecs, extraAnnual: numVal(e.target.value) || 0 } })}
-                    onWheel={e => e.target.blur()}
-                    placeholder="0"
-                  />
-                </div>
-                <span className="text-xs text-gray-500 flex-shrink-0">/yr</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Leave at $0 to pay compulsory minimum only (income-based, scales with salary)</p>
+          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+              <CurrencyInput
+                label="Current HECS balance"
+                value={p.hecs.balance}
+                onChange={v => onUpdate({ hecs: { ...p.hecs, balance: v || 0 } })}
+              />
+              <CurrencyInput
+                label="Extra annual repayment"
+                value={p.hecs.extraAnnual || 0}
+                onChange={v => onUpdate({ hecs: { ...p.hecs, extraAnnual: v || 0 } })}
+                hint="$0 = compulsory minimum only"
+              />
             </div>
           </div>
         )}
@@ -420,7 +406,7 @@ function PersonForm({ person, label, onUpdate }) {
       <div>
         <label className="compact-label">Employer type</label>
         <select
-          className="compact-input w-full"
+          className="compact-input w-48"
           value={p.employerType || 'standard'}
           onChange={e => onUpdate({ employerType: e.target.value })}
         >
@@ -431,7 +417,7 @@ function PersonForm({ person, label, onUpdate }) {
       </div>
 
       {p.employerType === 'pbi_nfp' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+        <div className="flex flex-wrap gap-x-3 gap-y-2 items-start p-3 bg-gray-800/50 rounded-lg border border-gray-700">
           <CurrencyInput
             label="PBI general packaging"
             value={p.packaging?.pbiGeneral}
@@ -450,7 +436,7 @@ function PersonForm({ person, label, onUpdate }) {
       )}
 
       {p.employerType === 'qld_health' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+        <div className="flex flex-wrap gap-x-3 gap-y-2 items-start p-3 bg-gray-800/50 rounded-lg border border-gray-700">
           <CurrencyInput
             label="QLD Health general cap"
             value={p.packaging?.qldHealthGeneral}
@@ -492,22 +478,22 @@ function PersonForm({ person, label, onUpdate }) {
         </div>
 
         {hasLease && leaseOpen && (
-          <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label="Vehicle cost price"
                 value={p.packaging.novatedLease.vehicleCostPrice}
                 onChange={v => updateLease({ vehicleCostPrice: v })}
               />
               <CurrencyInput
-                label="Residual / balloon value"
+                label="Residual / balloon"
                 value={p.packaging.novatedLease.residualValue}
                 onChange={v => updateLease({ residualValue: v })}
               />
               <div>
                 <label className="compact-label">Term (years)</label>
                 <input
-                  className="compact-input w-full"
+                  className="compact-input w-16"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.termYears || ''}
@@ -523,7 +509,7 @@ function PersonForm({ person, label, onUpdate }) {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label="Annual running costs"
                 value={p.packaging.novatedLease.annualRunningCosts}
@@ -532,7 +518,7 @@ function PersonForm({ person, label, onUpdate }) {
               <div>
                 <label className="compact-label">Total km / year</label>
                 <input
-                  className="compact-input w-full"
+                  className="compact-input w-24"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
@@ -544,7 +530,7 @@ function PersonForm({ person, label, onUpdate }) {
               <div>
                 <label className="compact-label">Business km / year</label>
                 <input
-                  className="compact-input w-full"
+                  className="compact-input w-24"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
@@ -553,22 +539,19 @@ function PersonForm({ person, label, onUpdate }) {
                   placeholder="0"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="compact-label">Lease start (month/year)</label>
+                <label className="compact-label">Lease start</label>
                 <input
-                  className="compact-input w-full"
+                  className="compact-input w-36"
                   type="month"
                   value={p.packaging.novatedLease.activeYears?.from || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })}
                 />
               </div>
               <div>
-                <label className="compact-label">Lease end (month/year)</label>
+                <label className="compact-label">Lease end</label>
                 <input
-                  className="compact-input w-full"
+                  className="compact-input w-36"
                   type="month"
                   value={p.packaging.novatedLease.activeYears?.to || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: e.target.value || null } })}
@@ -623,11 +606,11 @@ function PersonForm({ person, label, onUpdate }) {
             </div>
 
             {!p.packaging.novatedLease.offsetWithECM && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
                 <div>
                   <label className="compact-label">FBT method</label>
                   <select
-                    className="compact-input w-full"
+                    className="compact-input w-48"
                     value={p.packaging.novatedLease.method}
                     onChange={e => updateLease({ method: e.target.value })}
                   >
@@ -687,7 +670,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
     <div className="space-y-3">
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {personLabel}</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
         <CurrencyInput
           label="Current balance"
           value={s.currentBalance}
@@ -695,70 +678,67 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
         />
         <div>
           <label className="compact-label">Employer scheme</label>
-          <select
-            className="compact-input w-full"
-            value={s.employerScheme || 'sg'}
-            onChange={e => onUpdate({ employerScheme: e.target.value })}
-          >
-            <option value="sg">Standard SG (auto-stepped)</option>
-            <option value="match">Employer match</option>
-            <option value="fixed_pct">Fixed employer %</option>
-          </select>
+          <div className="flex gap-1 items-center">
+            <select
+              className="compact-input w-52"
+              value={s.employerScheme || 'sg'}
+              onChange={e => onUpdate({ employerScheme: e.target.value })}
+            >
+              <option value="sg">Standard SG (auto-stepped)</option>
+              <option value="match">Employer match</option>
+              <option value="fixed_pct">Fixed employer %</option>
+            </select>
+            {s.employerScheme === 'match' && (
+              <PctInput
+                label=""
+                value={s.employerMatchCapPct}
+                onChange={v => onUpdate({ employerMatchCapPct: v })}
+                hint="Match cap %"
+              />
+            )}
+            {s.employerScheme === 'fixed_pct' && (
+              <PctInput
+                label=""
+                value={s.employerFixedPct}
+                onChange={v => onUpdate({ employerFixedPct: v })}
+                hint="Employer %"
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      {s.employerScheme === 'match' && (
-        <PctInput
-          label="Employer match cap (% of salary)"
-          value={s.employerMatchCapPct}
-          onChange={v => onUpdate({ employerMatchCapPct: v })}
-          hint="Total contribution = SG + match up to this cap"
-        />
-      )}
-
-      {s.employerScheme === 'fixed_pct' && (
-        <PctInput
-          label="Total employer contribution rate"
-          value={s.employerFixedPct}
-          onChange={v => onUpdate({ employerFixedPct: v })}
-          hint="Replaces standard SG rate"
-        />
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
         <div>
           <CurrencyInput
-            label="Salary sacrifice (annual)"
+            label="Salary sacrifice"
             value={s.salarySacrificeAmount}
             onChange={v => onUpdate({ salarySacrificeAmount: v })}
             hint={`SG est. $${Math.round(sgEstimate).toLocaleString()} · Cap $${CONCESSIONAL_CAP.toLocaleString()}`}
           />
           {concessionalBreached && (
             <p className="text-xs text-amber-400 mt-1">
-              Concessional cap exceeded — ${Math.round(totalConcessional).toLocaleString()} vs ${CONCESSIONAL_CAP.toLocaleString()} limit. Excess taxed at marginal rate.
+              Cap exceeded — ${Math.round(totalConcessional).toLocaleString()} vs ${CONCESSIONAL_CAP.toLocaleString()}
             </p>
           )}
         </div>
         <CurrencyInput
-          label="Additional concessional (voluntary)"
+          label="Extra concessional"
           value={s.voluntaryConcessional}
           onChange={v => onUpdate({ voluntaryConcessional: v })}
         />
-      </div>
-
-      <div>
-        <CurrencyInput
-          label="After-tax (non-concessional) contributions"
-          value={s.voluntaryNonConcessional}
-          onChange={v => onUpdate({ voluntaryNonConcessional: v })}
-          hint={`Cap $${NON_CONCESSIONAL_CAP.toLocaleString()} · Bring-forward: $330k over 3 years`}
-          max={nccBreached ? NON_CONCESSIONAL_CAP : undefined}
-        />
-        {nccBreached && (
-          <p className="text-xs text-amber-400 mt-1">
-            Exceeds annual non-concessional cap of ${NON_CONCESSIONAL_CAP.toLocaleString()}
-          </p>
-        )}
+        <div>
+          <CurrencyInput
+            label="Non-concessional"
+            value={s.voluntaryNonConcessional}
+            onChange={v => onUpdate({ voluntaryNonConcessional: v })}
+            hint={`Cap $${NON_CONCESSIONAL_CAP.toLocaleString()}`}
+            max={nccBreached ? NON_CONCESSIONAL_CAP : undefined}
+          />
+          {nccBreached && (
+            <p className="text-xs text-amber-400 mt-1">Exceeds annual cap</p>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -822,15 +802,15 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             </label>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
             <div>
-              <label className="compact-label">State / Territory</label>
+              <label className="compact-label">State</label>
               <select
-                className="compact-input w-full"
+                className="compact-input w-20"
                 value={p.state || ''}
                 onChange={e => onUpdate({ state: e.target.value || null })}
               >
-                <option value="">Select state</option>
+                <option value="">—</option>
                 <option value="NSW">NSW</option>
                 <option value="VIC">VIC</option>
                 <option value="QLD">QLD</option>
@@ -841,22 +821,6 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 <option value="ACT">ACT</option>
               </select>
             </div>
-            {p.isPrimaryResidence && (
-              <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!!p.isFirstHomeBuyer}
-                    onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })}
-                    className="accent-brand-500"
-                  />
-                  <span className="text-sm text-gray-400">First home buyer</span>
-                </label>
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CurrencyInput
               label="Current value"
               value={p.currentValue}
@@ -867,6 +831,24 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               value={p.purchasePrice}
               onChange={v => onUpdate({ purchasePrice: v })}
             />
+            <PctInput
+              label="Growth rate"
+              value={p.growthRate ?? 0.04}
+              onChange={v => onUpdate({ growthRate: v })}
+              step={0.1}
+              hint="Annual capital growth"
+            />
+            {p.isPrimaryResidence && (
+              <label className="flex items-center gap-1.5 cursor-pointer mt-4">
+                <input
+                  type="checkbox"
+                  checked={!!p.isFirstHomeBuyer}
+                  onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })}
+                  className="accent-brand-500"
+                />
+                <span className="text-xs text-gray-400">First home buyer</span>
+              </label>
+            )}
           </div>
 
           {p.state && p.purchasePrice > 0 && (() => {
@@ -887,11 +869,11 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             )
           })()}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
             <div>
               <label className="compact-label">Purchase date</label>
               <input
-                className="compact-input w-full"
+                className="compact-input w-36"
                 type="date"
                 value={p.purchaseDate || ''}
                 onChange={e => onUpdate({ purchaseDate: e.target.value })}
@@ -900,7 +882,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             <div>
               <label className="compact-label">Purchase method</label>
               <select
-                className="compact-input w-full"
+                className="compact-input w-44"
                 value={p.purchasedCash ? 'cash' : 'mortgage'}
                 onChange={e => {
                   const isCash = e.target.value === 'cash'
@@ -924,18 +906,16 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
 
           {!p.purchasedCash && (
             <>
-              <CurrencyInput
-                label="Outstanding mortgage"
-                value={p.mortgageBalance}
-                onChange={v => {
-                  const patch = { mortgageBalance: v }
-                  // Auto-set original loan amount if not yet stored (first time entering mortgage)
-                  if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
-                  onUpdate(patch)
-                }}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+                <CurrencyInput
+                  label="Outstanding mortgage"
+                  value={p.mortgageBalance}
+                  onChange={v => {
+                    const patch = { mortgageBalance: v }
+                    if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
+                    onUpdate(patch)
+                  }}
+                />
                 <PctInput
                   label="Interest rate"
                   value={p.interestRate}
@@ -943,16 +923,15 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   step={0.05}
                 />
                 <div>
-                  <label className="compact-label">Loan term remaining (yrs)</label>
+                  <label className="compact-label">Yrs remaining</label>
                   <input
-                    className="compact-input w-full"
+                    className="compact-input w-16"
                     type="number"
                     step="1"
                     value={p.loanTermYearsRemaining || ''}
                     onChange={e => {
                       const yrs = numVal(e.target.value)
                       const patch = { loanTermYearsRemaining: yrs }
-                      // Auto-set original loan term if not yet stored
                       if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
                       onUpdate(patch)
                     }}
@@ -963,7 +942,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 <div>
                   <label className="compact-label">Loan type</label>
                   <select
-                    className="compact-input w-full"
+                    className="compact-input w-44"
                     value={p.loanType || 'pi'}
                     onChange={e => onUpdate({ loanType: e.target.value })}
                   >
@@ -1021,7 +1000,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           )}
 
           {!p.isPrimaryResidence && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
               <CurrencyInput
                 label="Annual rental income"
                 value={p.annualRentalIncome}
@@ -1075,7 +1054,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             </div>
             {p.saleEvent && (
               <div className="space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
                   <MonthYearInput
                     label="Sale date"
                     value={p.saleEvent.year}
@@ -1086,7 +1065,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   <div>
                     <label className="compact-label">Route proceeds to</label>
                     <select
-                      className="compact-input w-full"
+                      className="compact-input w-44"
                       value={p.saleEvent.destination || 'cash'}
                       onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}
                     >
@@ -1145,7 +1124,7 @@ function SharesForm({ shares, onUpdate }) {
   const mode = s.contributionMode || 'surplus'
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
         <CurrencyInput
           label="Current portfolio value"
           value={s.currentValue}
@@ -1187,7 +1166,7 @@ function SharesForm({ shares, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
         <PctInput
           label="Annual increase"
           value={s.annualIncreaseRate || 0}
@@ -1197,20 +1176,18 @@ function SharesForm({ shares, onUpdate }) {
           step={1}
           hint="Contribution grows by this % each year"
         />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <PctInput
           label="Dividend yield"
           value={s.dividendYield}
           onChange={v => onUpdate({ dividendYield: v })}
-          hint="Used to calculate annual cash dividends"
+          hint="Annual cash dividends"
         />
         <PctInput
           label="Franking credit %"
           value={s.frankingPct}
           onChange={v => onUpdate({ frankingPct: v })}
           step={5}
-          hint="% of dividends that are fully franked"
+          hint="% fully franked"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -1572,7 +1549,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
   const mode = b.contributionMode || 'fixed'
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
         <CurrencyInput
           label="Current portfolio value"
           value={b.currentValue}
@@ -1614,7 +1591,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
         <PctInput
           label="Annual increase"
           value={b.annualIncreaseRate || 0}
@@ -1622,13 +1599,13 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
           min={0}
           max={50}
           step={1}
-          hint="Contribution grows by this % each year"
+          hint="Grows by this % each year"
         />
         <PctInput
           label="Coupon rate"
           value={b.couponRate}
           onChange={v => onUpdate({ couponRate: v })}
-          hint="Annual coupon income — taxed as ordinary income"
+          hint="Taxed as ordinary income"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -1674,7 +1651,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
   const mode = c.contributionMode || 'fixed'
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
         <CurrencyInput
           label="Current portfolio value"
           value={c.currentValue}
@@ -1716,7 +1693,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
         <PctInput
           label="Annual increase"
           value={c.annualIncreaseRate || 0}
@@ -1724,7 +1701,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
           min={0}
           max={50}
           step={1}
-          hint="Contribution grows by this % each year"
+          hint="Grows by this % each year"
         />
       </div>
       <p className="text-xs text-gray-500">
@@ -1793,7 +1770,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
               placeholder="e.g. Education fund"
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
             <CurrencyInput
               label="Current balance"
               value={b.currentBalance}
@@ -1803,7 +1780,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
               label={b.contributionMode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
               value={b.annualContribution}
               onChange={v => onUpdate({ annualContribution: v })}
-              hint="Max 125% of prior year contribution"
+              hint="Max 125% of prior year"
             />
           </div>
           <div>
@@ -1836,7 +1813,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
                 : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
             <PctInput
               label="Annual increase"
               value={b.annualIncreaseRate || 0}
@@ -1980,7 +1957,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
         <>
           {/* Own amount + settings */}
           <div className="px-4 py-3 space-y-3 bg-gray-800/10" style={{ paddingLeft: `${16 + indentPx}px` }}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label={hasChildren ? 'Own amount (excl. children)' : 'Amount'}
                 value={item.amount}
@@ -1989,7 +1966,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
               <div>
                 <label className="compact-label">Amount type</label>
                 <select
-                  className="compact-input w-full"
+                  className="compact-input w-40"
                   value={item.amountType || 'annual'}
                   onChange={e => {
                     const newType = e.target.value
@@ -2041,7 +2018,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
             </div>
 
             {item.amountType === 'one_off' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
                 <MonthYearInput
                   label="Date"
                   value={item.activeFrom}
@@ -2050,7 +2027,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
                 <MonthYearInput
                   label="Start"
                   value={item.activeFrom}
@@ -2136,7 +2113,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
 
       {open && (
         <div className="p-4 space-y-3 bg-gray-800/20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
             <CurrencyInput
               label="Amount"
               value={item.amount}
@@ -2145,7 +2122,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
             <div>
               <label className="compact-label">Amount type</label>
               <select
-                className="compact-input w-full"
+                className="compact-input w-36"
                 value={item.amountType || 'annual'}
                 onChange={e => onUpdate({ amountType: e.target.value })}
               >
@@ -2154,13 +2131,10 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                 <option value="one_off">One-off</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="compact-label">Attributed to</label>
               <select
-                className="compact-input w-full"
+                className="compact-input w-32"
                 value={item.person || 'A'}
                 onChange={e => onUpdate({ person: e.target.value })}
               >
@@ -2169,22 +2143,15 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                 <option value="household">Joint (50/50)</option>
               </select>
             </div>
-            <div className="flex items-end pb-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={`taxable-${item.id}`}
-                  checked={item.isTaxable !== false}
-                  onChange={e => onUpdate({ isTaxable: e.target.checked })}
-                />
-                <label htmlFor={`taxable-${item.id}`} className="text-sm text-gray-400">
-                  Taxable income
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex items-center gap-1.5 cursor-pointer mt-4">
+              <input
+                type="checkbox"
+                id={`taxable-${item.id}`}
+                checked={item.isTaxable !== false}
+                onChange={e => onUpdate({ isTaxable: e.target.checked })}
+              />
+              <span className="text-xs text-gray-400">Taxable</span>
+            </label>
             <MonthYearInput
               label={item.amountType === 'one_off' ? 'Date' : 'Starts'}
               value={item.activeFrom}
@@ -2199,56 +2166,45 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                 placeholder="Indefinite"
               />
             )}
-          </div>
-
-          {item.amountType !== 'one_off' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="compact-label">Annual adjustment</label>
-                <select
-                  className="compact-input w-full"
-                  value={item.adjustmentType || 'none'}
-                  onChange={e => onUpdate({ adjustmentType: e.target.value, adjustmentRate: 0 })}
-                >
-                  <option value="none">None (flat)</option>
-                  <option value="percent">By % per year</option>
-                  <option value="dollar">By $ per year</option>
-                </select>
-              </div>
-              {item.adjustmentType === 'percent' && (
-                <PctInput
-                  label="Rate (% per year)"
-                  value={item.adjustmentRate}
-                  onChange={v => onUpdate({ adjustmentRate: v })}
-                  min={-50}
-                  hint="Negative to decrease"
-                />
-              )}
-              {item.adjustmentType === 'dollar' && (
+            {item.amountType !== 'one_off' && (
+              <>
                 <div>
-                  <label className="compact-label">$ per year</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                    <input
-                      className="compact-input w-full pl-7"
-                      type="number"
-                      step="1"
-                      value={item.adjustmentRate || ''}
-                      onChange={e => onUpdate({ adjustmentRate: numVal(e.target.value) })}
-                      onWheel={e => e.target.blur()}
-                      placeholder="0"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Negative to decrease</p>
+                  <label className="compact-label">Annual adjustment</label>
+                  <select
+                    className="compact-input w-36"
+                    value={item.adjustmentType || 'none'}
+                    onChange={e => onUpdate({ adjustmentType: e.target.value, adjustmentRate: 0 })}
+                  >
+                    <option value="none">None (flat)</option>
+                    <option value="percent">By % per year</option>
+                    <option value="dollar">By $ per year</option>
+                  </select>
                 </div>
-              )}
-            </div>
-          )}
+                {item.adjustmentType === 'percent' && (
+                  <PctInput
+                    label="Rate %/yr"
+                    value={item.adjustmentRate}
+                    onChange={v => onUpdate({ adjustmentRate: v })}
+                    min={-50}
+                    hint="Negative to decrease"
+                  />
+                )}
+                {item.adjustmentType === 'dollar' && (
+                  <CurrencyInput
+                    label="$ per year"
+                    value={item.adjustmentRate}
+                    onChange={v => onUpdate({ adjustmentRate: v })}
+                    hint="Negative to decrease"
+                  />
+                )}
+              </>
+            )}
+          </div>
 
           <div>
             <label className="compact-label">Post-retirement routing</label>
             <select
-              className="compact-input w-full"
+              className="compact-input w-56"
               value={item.routeTo || 'cashflow'}
               onChange={e => onUpdate({ routeTo: e.target.value })}
             >
@@ -2336,7 +2292,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 
       {open && (
         <div className="p-4 space-y-3 bg-gray-800/20">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
             <CurrencyInput
               label="Current balance"
               value={item.currentBalance}
@@ -2347,39 +2303,38 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
               value={item.interestRate}
               onChange={v => onUpdate({ interestRate: v })}
             />
+            {item.type !== 'credit_card' && (
+              <>
+                <div>
+                  <label className="compact-label">Term (years)</label>
+                  <input
+                    className="compact-input w-16"
+                    type="number"
+                    step="1"
+                    value={item.termYears || ''}
+                    onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
+                    onWheel={e => e.target.blur()}
+                    placeholder="5"
+                  />
+                </div>
+                <div>
+                  <label className="compact-label">Start year</label>
+                  <input
+                    className="compact-input w-20"
+                    type="number"
+                    step="1"
+                    value={item.startYear || ''}
+                    onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
+                    onWheel={e => e.target.blur()}
+                    placeholder="Already held"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
-          {item.type !== 'credit_card' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="compact-label">Term (years)</label>
-                <input
-                  className="compact-input w-full"
-                  type="number"
-                  step="1"
-                  value={item.termYears || ''}
-                  onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
-                  onWheel={e => e.target.blur()}
-                  placeholder="5"
-                />
-              </div>
-              <div>
-                <label className="compact-label">Start year</label>
-                <input
-                  className="compact-input w-full"
-                  type="number"
-                  step="1"
-                  value={item.startYear || ''}
-                  onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
-                  onWheel={e => e.target.blur()}
-                  placeholder="Already held"
-                />
-              </div>
-            </div>
-          )}
-
           {item.type === 'lease' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
               <CurrencyInput
                 label="Residual / balloon value"
                 value={item.residualValue}
@@ -2425,7 +2380,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
 
           {item.type === 'credit_card' && (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
                 <CurrencyInput
                   label="Monthly repayment (0 = min 2%)"
                   value={item.monthlyRepayment}
@@ -2434,7 +2389,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                 <div>
                   <label className="compact-label">Mode</label>
                   <select
-                    className="compact-input w-full"
+                    className="compact-input w-40"
                     value={item.repaymentMode || 'payoff'}
                     onChange={e => onUpdate({ repaymentMode: e.target.value })}
                   >
@@ -2621,7 +2576,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
     })
 
   return (
-    <div className="px-6 py-4 max-w-5xl mx-auto">
+    <div className="px-6 py-4 max-w-7xl mx-auto">
       {showTutorial && <Tutorial steps={HOUSEHOLD_TUTORIAL} onClose={closeTutorial} />}
       <div className="flex items-center gap-2 mb-3">
         <h1 className="text-lg font-semibold text-white">Household Profile</h1>
@@ -2693,33 +2648,35 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
       </Section>
 
       <Section title="Cash &amp; Savings">
-        <div className="space-y-3">
-          <CurrencyInput
-            label="Current cash / savings balance"
-            value={scenario.cashSavings ?? 0}
-            onChange={v => updateScenario({ cashSavings: v })}
-            hint="Included in liquidity and net worth. If linked to a mortgage offset account, mark that property's offset checkbox — this balance will reduce interest on that loan."
-          />
-          <CurrencyInput
-            label="Minimum cash buffer (emergency fund floor)"
-            value={scenario.minCashBuffer ?? 0}
-            onChange={v => updateScenario({ minCashBuffer: v })}
-            hint="The simulation will top up cash to this floor before routing surplus elsewhere, and will not draw cash below this level during a deficit — other assets are liquidated first."
-          />
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+            <CurrencyInput
+              label="Cash / savings balance"
+              value={scenario.cashSavings ?? 0}
+              onChange={v => updateScenario({ cashSavings: v })}
+              hint="If linked to mortgage offset, tick that property's offset checkbox."
+            />
+            <CurrencyInput
+              label="Minimum cash buffer"
+              value={scenario.minCashBuffer ?? 0}
+              onChange={v => updateScenario({ minCashBuffer: v })}
+              hint="Floor — sim won't draw below this level."
+            />
+          </div>
           <p className="text-xs text-gray-500">
-            Cash earns no return in the model. Surplus cashflow accumulates here unless routed elsewhere via the Surplus Strategy.
+            Cash earns no return. Surplus accumulates here unless routed elsewhere via the Surplus Strategy.
           </p>
         </div>
       </Section>
 
       <Section title="Share Portfolio">
         <SharesForm shares={scenario.shares} onUpdate={updateShares} />
-        <div className="mt-4 pt-4 border-t border-gray-800">
+        <div className="mt-3 pt-3 border-t border-gray-800">
           <CurrencyInput
             label="Capital losses carried forward (prior FY)"
             value={scenario.capitalLossesCarriedForward ?? 0}
             onChange={v => updateScenario({ capitalLossesCarriedForward: v })}
-            hint="Net capital losses from prior years that offset this FY's gains"
+            hint="Offset this FY's net gains"
           />
         </div>
       </Section>
@@ -2866,7 +2823,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   Remove
                 </button>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
                 <CurrencyInput
                   label="Current value"
                   value={asset.currentValue}
@@ -2937,9 +2894,9 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                     : 'Funded from surplus only — set priority in Surplus Strategy below.'}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
                 <PctInput
-                  label="Annual increase"
+                  label="Annual contribution increase"
                   value={asset.annualIncreaseRate || 0}
                   onChange={v => {
                     const updated = [...scenario.otherAssets]
@@ -2949,7 +2906,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   min={0}
                   max={50}
                   step={1}
-                  hint="Contribution grows by this % each year"
+                  hint="Grows by this % each year"
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer">

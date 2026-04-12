@@ -90,7 +90,7 @@
 2. [x] **Mobile optimisation** ✅ Done Sessions 21–22 — nav scrollable→burger menu, HouseholdProfile grids responsive, Impact/Goal sidebars stack, Compare/Assumptions overflow fixed, chart headers flex-col, pie legend custom grid, Sankey horizontal scroll, life events compact.
 3. [x] **Income time periods** ✅ Done Session 17.
 4. [x] **Property selling costs** ✅ Done Session 17.
-5. [ ] **Minimum cash buffer** — user-nominated floor on cash reserves. Simulation should maintain this floor before routing surplus to investments; drawdown waterfall should leave this amount untouched.
+5. [ ] **HouseholdProfile layout pass 3** — user to provide marked-up screenshots showing remaining blank space / alignment issues for targeted fixes. Preview URL auth workaround needed (Supabase OAuth redirects to production after login).
 6. [ ] **Light mode contrast** — washed out; needs higher contrast, more use of fill colours inside borders/tiles (e.g. card backgrounds, input fields, badges). Review every `.light` override in `index.css`.
 7. [ ] **Super unlock → liquid assets bug** — super shown as unlocked in liquidity table (e.g. 2043) but balance not included in liquid assets column. Investigate `inPensionPhase` / `isLocked` logic — unlocked super should flow into `totalLiquidAssets`.
 8. [ ] **Liquidity table collapsible** — add collapse/expand toggle to the liquidity table section (same pattern as other collapsible sections).
@@ -99,6 +99,8 @@
 11. [ ] **Enlarge investment pie chart** — bigger donut, better label readability, possibly full-width on its own row.
 12. [ ] **`offsetAnnualTopUp` cleanup** — field still in schema but unused since Session 19 offset simplification.
 13. [ ] **Cashflow table: income columns** — show salary A / salary B / total income for easy verification of salary change projections.
+14. [ ] **SimpleTooltip light mode** — tooltip bg hardcoded `#111827`; needs `isLight ? '#ffffff' : '#111827'`.
+15. [ ] **Life events timeline spacing** — events at same year still visually crowd.
 
 ### Previously completed
 - [x] Named scenario cards with viability status
@@ -117,6 +119,23 @@
 ---
 
 ## Session Log
+
+### Session 34 — 2026-04-12
+
+**What was done:**
+
+- **HouseholdProfile layout pass 2 — horizontal flex-wrap rows** — widened page to `max-w-7xl`; converted all stacked `grid grid-cols-2` layouts to `flex flex-wrap gap-x-3 gap-y-2 items-start` rows so fields auto-fill horizontal space:
+  - **People**: Name / DOB / Retire age / Gross salary + period all on one row; employer type select sized to content; PBI/QLD packaging rows inline; HECS balance + extra repayment side by side; novated lease fields (cost/residual/term/rate, running costs/km/dates) converted from 2-col grids to flex-wrap.
+  - **Super**: Balance + employer scheme + conditional employer % grouped together (scheme select w-52, conditional PctInput glued inline to prevent wrapping to wrong position); salary sacrifice + extra concessional + non-concessional all on one row.
+  - **Property**: State + current value + purchase price + growth rate (new field — was defaulted 4% but had no UI input) on first row; purchase date + method + future purchase date on second row; mortgage balance + rate + yrs remaining + loan type on third row; "Yrs remaining" label shortened; loan type widened to w-44.
+  - **MonthYearInput** updated to use `compact-label` and `compact-input` classes (was using full-size `.label`/`.input`) — fixed inconsistency in date fields across expenses, income, property.
+  - **Shares / Treasury Bonds / Commodities / Investment Bonds / Debts / Other Income / Other Assets / Expenses**: all inner 2-col grids converted to flex-wrap rows with content-sized selects.
+
+- **Deployed to production** (preview auth redirect issue — Supabase OAuth bounces to production domain post-login).
+
+**568 tests passing. Layout refinement ongoing — user to provide marked-up screenshots for next alignment pass.**
+
+---
 
 ### Session 33 — 2026-04-12
 
