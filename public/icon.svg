@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#0284c7"/>
+  <!-- Upward bar chart — three bars -->
+  <rect x="96"  y="292" width="80" height="132" rx="12" fill="white" opacity="0.9"/>
+  <rect x="216" y="212" width="80" height="212" rx="12" fill="white"/>
+  <rect x="336" y="148" width="80" height="276" rx="12" fill="white" opacity="0.9"/>
+  <!-- Trend line over the bars -->
+  <polyline
+    points="136,276 256,196 376,132"
+    fill="none"
+    stroke="#7dd3fc"
+    stroke-width="16"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Dot at peak -->
+  <circle cx="376" cy="132" r="16" fill="#7dd3fc"/>
+</svg>
