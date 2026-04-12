@@ -21,9 +21,16 @@ export function computeActuals(scenario) {
 
   // ── Assets ────────────────────────────────────────────────────────────────
   const cashSavings    = scenario.cashSavings || 0
-  const sharesValue    = scenario.shares?.currentValue || 0
-  const tbValue        = scenario.treasuryBonds?.currentValue || 0
-  const commValue      = scenario.commodities?.currentValue || 0
+
+  // For shares/tbonds/commodities: parent currentValue (unallocated bulk) + individual holdings
+  // Mirrors the simulation engine's additive model (Session 31 fix)
+  const holdingVal = h => h.units > 0 && h.livePrice ? h.units * h.livePrice : (h.currentValue || 0)
+  const sharesValue = (scenario.shares?.currentValue || 0) +
+    (scenario.shares?.holdings || []).reduce((s, h) => s + holdingVal(h), 0)
+  const tbValue     = (scenario.treasuryBonds?.currentValue || 0) +
+    (scenario.treasuryBonds?.holdings || []).reduce((s, h) => s + holdingVal(h), 0)
+  const commValue   = (scenario.commodities?.currentValue || 0) +
+    (scenario.commodities?.holdings || []).reduce((s, h) => s + (h.currentValue || 0), 0)
   const propertyValues = (scenario.properties || []).reduce((s, p) => s + (p.currentValue || 0), 0)
   const superBalances  = (scenario.super || []).reduce((s, sup) => s + (sup.currentBalance || 0), 0)
   const bondBalances   = (scenario.investmentBonds || []).reduce((s, b) => s + (b.currentBalance || 0), 0)
