@@ -118,6 +118,23 @@
 
 ## Session Log
 
+### Session 32 — 2026-04-12
+
+**What was done:**
+
+- **HouseholdProfile density overhaul** — condensed the data-entry page to match Assumptions page visual density.
+  - Added `.compact-input` (`py-1 text-sm`) and `.compact-label` (`text-xs text-gray-500`) CSS classes to `index.css` with light-mode overrides.
+  - Stripped all `.card` wrappers from Section components; replaced `space-y-6` card stack with a `divide-y divide-gray-800/40` container — sections separated by thin lines, no padding boxes.
+  - All 13 top-level sections now default-collapsed. `PropertyForm`, `BondForm`, and `ExpenseNode` also default-collapsed.
+  - Section headers use `text-xs uppercase tracking-wide text-gray-500` — same style as Assumptions table section headers.
+  - Person A/B sub-headings in PersonForm/SuperForm tightened to `text-xs uppercase tracking-wide`.
+  - `max-w-5xl` (from `max-w-6xl`), `gap-6` between person columns (from `gap-8`), `space-y-3`/`gap-3` inside forms.
+  - All raw inputs and labels throughout the file converted to `compact-input`/`compact-label`.
+
+**568 tests passing. Deployed.**
+
+---
+
 ### Session 31 — 2026-04-12
 
 **What was done:**
