@@ -276,7 +276,7 @@ function PersonForm({ person, label, onUpdate }) {
           <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2">
             <div className="flex items-center justify-between mb-2">
               <input
-                className="compact-input flex-1 text-xs mr-2"
+                        className="compact-input w-64 text-xs mr-2"
                 value={change.note || ''}
                 onChange={e => {
                   const changes = [...(p.salaryChanges || [])]
@@ -296,11 +296,11 @@ function PersonForm({ person, label, onUpdate }) {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="compact-label">From</label>
-                <input
-                  className="compact-input w-full"
-                  type="number"
-                  step="1"
-                  value={change.fromYear ?? ''}
+                          <input
+                            className="compact-input w-24"
+                            type="number"
+                            step="1"
+                            value={change.fromYear ?? ''}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
                     changes[ci] = { ...changes[ci], fromYear: numVal(e.target.value) }
@@ -312,11 +312,11 @@ function PersonForm({ person, label, onUpdate }) {
               </div>
               <div>
                 <label className="compact-label">To</label>
-                <input
-                  className="compact-input w-full"
-                  type="number"
-                  step="1"
-                  value={change.toYear ?? ''}
+                          <input
+                            className="compact-input w-24"
+                            type="number"
+                            step="1"
+                            value={change.toYear ?? ''}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
                     changes[ci] = { ...changes[ci], toYear: numVal(e.target.value) || null }
@@ -331,7 +331,7 @@ function PersonForm({ person, label, onUpdate }) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                   <input
-                    className="compact-input w-full pl-7"
+                            className="compact-input w-28 pl-7"
                     type="number"
                     step="1"
                     value={change.salary ?? ''}
@@ -346,10 +346,10 @@ function PersonForm({ person, label, onUpdate }) {
                 </div>
               </div>
               <div>
-                <label className="compact-label">Period</label>
-                <select
-                  className="compact-input w-full"
-                  value={change.salaryPeriod || 'annual'}
+                          <label className="compact-label">Period</label>
+                          <select
+                            className="compact-input w-28"
+                            value={change.salaryPeriod || 'annual'}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
                     changes[ci] = { ...changes[ci], salaryPeriod: e.target.value }
@@ -724,7 +724,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
             value={s.salarySacrificeAmount}
             onChange={v => onUpdate({ salarySacrificeAmount: v })}
             hint={`SG est. $${Math.round(sgEstimate).toLocaleString()} · Cap $${CONCESSIONAL_CAP.toLocaleString()}`}
-            className="w-full"
+            className="max-w-44"
           />
           {concessionalBreached && (
             <p className="text-xs text-amber-400 mt-1">
@@ -736,7 +736,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
           label="Extra concessional"
           value={s.voluntaryConcessional}
           onChange={v => onUpdate({ voluntaryConcessional: v })}
-          className="w-full"
+          className="max-w-44"
         />
         <div>
           <CurrencyInput
@@ -745,7 +745,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
             onChange={v => onUpdate({ voluntaryNonConcessional: v })}
             hint={`Cap $${NON_CONCESSIONAL_CAP.toLocaleString()}`}
             max={nccBreached ? NON_CONCESSIONAL_CAP : undefined}
-            className="w-full"
+            className="max-w-44"
           />
           {nccBreached && (
             <p className="text-xs text-amber-400 mt-1">Exceeds annual cap</p>
@@ -1365,7 +1365,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                       className="w-32"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-wrap gap-3">
                     <MonthYearInput
                       label="Purchase date"
                       value={holding.purchaseDate}
@@ -1374,7 +1374,6 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                       minYear={1970}
                       maxYear={new Date().getFullYear()}
                     />
-                    <div />
                   </div>
 
                   {/* Live value summary */}
@@ -1789,13 +1788,13 @@ function BondForm({ bond, onUpdate, onRemove }) {
       {open && (
         <div className="p-4 space-y-4">
           <div>
-            <label className="compact-label">Bond name / label</label>
-            <input
-              className="compact-input w-full"
-              value={b.name || ''}
-              onChange={e => onUpdate({ name: e.target.value })}
-              placeholder="e.g. Education fund"
-            />
+              <label className="compact-label">Bond name / label</label>
+              <input
+                className="compact-input w-64"
+                value={b.name || ''}
+                onChange={e => onUpdate({ name: e.target.value })}
+                placeholder="e.g. Education fund"
+              />
           </div>
           <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
             <CurrencyInput
@@ -2117,12 +2116,12 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
         >
           {open ? '▾' : '▸'}
         </button>
-        <input
-          className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
-          value={item.name || ''}
-          onChange={e => onUpdate({ name: e.target.value })}
-          placeholder="Income source name"
-        />
+            <input
+              className="w-64 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
+              value={item.name || ''}
+              onChange={e => onUpdate({ name: e.target.value })}
+              placeholder="Income source name"
+            />
         <span className="text-xs text-gray-500 shrink-0">
           {item.person === 'household' ? 'Joint' : item.person === 'B' ? personBName : personAName}
         </span>
@@ -2296,12 +2295,12 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
         >
           {open ? '▾' : '▸'}
         </button>
-        <input
-          className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
-          value={item.name || ''}
-          onChange={e => onUpdate({ name: e.target.value })}
-          placeholder={`${DEBT_TYPE_LABELS[item.type] || 'Debt'} name`}
-        />
+            <input
+              className="w-64 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
+              value={item.name || ''}
+              onChange={e => onUpdate({ name: e.target.value })}
+              placeholder={`${DEBT_TYPE_LABELS[item.type] || 'Debt'} name`}
+            />
         <span className="text-xs text-gray-500 shrink-0">{DEBT_TYPE_LABELS[item.type]}</span>
         {item.currentBalance > 0 && (
           <span className="text-xs text-red-400 font-mono shrink-0">
@@ -2353,7 +2352,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                 <div>
                   <label className="compact-label">Start year</label>
                   <input
-                    className="compact-input w-20"
+                    className="compact-input w-24"
                     type="number"
                     step="1"
                     value={item.startYear || ''}
@@ -2843,7 +2842,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             <div key={asset.id} className="bg-gray-800/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <input
-                  className="compact-input flex-1 text-sm py-1.5 mr-3"
+                  className="compact-input w-64 text-sm py-1.5 mr-3"
                   placeholder="Asset name (e.g. Private Equity Fund)"
                   value={asset.name}
                   onChange={e => {
