@@ -49,7 +49,7 @@ function numVal(raw) {
 function CurrencyInput({ label, value, onChange, hint, max, className = '' }) {
   const over = max != null && Number(value) > max
   return (
-    <div className={`max-w-56 ${className}`}>
+    <div className={className || 'max-w-56'}>
       <label className="compact-label">{label}</label>
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
@@ -73,7 +73,7 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
   const displayVal = value != null && value !== '' ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''
   const outOfRange = displayVal !== '' && (Number(displayVal) < min || Number(displayVal) > max)
   return (
-    <div className={`max-w-36 ${className}`}>
+    <div className={className || 'max-w-36'}>
       <label className="compact-label">{label}</label>
       <div className="relative">
         <input
@@ -391,12 +391,14 @@ function PersonForm({ person, label, onUpdate }) {
                 label="Current HECS balance"
                 value={p.hecs.balance}
                 onChange={v => onUpdate({ hecs: { ...p.hecs, balance: v || 0 } })}
+                className="max-w-40"
               />
               <CurrencyInput
                 label="Extra annual repayment"
                 value={p.hecs.extraAnnual || 0}
                 onChange={v => onUpdate({ hecs: { ...p.hecs, extraAnnual: v || 0 } })}
                 hint="$0 = compulsory minimum only"
+                className="max-w-40"
               />
             </div>
           </div>
@@ -479,16 +481,19 @@ function PersonForm({ person, label, onUpdate }) {
 
         {hasLease && leaseOpen && (
           <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
+            {/* Financing */}
             <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label="Vehicle cost price"
                 value={p.packaging.novatedLease.vehicleCostPrice}
                 onChange={v => updateLease({ vehicleCostPrice: v })}
+                className="w-32"
               />
               <CurrencyInput
                 label="Residual / balloon"
                 value={p.packaging.novatedLease.residualValue}
                 onChange={v => updateLease({ residualValue: v })}
+                className="w-32"
               />
               <div>
                 <label className="compact-label">Term (years)</label>
@@ -506,19 +511,22 @@ function PersonForm({ person, label, onUpdate }) {
                 label="Interest rate"
                 value={p.packaging.novatedLease.interestRate}
                 onChange={v => updateLease({ interestRate: v })}
+                className="w-20"
               />
             </div>
 
+            {/* Usage & dates */}
             <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label="Annual running costs"
                 value={p.packaging.novatedLease.annualRunningCosts}
                 onChange={v => updateLease({ annualRunningCosts: v })}
+                className="w-28"
               />
               <div>
                 <label className="compact-label">Total km / year</label>
                 <input
-                  className="compact-input w-24"
+                  className="compact-input w-20"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
@@ -530,7 +538,7 @@ function PersonForm({ person, label, onUpdate }) {
               <div>
                 <label className="compact-label">Business km / year</label>
                 <input
-                  className="compact-input w-24"
+                  className="compact-input w-20"
                   type="number"
                   step="1"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
@@ -542,7 +550,7 @@ function PersonForm({ person, label, onUpdate }) {
               <div>
                 <label className="compact-label">Lease start</label>
                 <input
-                  className="compact-input w-36"
+                  className="compact-input w-32"
                   type="month"
                   value={p.packaging.novatedLease.activeYears?.from || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })}
@@ -551,7 +559,7 @@ function PersonForm({ person, label, onUpdate }) {
               <div>
                 <label className="compact-label">Lease end</label>
                 <input
-                  className="compact-input w-36"
+                  className="compact-input w-32"
                   type="month"
                   value={p.packaging.novatedLease.activeYears?.to || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: e.target.value || null } })}
@@ -675,6 +683,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
           label="Current balance"
           value={s.currentBalance}
           onChange={v => onUpdate({ currentBalance: v })}
+          className="max-w-40"
         />
         <div>
           <label className="compact-label">Employer scheme</label>
@@ -708,13 +717,14 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+      <div className="grid grid-cols-3 gap-3">
         <div>
           <CurrencyInput
             label="Salary sacrifice"
             value={s.salarySacrificeAmount}
             onChange={v => onUpdate({ salarySacrificeAmount: v })}
             hint={`SG est. $${Math.round(sgEstimate).toLocaleString()} · Cap $${CONCESSIONAL_CAP.toLocaleString()}`}
+            className="w-full"
           />
           {concessionalBreached && (
             <p className="text-xs text-amber-400 mt-1">
@@ -726,6 +736,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
           label="Extra concessional"
           value={s.voluntaryConcessional}
           onChange={v => onUpdate({ voluntaryConcessional: v })}
+          className="w-full"
         />
         <div>
           <CurrencyInput
@@ -734,6 +745,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
             onChange={v => onUpdate({ voluntaryNonConcessional: v })}
             hint={`Cap $${NON_CONCESSIONAL_CAP.toLocaleString()}`}
             max={nccBreached ? NON_CONCESSIONAL_CAP : undefined}
+            className="w-full"
           />
           {nccBreached && (
             <p className="text-xs text-amber-400 mt-1">Exceeds annual cap</p>
@@ -825,11 +837,13 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               label="Current value"
               value={p.currentValue}
               onChange={v => onUpdate({ currentValue: v })}
+              className="max-w-44"
             />
             <CurrencyInput
               label="Purchase price"
               value={p.purchasePrice}
               onChange={v => onUpdate({ purchasePrice: v })}
+              className="max-w-44"
             />
             <PctInput
               label="Growth rate"
@@ -900,7 +914,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               label="Future purchase date"
               value={p.futurePurchaseYear}
               onChange={v => onUpdate({ futurePurchaseYear: v })}
-              placeholder="Already owned"
+              placeholder="Year"
             />
           </div>
 
@@ -915,12 +929,14 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
                     onUpdate(patch)
                   }}
+                  className="max-w-44"
                 />
                 <PctInput
                   label="Interest rate"
                   value={p.interestRate}
                   onChange={v => onUpdate({ interestRate: v })}
                   step={0.05}
+                  className="w-20"
                 />
                 <div>
                   <label className="compact-label">Yrs remaining</label>
@@ -956,13 +972,13 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 <div>
                   <label className="compact-label">IO period ends (year)</label>
                   <input
-                    className="compact-input w-full"
+                    className="compact-input w-24"
                     type="number"
                     step="1"
                     value={p.ioEndYear || ''}
                     onChange={e => onUpdate({ ioEndYear: numVal(e.target.value) })}
                     onWheel={e => e.target.blur()}
-                    placeholder="e.g. 2028"
+                    placeholder="2028"
                   />
                   <p className="text-xs text-amber-400 mt-1">
                     Repayments step up to P&I at IO expiry
@@ -1005,12 +1021,14 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 label="Annual rental income"
                 value={p.annualRentalIncome}
                 onChange={v => onUpdate({ annualRentalIncome: v })}
+                className="max-w-44"
               />
               <CurrencyInput
                 label="Annual property expenses"
                 value={p.annualPropertyExpenses}
                 onChange={v => onUpdate({ annualPropertyExpenses: v })}
                 hint="Rates, insurance, management fees"
+                className="max-w-44"
               />
             </div>
           )}
@@ -1134,6 +1152,7 @@ function SharesForm({ shares, onUpdate }) {
           label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
           value={s.annualContribution}
           onChange={v => onUpdate({ annualContribution: v })}
+          className="max-w-40"
         />
       </div>
       <div>
@@ -1205,13 +1224,13 @@ function SharesForm({ shares, onUpdate }) {
         <div>
           <label className="compact-label">Preserve capital from age</label>
           <input
-            className="compact-input w-48"
+            className="compact-input w-14"
             type="number"
             step="1"
             value={s.preserveCapitalFromAge || ''}
             onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
             onWheel={e => e.target.blur()}
-            placeholder="e.g. 65"
+            placeholder="65"
           />
         </div>
       )}
@@ -1287,10 +1306,10 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
           <div>
             <label className="compact-label">Name</label>
             <input
-              className="compact-input w-full"
+              className="compact-input w-64"
               value={holding.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
-              placeholder="e.g. VAS ETF, Commonwealth Bank"
+              placeholder="e.g. VAS ETF, CBA"
             />
           </div>
 
@@ -1301,10 +1320,10 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                 <label className="compact-label">ASX / Exchange Ticker <span className="text-gray-600 font-normal">(optional)</span></label>
                 <div className="flex items-center gap-2">
                   <input
-                    className="compact-input flex-1"
+                    className="compact-input w-36"
                     value={holding.ticker || ''}
                     onChange={e => onUpdate({ ticker: e.target.value.toUpperCase() })}
-                    placeholder="e.g. CBA.AX, VAS.AX, AAPL"
+                    placeholder="e.g. CBA.AX"
                   />
                   {tickerEntered && (
                     hasLivePrice ? (
@@ -1326,11 +1345,11 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
 
               {tickerEntered && (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
                     <div>
                       <label className="compact-label">Units held</label>
                       <input
-                        className="compact-input w-full"
+                        className="compact-input w-24"
                         type="number"
                         step="1"
                         value={holding.units ?? ''}
@@ -1343,6 +1362,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                       label="Purchase price / unit"
                       value={holding.purchasePrice}
                       onChange={v => onUpdate({ purchasePrice: v })}
+                      className="w-32"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1384,7 +1404,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                   </div>
 
                   {holding.saleDate && (
-                    <div className="grid grid-cols-2 gap-3 pl-4 border-l border-gray-700">
+                    <div className="flex flex-wrap gap-x-3 gap-y-2 items-start pl-4 border-l border-gray-700">
                       <MonthYearInput
                         label="Sale date"
                         value={holding.saleDate}
@@ -1397,6 +1417,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                         label="Sale price / unit"
                         value={holding.salePrice}
                         onChange={v => onUpdate({ salePrice: v })}
+                        className="w-32"
                       />
                     </div>
                   )}
@@ -1407,11 +1428,12 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
 
           {/* Current value — shown when no live price available */}
           {(!hasTicker || !hasLivePrice) && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label={hasLivePrice ? 'Current value (fallback)' : 'Current value'}
                 value={holding.currentValue}
                 onChange={v => onUpdate({ currentValue: v })}
+                className="max-w-40"
               />
               <PctInput
                 label="Return rate"
@@ -1420,6 +1442,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                 min={-20}
                 max={50}
                 step={0.5}
+                className="w-20"
               />
             </div>
           )}
@@ -1436,17 +1459,19 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
           )}
 
           {fields.includes('dividendYield') && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <PctInput
                 label="Dividend yield"
                 value={holding.dividendYield}
                 onChange={v => onUpdate({ dividendYield: v })}
+                className="w-24"
               />
               <PctInput
                 label="Franking %"
                 value={holding.frankingPct}
                 onChange={v => onUpdate({ frankingPct: v })}
                 step={5}
+                className="w-24"
               />
             </div>
           )}
@@ -1559,6 +1584,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
           label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
           value={b.annualContribution}
           onChange={v => onUpdate({ annualContribution: v })}
+          className="max-w-40"
         />
       </div>
       <div>
@@ -1623,13 +1649,13 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
         <div>
           <label className="compact-label">Preserve capital from age</label>
           <input
-            className="compact-input w-48"
+            className="compact-input w-14"
             type="number"
             step="1"
             value={b.preserveCapitalFromAge || ''}
             onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
             onWheel={e => e.target.blur()}
-            placeholder="e.g. 65"
+            placeholder="65"
           />
         </div>
       )}
@@ -1661,6 +1687,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
           label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
           value={c.annualContribution}
           onChange={v => onUpdate({ annualContribution: v })}
+          className="max-w-40"
         />
       </div>
       <div>
@@ -1781,6 +1808,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
               value={b.annualContribution}
               onChange={v => onUpdate({ annualContribution: v })}
               hint="Max 125% of prior year"
+              className="max-w-40"
             />
           </div>
           <div>
@@ -1832,7 +1860,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
           <div>
             <label className="compact-label">Bond inception date</label>
             <input
-              className="compact-input w-full"
+              className="compact-input w-36"
               type="date"
               value={b.inceptionDate || ''}
               onChange={e => onUpdate({ inceptionDate: e.target.value })}
@@ -1962,6 +1990,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                 label={hasChildren ? 'Own amount (excl. children)' : 'Amount'}
                 value={item.amount}
                 onChange={v => onUpdate({ amount: v })}
+                className="max-w-40"
               />
               <div>
                 <label className="compact-label">Amount type</label>
@@ -1986,17 +2015,17 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
             </div>
 
             {item.amountType === 'recurring' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
                 <div>
                   <label className="compact-label">Every X years</label>
                   <input
-                    className="compact-input w-full"
+                    className="compact-input w-20"
                     type="number"
                     step="1"
                     value={item.recurringEveryYears || ''}
                     onChange={e => onUpdate({ recurringEveryYears: numVal(e.target.value) || null })}
                     onWheel={e => e.target.blur()}
-                    placeholder="e.g. 10"
+                    placeholder="10"
                   />
                 </div>
                 <p className="text-xs text-gray-500 self-end pb-2">
@@ -2118,6 +2147,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
               label="Amount"
               value={item.amount}
               onChange={v => onUpdate({ amount: v })}
+              className="max-w-40"
             />
             <div>
               <label className="compact-label">Amount type</label>
@@ -2195,6 +2225,7 @@ function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, d
                     value={item.adjustmentRate}
                     onChange={v => onUpdate({ adjustmentRate: v })}
                     hint="Negative to decrease"
+                    className="max-w-40"
                   />
                 )}
               </>
@@ -2297,11 +2328,13 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
               label="Current balance"
               value={item.currentBalance}
               onChange={v => onUpdate({ currentBalance: v })}
+              className="max-w-40"
             />
             <PctInput
               label="Interest rate"
               value={item.interestRate}
               onChange={v => onUpdate({ interestRate: v })}
+              className="w-20"
             />
             {item.type !== 'credit_card' && (
               <>
@@ -2339,11 +2372,13 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                 label="Residual / balloon value"
                 value={item.residualValue}
                 onChange={v => onUpdate({ residualValue: v })}
+                className="max-w-40"
               />
               <CurrencyInput
                 label="Monthly repayment (0 = auto-calc)"
                 value={item.monthlyRepayment}
                 onChange={v => onUpdate({ monthlyRepayment: v })}
+                className="max-w-40"
               />
             </div>
           )}
@@ -2375,6 +2410,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
               label="Monthly repayment"
               value={item.monthlyRepayment}
               onChange={v => onUpdate({ monthlyRepayment: v })}
+              className="max-w-40"
             />
           )}
 
@@ -2385,6 +2421,7 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
                   label="Monthly repayment (0 = min 2%)"
                   value={item.monthlyRepayment}
                   onChange={v => onUpdate({ monthlyRepayment: v })}
+                  className="max-w-40"
                 />
                 <div>
                   <label className="compact-label">Mode</label>
@@ -2661,6 +2698,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
               value={scenario.minCashBuffer ?? 0}
               onChange={v => updateScenario({ minCashBuffer: v })}
               hint="Floor — sim won't draw below this level."
+              className="max-w-40"
             />
           </div>
           <p className="text-xs text-gray-500">
@@ -2677,6 +2715,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             value={scenario.capitalLossesCarriedForward ?? 0}
             onChange={v => updateScenario({ capitalLossesCarriedForward: v })}
             hint="Offset this FY's net gains"
+            className="max-w-40"
           />
         </div>
       </Section>
@@ -2841,6 +2880,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                     updated[i] = { ...asset, annualContribution: v }
                     updateScenario({ otherAssets: updated })
                   }}
+                  className="max-w-40"
                 />
                 <PctInput
                   label="Return rate"

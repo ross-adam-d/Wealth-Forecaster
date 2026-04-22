@@ -90,7 +90,7 @@
 2. [x] **Mobile optimisation** ✅ Done Sessions 21–22 — nav scrollable→burger menu, HouseholdProfile grids responsive, Impact/Goal sidebars stack, Compare/Assumptions overflow fixed, chart headers flex-col, pie legend custom grid, Sankey horizontal scroll, life events compact.
 3. [x] **Income time periods** ✅ Done Session 17.
 4. [x] **Property selling costs** ✅ Done Session 17.
-5. [ ] **HouseholdProfile layout pass 3** — user to provide marked-up screenshots showing remaining blank space / alignment issues for targeted fixes. Preview URL auth workaround needed (Supabase OAuth redirects to production after login).
+5. [~] **HouseholdProfile layout pass 3** — Session 35: design principles document created (`docs/household_design_principles.md`); full iterative width/layout pass applied across all sections. Further refinement deferred to user review of production deployment.
 6. [ ] **Light mode contrast** — washed out; needs higher contrast, more use of fill colours inside borders/tiles (e.g. card backgrounds, input fields, badges). Review every `.light` override in `index.css`.
 7. [ ] **Super unlock → liquid assets bug** — super shown as unlocked in liquidity table (e.g. 2043) but balance not included in liquid assets column. Investigate `inPensionPhase` / `isLocked` logic — unlocked super should flow into `totalLiquidAssets`.
 8. [ ] **Liquidity table collapsible** — add collapse/expand toggle to the liquidity table section (same pattern as other collapsible sections).
@@ -119,6 +119,42 @@
 ---
 
 ## Session Log
+
+### Session 35 — 2026-04-16
+
+**What was done:**
+
+- **Design principles document** — Reviewed annotated screenshots and user feedback to derive 7 UI layout principles for the Household Profile (and app-wide form design). Saved as `docs/household_design_principles.md`:
+  1. Field width should match value range (reference width table: age→`w-14–16`, year→`w-24`, %→`w-20`, small $→`max-w-40`, medium $→`max-w-44`, large $→`max-w-56`)
+  2. Eliminate blank space by filling rows
+  3. Keep related content together without scrolling
+  4. The household section is the most important section
+  5. Density enables quick scanning
+  6. Use space deliberately to create sections of connected data points
+  7. Balance and alignment is key
+
+- **`CurrencyInput` / `PctInput` className override fix** — Changed `className={`max-w-56 ${className}`}` to `className={className || 'max-w-56'}` (same fix on `PctInput` with `max-w-36`). Passed `className` now fully replaces the default instead of appending — enabling precise per-field width control.
+
+- **Full HouseholdProfile width/layout pass** — Applied principles across every section:
+  - **HECS**: balance + extra repayment → `max-w-40`
+  - **Novated lease**: restructured to 2 logical rows (Financing / Usage+Dates); vehicle cost/residual → `w-32`, interest rate → `w-20`, running costs → `w-28`, km fields → `w-20`
+  - **Super current balance** → `max-w-40`; contributions switched from `flex-wrap` to `grid grid-cols-3 gap-3` with `w-full` on each input to guarantee 3-equal-column layout and prevent non-concessional wrapping; preserve capital age → `w-14`
+  - **Property**: current value + purchase price + outstanding mortgage → `max-w-44`; interest rate → `w-20` PctInput; IO period ends → `w-24`; rental income + expenses → `max-w-44`; future purchase date placeholder → "Year"
+  - **Shares / TreasuryBonds / Commodities / InvestmentBonds / OtherAssets**: annual contribution → `max-w-40`; preserve capital age → `w-14`; Investment Bonds inception date `w-36`
+  - **Expenses**: amount → `max-w-40`; recurring every X years → `w-20`; recurring row → `flex-wrap` (was 2-col grid)
+  - **OtherIncome**: amount + $ adjustment → `max-w-40`
+  - **Debts**: current balance → `max-w-40`; interest rate → `w-20`; all repayment fields → `max-w-40`
+  - **Cash & Savings**: min buffer → `max-w-40`
+  - **Capital losses carried forward** → `max-w-40`
+  - **Holdings**: Name → `w-64`, Ticker → `w-36`, Units → `w-24`, purchase/sale price → `w-32`, current value → `max-w-40`, return rate → `w-20`, dividend yield + franking → `w-24`; all `grid-cols-2` sub-rows → `flex-wrap`
+
+- **`MonthYearInput` year input** — widened from `w-20` to `w-24` to prevent placeholder text truncation; simplified placeholder guidance to "Year" throughout.
+
+- **Deployed to production** — Reviewed against live app. Further refinement noted as possible; user to continue iteration in a future session if needed.
+
+**568 tests passing. Committed and pushed to `main`.**
+
+---
 
 ### Session 34 — 2026-04-12
 

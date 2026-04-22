@@ -72,7 +72,7 @@ export default function MonthYearInput({
           ))}
         </select>
         <input
-          className="compact-input w-20"
+          className="compact-input w-24"
           type="number"
           step="1"
           placeholder={placeholder}
