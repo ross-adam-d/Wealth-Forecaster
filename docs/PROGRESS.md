@@ -44,15 +44,11 @@
 ### In Progress 🔄
 _(nothing currently in progress)_
 
-### Up Next — Gap Dashboard completion
-- [ ] Inline stress test (expenses slider, return slider, part-time income toggle)
-- [ ] Month-by-month cashflow table for gap period
-- [ ] Partner-specific gap phase labels (solo gap / joint gap)
-
-### Then — Gap Dashboard completion
-- [ ] Inline stress test (expenses slider, return slider, part-time income toggle)
-- [ ] Month-by-month cashflow table for gap period
-- [ ] Partner-specific gap phase labels (solo gap / joint gap)
+### Done (continued) ✓
+- [x] Gap Dashboard stress test — sliders now re-run the simulation with stressed assumptions (expenses %, return rate)
+- [x] Gap Dashboard chart colors updated to match design system palette
+- [x] Dev-mode auth bypass (`VITE_DEV_SKIP_AUTH=true` in `.env.development.local`) for local previewing without Google OAuth
+- [x] Dev-mode banner in Layout shows when auth is bypassed
 
 ### Then — Impact Analyser completion
 - [ ] Wire lever values into simulation overrides
@@ -80,6 +76,34 @@ _(nothing currently in progress)_
 ---
 
 ## Session Log
+
+### Session — 2026-04-22
+
+**What was done:**
+- Wired Gap Dashboard stress test sliders to actually re-run the simulation:
+  - `stressExpenses` slider (−20% to +30%) re-runs with `leverAdjustments.expenses = { discretionary, fixed }` applied to all expenses
+  - `stressReturn` slider (4–10%) re-runs with adjusted `sharesReturnRate` and `bondReturnRate` in assumptions
+  - Stressed simulation is memoised and only recomputes when sliders change
+  - Chart and cashflow table both update to show stressed values when active
+  - "Stress applied" indicator + stressed viability badge appear in the chart header
+  - "Reset stress test" button clears sliders back to zero
+- Fixed chart colors in GapDashboard to match the design system palette (Super A: sky-500, Super B: sky-400, Shares: violet-400, Bonds: amber-400, Cash: slate-400)
+- Fixed reference line colors to use `#6b7280` (gray-500) per spec
+- Fixed inline slider value display (value shown next to label, not below slider)
+- Added dev-mode auth bypass:
+  - `VITE_DEV_SKIP_AUTH=true` in `.env.development.local` (gitignored, never deployed)
+  - App.jsx skips Supabase auth and uses a mock user when bypass is active in dev mode
+  - Yellow "DEV MODE" banner in Layout footer when bypass is active
+  - 188 tests still passing
+
+**State at end of session:**
+Gap Dashboard stress test is fully wired. Chart shows stressed vs base data live as sliders move. Dev-mode bypass is in place for local previewing without Google OAuth.
+
+**Next session should start with:**
+- Impact Analyser: wire lever values into simulation re-run, add base vs. adjusted diff view, retirement date delta
+- Or: Merge feature branch → main for production deployment
+
+---
 
 ### Session — 2026-03-18 (4)
 

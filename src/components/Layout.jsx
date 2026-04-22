@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom'
 import { supabase } from '../utils/supabase.js'
 
+const DEV_SKIP_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true'
+
 const NAV = [
   { to: '/gap',        label: 'The Gap' },
   { to: '/projection', label: 'Projection' },
@@ -65,6 +67,11 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
       </main>
 
       {/* Mandatory ASIC disclaimer — appears on all views */}
+      {DEV_SKIP_AUTH && (
+        <div className="bg-amber-900/40 border-t border-amber-800 px-6 py-1.5 text-center">
+          <span className="text-xs text-amber-400 font-medium">DEV MODE — auth bypassed · data is not saved to Supabase</span>
+        </div>
+      )}
       <footer className="bg-gray-950 border-t border-gray-800 px-6 py-3">
         <p className="text-xs text-gray-600 max-w-4xl">
           This tool is for educational modelling only and does not constitute financial advice.

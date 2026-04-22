@@ -11,11 +11,16 @@ import HouseholdProfile from './views/HouseholdProfile.jsx'
 import Assumptions from './views/Assumptions.jsx'
 import Login from './views/Login.jsx'
 
+// Dev bypass: set VITE_DEV_SKIP_AUTH=true in .env.development.local to skip auth
+const DEV_SKIP_AUTH = import.meta.env.DEV && import.meta.env.VITE_DEV_SKIP_AUTH === 'true'
+const DEV_MOCK_USER = { id: 'dev-user', email: 'dev@local' }
+
 export default function App() {
-  const [user, setUser] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
+  const [user, setUser] = useState(DEV_SKIP_AUTH ? DEV_MOCK_USER : null)
+  const [authLoading, setAuthLoading] = useState(!DEV_SKIP_AUTH)
 
   useEffect(() => {
+    if (DEV_SKIP_AUTH) return
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setAuthLoading(false)

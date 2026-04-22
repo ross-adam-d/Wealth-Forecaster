@@ -4,6 +4,7 @@ import {
   ReferenceLine, ResponsiveContainer, Legend
 } from 'recharts'
 import { PRESERVATION_AGE } from '../constants/index.js'
+import { runSimulation } from '../engine/simulationEngine.js'
 
 function getGapYears(snapshots, scenario) {
   const { personA, personB } = scenario.household
@@ -74,12 +75,13 @@ function ViabilityBadge({ status, buffer }) {
   return <span className="badge-at-risk">No gap data — enter household details</span>
 }
 
+// Design system chart palette
 const AREA_COLORS = {
-  cash: '#60a5fa',
-  shares: '#34d399',
-  bonds: '#a78bfa',
-  superA: '#f59e0b',
-  superB: '#fb923c',
+  cash:   '#94a3b8',  // slate-400
+  shares: '#a78bfa',  // violet-400
+  bonds:  '#fbbf24',  // amber-400
+  superA: '#0ea5e9',  // brand-500 / sky-500
+  superB: '#38bdf8',  // sky-400
 }
 
 function fmt$(n) {
@@ -91,8 +93,8 @@ function fmt$(n) {
 }
 
 export default function GapDashboard({ snapshots, scenario, updateScenario }) {
-  const [stressExpenses, setStressExpenses] = useState(0)       // -0.20 to +0.30
-  const [stressReturn, setStressReturn] = useState(0)            // delta on returns
+  const [stressExpenses, setStressExpenses] = useState(0)
+  const [stressReturn, setStressReturn] = useState(0)
   const [showPartTime, setShowPartTime] = useState(false)
 
   const { gapSnapshots, gapStart, gapEnd, preserveYearA, preserveYearB } = useMemo(
@@ -100,16 +102,51 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
     [snapshots, scenario]
   )
 
-  const viability = useMemo(() => calcGapViability(gapSnapshots), [gapSnapshots])
+  const baseViability = useMemo(() => calcGapViability(gapSnapshots), [gapSnapshots])
 
-  const chartData = gapSnapshots.map(s => ({
+  // Stressed simulation — only recomputes when sliders move
+  const isStressed = stressExpenses !== 0 || stressReturn !== 0
+
+  const stressedGapSnapshots = useMemo(() => {
+    if (!isStressed || !gapStart || !gapEnd) return null
+    const stressedScenario = {
+      ...scenario,
+      assumptions: {
+        ...scenario.assumptions,
+        sharesReturnRate: Math.max(0.01, scenario.assumptions.sharesReturnRate + stressReturn),
+        bondReturnRate: scenario.assumptions.bondReturnRate != null
+          ? Math.max(0.01, scenario.assumptions.bondReturnRate + stressReturn)
+          : undefined,
+      },
+    }
+    try {
+      const stressed = runSimulation(stressedScenario, {
+        leverAdjustments: {
+          expenses: { discretionary: stressExpenses, fixed: stressExpenses },
+        },
+      })
+      return stressed.filter(s => s.year >= gapStart && s.year <= gapEnd)
+    } catch {
+      return null
+    }
+  }, [isStressed, scenario, stressExpenses, stressReturn, gapStart, gapEnd])
+
+  const activeGapSnapshots = stressedGapSnapshots ?? gapSnapshots
+  const stressedViability = useMemo(
+    () => calcGapViability(stressedGapSnapshots ?? []),
+    [stressedGapSnapshots]
+  )
+
+  const chartData = activeGapSnapshots.map(s => ({
     year: s.year,
-    cash: Math.max(0, s.cashBuffer + (s.totalOffsetBalance || 0)),
+    cash:   Math.max(0, s.cashBuffer + (s.totalOffsetBalance || 0)),
     shares: Math.max(0, s.sharesValue),
-    bonds: Math.max(0, s.bondLiquidity + s.bondPreTenYr),
+    bonds:  Math.max(0, s.bondLiquidity + s.bondPreTenYr),
     superA: s.superAUnlocked ? Math.max(0, s.superABalance) : 0,
     superB: s.superBUnlocked ? Math.max(0, s.superBBalance) : 0,
   }))
+
+  const baseReturnPct = ((scenario.assumptions.sharesReturnRate + stressReturn) * 100).toFixed(1)
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -124,12 +161,20 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
               : 'Enter retirement ages and dates of birth to see the gap period'}
           </p>
         </div>
-        <ViabilityBadge status={viability.status} buffer={viability.buffer} />
+        <ViabilityBadge status={baseViability.status} buffer={baseViability.buffer} />
       </div>
 
       {/* Runway chart */}
       <div className="card">
-        <h2 className="text-sm font-semibold text-gray-300 mb-4">Liquid Asset Runway</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-300">Liquid Asset Runway</h2>
+          {isStressed && (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-amber-400 font-medium uppercase tracking-wide">Stress applied</span>
+              <ViabilityBadge status={stressedViability.status} buffer={stressedViability.buffer} />
+            </div>
+          )}
+        </div>
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={chartData}>
@@ -149,8 +194,8 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
               <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={0.5} name="Super A (unlocked)" />
               <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={0.5} name="Super B (unlocked)" />
 
-              {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
-              {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
+              {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#6b7280" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#6b7280', fontSize: 11 }} />}
+              {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#6b7280" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#6b7280', fontSize: 11 }} />}
             </AreaChart>
           </ResponsiveContainer>
         ) : (
@@ -160,10 +205,13 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
         )}
       </div>
 
-      {/* Month-by-month cashflow table */}
-      {gapSnapshots.length > 0 && (
+      {/* Year-by-year cashflow table */}
+      {activeGapSnapshots.length > 0 && (
         <div className="card overflow-x-auto">
-          <h2 className="text-sm font-semibold text-gray-300 mb-4">Year-by-Year Cashflow (Gap Period)</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-4">
+            Year-by-Year Cashflow (Gap Period)
+            {isStressed && <span className="ml-2 text-xs text-amber-400 font-normal">— stressed</span>}
+          </h2>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800">
@@ -175,7 +223,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
               </tr>
             </thead>
             <tbody>
-              {gapSnapshots.map(s => (
+              {activeGapSnapshots.map(s => (
                 <tr key={s.year} className="border-b border-gray-800/50 hover:bg-gray-800/30">
                   <td className="py-2 px-3 text-gray-300">{s.year}</td>
                   <td className="py-2 px-3 text-right text-gray-300">{fmt$(s.totalIncome)}</td>
@@ -199,33 +247,37 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           <div>
-            <label className="label">Expenses adjustment</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label mb-0">Expenses adjustment</label>
+              <span className={`text-sm font-medium ${stressExpenses > 0 ? 'text-amber-400' : stressExpenses < 0 ? 'text-green-400' : 'text-gray-500'}`}>
+                {stressExpenses >= 0 ? '+' : ''}{Math.round(stressExpenses * 100)}%
+              </span>
+            </div>
             <input
               type="range" min={-20} max={30} step={1}
               value={Math.round(stressExpenses * 100)}
               onChange={e => setStressExpenses(Number(e.target.value) / 100)}
               className="w-full accent-brand-500"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <div className="flex justify-between text-xs text-gray-600 mt-1">
               <span>−20%</span>
-              <span className={stressExpenses >= 0 ? 'text-amber-400' : 'text-green-400'}>
-                {stressExpenses >= 0 ? '+' : ''}{Math.round(stressExpenses * 100)}%
-              </span>
               <span>+30%</span>
             </div>
           </div>
 
           <div>
-            <label className="label">Portfolio return</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label mb-0">Portfolio return</label>
+              <span className="text-sm font-medium text-gray-300">{baseReturnPct}%</span>
+            </div>
             <input
               type="range" min={4} max={10} step={0.5}
-              value={((scenario.assumptions.sharesReturnRate + stressReturn) * 100).toFixed(1)}
+              value={baseReturnPct}
               onChange={e => setStressReturn(Number(e.target.value) / 100 - scenario.assumptions.sharesReturnRate)}
               className="w-full accent-brand-500"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <div className="flex justify-between text-xs text-gray-600 mt-1">
               <span>4%</span>
-              <span className="text-gray-300">{((scenario.assumptions.sharesReturnRate + stressReturn) * 100).toFixed(1)}%</span>
               <span>10%</span>
             </div>
           </div>
@@ -244,6 +296,15 @@ export default function GapDashboard({ snapshots, scenario, updateScenario }) {
             <p className="text-xs text-gray-500">Configure in Household → Retirement income</p>
           </div>
         </div>
+
+        {isStressed && (
+          <button
+            className="mt-4 text-xs text-gray-500 hover:text-gray-300 underline"
+            onClick={() => { setStressExpenses(0); setStressReturn(0) }}
+          >
+            Reset stress test
+          </button>
+        )}
       </div>
 
       {/* Partner gap phases */}
