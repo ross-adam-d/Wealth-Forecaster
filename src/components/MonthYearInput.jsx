@@ -39,6 +39,9 @@ export default function MonthYearInput({
   nullable = true,
   minYear = 2020,
   maxYear = 2080,
+  selectWidth = 'w-20',
+  yearWidth = 'w-24',
+  yearClassName = '',
 }) {
   const { year, month } = parseValue(value)
 
@@ -62,7 +65,7 @@ export default function MonthYearInput({
       {label && <label className="compact-label">{label}</label>}
       <div className="flex gap-1">
         <select
-          className="compact-input w-20 flex-shrink-0"
+          className={`compact-input ${selectWidth} flex-shrink-0`}
           value={month}
           onChange={e => emit(year, e.target.value)}
         >
@@ -72,7 +75,7 @@ export default function MonthYearInput({
           ))}
         </select>
         <input
-          className="compact-input w-24"
+          className={`compact-input ${yearWidth} ${yearClassName}`}
           type="number"
           step="1"
           placeholder={placeholder}

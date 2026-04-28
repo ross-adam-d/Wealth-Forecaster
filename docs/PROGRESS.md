@@ -120,6 +120,71 @@
 
 ## Session Log
 
+### Session 38 — 2026-04-28
+
+**What was done:**
+
+- **`border-t` segmentation throughout HouseholdProfile** — Added `border-t border-gray-800` dividers to chunk logical groups inside every major form component. Applied to: PersonForm (HECS, employer/lease block), SuperForm (TTR + holdings), PropertyForm (purchase/method, mortgage, rental income, CGT/sale), SharesForm (rates group, holdings), TreasuryBondsForm (rates, holdings), CommoditiesForm (rates, holdings), InvestmentBondForm (inception date), ExpenseNode (date fields).
+
+- **Holdings card grid redesign (HoldingCard + HoldingsSubForm)** — Replaced vertical list of expanded cards with a `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start` of compact summary cards. Each card:
+  - **Collapsed**: shows ticker/name (bold), sub-label, live price (green), portfolio value, return rate %/yr. Starts collapsed if the holding already has values; auto-opens when newly created.
+  - **Expanded**: `divide-y divide-gray-700/30` rows — label `flex-1` left, input `shrink-0 text-right` right. Currency rows use inline `$` prefix; percentage rows use inline `%` suffix (outside the input) to allow true right-alignment.
+  - **"Add" card**: dashed border placeholder (`min-h-[88px]`, centered `+` icon) matching scenario card pattern.
+
+- **MonthYearInput extended** — New optional props: `selectWidth`, `yearWidth`, `yearClassName`. Holding cards use `selectWidth="w-16" yearWidth="w-20" yearClassName="text-right"`. All other callers unaffected (default values preserved).
+
+- **Holding card field widths standardised** — After iterative refinement from screenshots:
+  - Name: `w-32`, Ticker: `w-32` (match name)
+  - Units: `w-20`, Buy/sale price: `w-20` (match, 5-figure capacity)
+  - All percentage fields (return rate, div yield, franking, coupon, pension): `w-20` (identical — consistency critical)
+  - Current value: `w-20` with inline `$`
+
+- **Skill file updated** — `~/.claude/skills/wf-household.md` now documents: card grid pattern, HoldingCard collapsed/expanded anatomy, field width table, `%` outside input rule, MonthYearInput props, and two new design principles (8: card-grid for item lists; 9: label-left/value-right in card detail rows).
+
+**Tests:** 568 passing (no engine changes).
+
+---
+
+### Session 36 — 2026-04-26
+
+**What was done:**
+
+- **HouseholdProfile layout pass 4 (live refinement from DOM callouts)** — Per-section spacing and alignment fixes applied in `src/views/HouseholdProfile.jsx` based on production screenshots/DOM paths.
+- **Global width consistency on shared inputs** — `CurrencyInput` and `PctInput` wrappers now always include `w-full` plus a max-width class (`className ? \`w-full ${className}\` : default`), so custom width classes behave consistently and no longer create accidental narrow/wide mismatches.
+- **Page width tightened for form density** — Household container reduced `max-w-7xl` → `max-w-6xl` to reduce over-stretched rows and improve scanability.
+- **Rows that were over-stretching now constrained to practical widths**:
+  - Salary change note input no longer full-row elastic (`w-80 max-w-full`)
+  - Bond name input constrained (`w-64 max-w-full`)
+  - Other asset name input constrained (`w-80 max-w-full`)
+  - Surplus/Drawdown strategy dropdown rows constrained (`w-72 max-w-full`)
+- **Novated lease card (Person form) reflowed to use space better**:
+  - Row 1: vehicle cost, residual, annual running costs, interest rate, term
+  - Row 2: total km, business km, lease start/end
+  - Dollar fields standardized to medium width (`max-w-40`) and small numeric/date fields kept compact.
+- **Super section alignment fixes**:
+  - Employer scheme control stabilized using fixed two-column layout for selector + conditional % input.
+  - Placeholder slot retained for `sg` mode to keep Person A/B rows aligned when one side has additional controls.
+  - Contribution warnings now reserve consistent vertical space (`min-h-4`) to prevent TTR row drift.
+  - TTR checkbox row adjusted for stable baseline alignment (`items-start`, controlled line height).
+- **Property card spacing update**:
+  - Top property details changed to responsive grid (`1/2/5` cols) so single-line groups spread across width instead of clustering left.
+  - Purchase row changed to responsive grid (`1/2/3` cols) for better use of horizontal space.
+  - FHB toggle moved into aligned grid cell with consistent row height.
+
+**Sizing/spacing rules reinforced this session:**
+
+1. Use compact, value-matched widths (`w-14/16/20/24`, `max-w-40/44`) instead of `w-full` in data-entry rows.
+2. Use `grid` when a row should distribute evenly across available width; use `flex-wrap` only when natural packing is preferred.
+3. Keep conditional controls layout-stable with placeholders/reserved height to avoid cross-column misalignment.
+4. Keep monetary and % primitives consistent via shared wrappers, not ad-hoc per-field overrides.
+
+**Notes / blockers:**
+
+- Live verification was impeded by local OAuth redirecting to production; user feedback came from production DOM snapshots.  
+- Next session should include local auth redirect fix (or dev-only bypass) so layout iterations can be verified on localhost in real time.
+
+---
+
 ### Session 35 — 2026-04-16
 
 **What was done:**

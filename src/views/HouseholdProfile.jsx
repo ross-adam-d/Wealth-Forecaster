@@ -49,7 +49,7 @@ function numVal(raw) {
 function CurrencyInput({ label, value, onChange, hint, max, className = '' }) {
   const over = max != null && Number(value) > max
   return (
-    <div className={className || 'max-w-56'}>
+    <div className={className ? `w-full ${className}` : 'w-full max-w-56'}>
       <label className="compact-label">{label}</label>
       <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
@@ -73,7 +73,7 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
   const displayVal = value != null && value !== '' ? (value * 100).toFixed(step < 1 ? 1 : 0) : ''
   const outOfRange = displayVal !== '' && (Number(displayVal) < min || Number(displayVal) > max)
   return (
-    <div className={className || 'max-w-36'}>
+    <div className={className ? `w-full ${className}` : 'w-full max-w-36'}>
       <label className="compact-label">{label}</label>
       <div className="relative">
         <input
@@ -98,10 +98,24 @@ function PctInput({ label, value, onChange, min = 0, max = 100, step = 0.1, hint
 
 // ── Person form ───────────────────────────────────────────────────────────
 
-function PersonForm({ person, label, onUpdate }) {
+function PersonForm({
+  person,
+  label,
+  onUpdate,
+  alignSalaryPeriodHintSlot = false,
+  alignEmployerPackagingSlot = false,
+  alignHecsSlot = false,
+  alignSalaryChangesCount = 0,
+}) {
   const p = person || {}
   const [leaseOpen, setLeaseOpen] = useState(false)
   const hasLease = !!p.packaging?.novatedLease
+  const hasSalaryPeriodHint = !!(p.salaryPeriod && p.salaryPeriod !== 'annual' && p.currentSalary > 0)
+  const showSalaryPeriodHintSlot = alignSalaryPeriodHintSlot || hasSalaryPeriodHint
+  const employerType = p.employerType || 'standard'
+  const hasEmployerPackagingFields = employerType === 'pbi_nfp' || employerType === 'qld_health'
+  const showEmployerPackagingSlot = alignEmployerPackagingSlot || hasEmployerPackagingFields
+  const showHecsSlot = alignHecsSlot || !!p.hecs
 
   const updateLease = patch =>
     onUpdate({ packaging: { ...p.packaging, novatedLease: { ...p.packaging.novatedLease, ...patch } } })
@@ -240,11 +254,13 @@ function PersonForm({ person, label, onUpdate }) {
               <option value="weekly">Weekly</option>
             </select>
           </div>
-          {p.salaryPeriod && p.salaryPeriod !== 'annual' && p.currentSalary > 0 && (
-            <p className="text-xs text-gray-500 mt-0.5">
-              = ${(p.salaryPeriod === 'weekly' ? p.currentSalary * 52
-                : p.salaryPeriod === 'fortnightly' ? p.currentSalary * 26
-                : p.currentSalary * 12).toLocaleString()}/yr
+          {showSalaryPeriodHintSlot && (
+            <p className={`text-xs mt-0.5 min-h-4 ${hasSalaryPeriodHint ? 'text-gray-500' : 'text-transparent'}`}>
+              {hasSalaryPeriodHint
+                ? `= $${(p.salaryPeriod === 'weekly' ? p.currentSalary * 52
+                  : p.salaryPeriod === 'fortnightly' ? p.currentSalary * 26
+                  : p.currentSalary * 12).toLocaleString()}/yr`
+                : 'placeholder'}
             </p>
           )}
         </div>
@@ -276,7 +292,7 @@ function PersonForm({ person, label, onUpdate }) {
           <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2">
             <div className="flex items-center justify-between mb-2">
               <input
-                className="compact-input flex-1 text-xs mr-2"
+                className="compact-input w-80 max-w-full text-xs mr-2"
                 value={change.note || ''}
                 onChange={e => {
                   const changes = [...(p.salaryChanges || [])]
@@ -366,6 +382,35 @@ function PersonForm({ person, label, onUpdate }) {
             <p className="text-xs text-gray-500 mt-1">Enter in today's dollars — grows with wages, so projection shows ≈ this amount in real terms</p>
           </div>
         ))}
+        {Array.from({ length: Math.max(0, alignSalaryChangesCount - (p.salaryChanges || []).length) }).map((_, i) => (
+          <div key={`sc-ph-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2 opacity-0 pointer-events-none" aria-hidden="true">
+            <div className="flex items-center justify-between mb-2">
+              <input type="text" readOnly tabIndex={-1} className="compact-input w-80 max-w-full text-xs mr-2" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label className="compact-label">&nbsp;</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+              </div>
+              <div>
+                <label className="compact-label">&nbsp;</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+              </div>
+              <div>
+                <label className="compact-label">&nbsp;</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input type="text" readOnly tabIndex={-1} className="compact-input w-full pl-7" />
+                </div>
+              </div>
+              <div>
+                <label className="compact-label">&nbsp;</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">&nbsp;</p>
+          </div>
+        ))}
       </div>
 
       {/* HECS/HELP debt */}
@@ -403,57 +448,92 @@ function PersonForm({ person, label, onUpdate }) {
             </div>
           </div>
         )}
+        {showHecsSlot && !p.hecs && (
+          <div className="p-3 opacity-0 pointer-events-none" aria-hidden="true">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+              <div className="w-full max-w-40">
+                <label className="compact-label">&nbsp;</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+              </div>
+              <div className="w-full max-w-40">
+                <label className="compact-label">&nbsp;</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+                <p className="text-xs mt-0.5">&nbsp;</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div>
-        <label className="compact-label">Employer type</label>
-        <select
-          className="compact-input w-48"
-          value={p.employerType || 'standard'}
-          onChange={e => onUpdate({ employerType: e.target.value })}
-        >
-          <option value="standard">Standard</option>
-          <option value="pbi_nfp">PBI / Not-for-profit</option>
-          <option value="qld_health">QLD Health / Hospital and Health Service</option>
-        </select>
-      </div>
-
-      {p.employerType === 'pbi_nfp' && (
-        <div className="flex flex-wrap gap-x-3 gap-y-2 items-start p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-          <CurrencyInput
-            label="PBI general packaging"
-            value={p.packaging?.pbiGeneral}
-            max={PBI_GENERAL_CAP}
-            hint={`Max $${PBI_GENERAL_CAP.toLocaleString()}`}
-            onChange={v => onUpdate({ packaging: { ...p.packaging, pbiGeneral: v } })}
-          />
-          <CurrencyInput
-            label="Meal entertainment"
-            value={p.packaging?.pbiMealEntertainment}
-            max={PBI_MEAL_ENTERTAINMENT_CAP}
-            hint={`Max $${PBI_MEAL_ENTERTAINMENT_CAP.toLocaleString()}`}
-            onChange={v => onUpdate({ packaging: { ...p.packaging, pbiMealEntertainment: v } })}
-          />
+      <div className="border-t border-gray-800 pt-4 space-y-3">
+        <div>
+          <label className="compact-label">Employer type</label>
+          <select
+            className="compact-input w-48"
+            value={employerType}
+            onChange={e => onUpdate({ employerType: e.target.value })}
+          >
+            <option value="standard">Standard</option>
+            <option value="pbi_nfp">PBI / Not-for-profit</option>
+            <option value="qld_health">QLD Health / Hospital and Health Service</option>
+          </select>
         </div>
-      )}
 
-      {p.employerType === 'qld_health' && (
-        <div className="flex flex-wrap gap-x-3 gap-y-2 items-start p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-          <CurrencyInput
-            label="QLD Health general cap"
-            value={p.packaging?.qldHealthGeneral}
-            max={QLD_HEALTH_GENERAL_CAP}
-            hint={`Max $${QLD_HEALTH_GENERAL_CAP.toLocaleString()}`}
-            onChange={v => onUpdate({ packaging: { ...p.packaging, qldHealthGeneral: v } })}
-          />
-          <CurrencyInput
-            label="Meal entertainment"
-            value={p.packaging?.qldHealthMealEntertainment}
-            max={QLD_HEALTH_MEAL_ENTERTAINMENT_CAP}
-            hint={`Max $${QLD_HEALTH_MEAL_ENTERTAINMENT_CAP.toLocaleString()}`}
-            onChange={v => onUpdate({ packaging: { ...p.packaging, qldHealthMealEntertainment: v } })}
-          />
-        </div>
+      {showEmployerPackagingSlot && (
+        hasEmployerPackagingFields ? (
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+            {employerType === 'pbi_nfp' ? (
+              <>
+                <CurrencyInput
+                  label="PBI general packaging"
+                  value={p.packaging?.pbiGeneral}
+                  max={PBI_GENERAL_CAP}
+                  hint={`Max $${PBI_GENERAL_CAP.toLocaleString()}`}
+                  onChange={v => onUpdate({ packaging: { ...p.packaging, pbiGeneral: v } })}
+                />
+                <CurrencyInput
+                  label="Meal entertainment"
+                  value={p.packaging?.pbiMealEntertainment}
+                  max={PBI_MEAL_ENTERTAINMENT_CAP}
+                  hint={`Max $${PBI_MEAL_ENTERTAINMENT_CAP.toLocaleString()}`}
+                  onChange={v => onUpdate({ packaging: { ...p.packaging, pbiMealEntertainment: v } })}
+                />
+              </>
+            ) : (
+              <>
+                <CurrencyInput
+                  label="QLD Health general cap"
+                  value={p.packaging?.qldHealthGeneral}
+                  max={QLD_HEALTH_GENERAL_CAP}
+                  hint={`Max $${QLD_HEALTH_GENERAL_CAP.toLocaleString()}`}
+                  onChange={v => onUpdate({ packaging: { ...p.packaging, qldHealthGeneral: v } })}
+                />
+                <CurrencyInput
+                  label="Meal entertainment"
+                  value={p.packaging?.qldHealthMealEntertainment}
+                  max={QLD_HEALTH_MEAL_ENTERTAINMENT_CAP}
+                  hint={`Max $${QLD_HEALTH_MEAL_ENTERTAINMENT_CAP.toLocaleString()}`}
+                  onChange={v => onUpdate({ packaging: { ...p.packaging, qldHealthMealEntertainment: v } })}
+                />
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700" aria-hidden="true">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="compact-label text-transparent">placeholder</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full opacity-0 pointer-events-none" />
+                <p className="text-xs mt-0.5 text-transparent">placeholder</p>
+              </div>
+              <div>
+                <label className="compact-label text-transparent">placeholder</label>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full opacity-0 pointer-events-none" />
+                <p className="text-xs mt-0.5 text-transparent">placeholder</p>
+              </div>
+            </div>
+          </div>
+        )
       )}
 
       {/* Novated lease */}
@@ -481,19 +561,31 @@ function PersonForm({ person, label, onUpdate }) {
 
         {hasLease && leaseOpen && (
           <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
-            {/* Financing */}
+            {/* Financing + core costs */}
             <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
               <CurrencyInput
                 label="Vehicle cost price"
                 value={p.packaging.novatedLease.vehicleCostPrice}
                 onChange={v => updateLease({ vehicleCostPrice: v })}
-                className="w-32"
+                className="max-w-40"
               />
               <CurrencyInput
                 label="Residual / balloon"
                 value={p.packaging.novatedLease.residualValue}
                 onChange={v => updateLease({ residualValue: v })}
-                className="w-32"
+                className="max-w-40"
+              />
+              <CurrencyInput
+                label="Annual running costs"
+                value={p.packaging.novatedLease.annualRunningCosts}
+                onChange={v => updateLease({ annualRunningCosts: v })}
+                className="max-w-40"
+              />
+              <PctInput
+                label="Interest rate"
+                value={p.packaging.novatedLease.interestRate}
+                onChange={v => updateLease({ interestRate: v })}
+                className="w-20"
               />
               <div>
                 <label className="compact-label">Term (years)</label>
@@ -507,22 +599,10 @@ function PersonForm({ person, label, onUpdate }) {
                   placeholder="5"
                 />
               </div>
-              <PctInput
-                label="Interest rate"
-                value={p.packaging.novatedLease.interestRate}
-                onChange={v => updateLease({ interestRate: v })}
-                className="w-20"
-              />
             </div>
 
-            {/* Usage & dates */}
+            {/* Usage + active dates */}
             <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <CurrencyInput
-                label="Annual running costs"
-                value={p.packaging.novatedLease.annualRunningCosts}
-                onChange={v => updateLease({ annualRunningCosts: v })}
-                className="w-28"
-              />
               <div>
                 <label className="compact-label">Total km / year</label>
                 <input
@@ -659,13 +739,14 @@ function PersonForm({ person, label, onUpdate }) {
           </div>
         )}
       </div>
+      </div>
     </div>
   )
 }
 
 // ── Super form ────────────────────────────────────────────────────────────
 
-function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
+function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmployerPctSlot = false }) {
   const s = superProfile || {}
   // Use FY2026 SG rate (12%) for the estimate shown to user
   const sgEstimate = (grossSalary || 0) * 0.12
@@ -673,6 +754,9 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
     sgEstimate + (s.salarySacrificeAmount || 0) + (s.voluntaryConcessional || 0)
   const concessionalBreached = totalConcessional > CONCESSIONAL_CAP
   const nccBreached = (s.voluntaryNonConcessional || 0) > NON_CONCESSIONAL_CAP
+  const employerScheme = s.employerScheme || 'sg'
+  const hasEmployerPctInput = employerScheme === 'match' || employerScheme === 'fixed_pct'
+  const showEmployerPctSlot = alignEmployerPctSlot || hasEmployerPctInput
 
   return (
     <div className="space-y-3">
@@ -685,33 +769,40 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
           onChange={v => onUpdate({ currentBalance: v })}
           className="max-w-40"
         />
-        <div>
+        <div className="min-w-[23rem]">
           <label className="compact-label">Employer scheme</label>
-          <div className="flex gap-1 items-center">
+          <div className="grid grid-cols-[13rem_9rem] gap-2 items-start">
             <select
               className="compact-input w-52"
-              value={s.employerScheme || 'sg'}
+              value={employerScheme}
               onChange={e => onUpdate({ employerScheme: e.target.value })}
             >
               <option value="sg">Standard SG (auto-stepped)</option>
               <option value="match">Employer match</option>
               <option value="fixed_pct">Fixed employer %</option>
             </select>
-            {s.employerScheme === 'match' && (
-              <PctInput
-                label=""
-                value={s.employerMatchCapPct}
-                onChange={v => onUpdate({ employerMatchCapPct: v })}
-                hint="Match cap %"
-              />
-            )}
-            {s.employerScheme === 'fixed_pct' && (
-              <PctInput
-                label=""
-                value={s.employerFixedPct}
-                onChange={v => onUpdate({ employerFixedPct: v })}
-                hint="Employer %"
-              />
+            {showEmployerPctSlot && (
+              hasEmployerPctInput ? (
+                <PctInput
+                  label=""
+                  value={employerScheme === 'match' ? s.employerMatchCapPct : s.employerFixedPct}
+                  onChange={v =>
+                    onUpdate(
+                      employerScheme === 'match'
+                        ? { employerMatchCapPct: v }
+                        : { employerFixedPct: v }
+                    )
+                  }
+                  hint={employerScheme === 'match' ? 'Match cap %' : 'Employer %'}
+                  className="w-36"
+                />
+              ) : (
+                <div className="w-36" aria-hidden="true">
+                  <label className="compact-label">&nbsp;</label>
+                  <input type="text" readOnly tabIndex={-1} className="compact-input w-full opacity-0 pointer-events-none" />
+                  <p className="text-xs mt-0.5 text-transparent">placeholder</p>
+                </div>
+              )
             )}
           </div>
         </div>
@@ -724,19 +815,19 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
             value={s.salarySacrificeAmount}
             onChange={v => onUpdate({ salarySacrificeAmount: v })}
             hint={`SG est. $${Math.round(sgEstimate).toLocaleString()} · Cap $${CONCESSIONAL_CAP.toLocaleString()}`}
-            className="w-full"
+            className="max-w-40"
           />
-          {concessionalBreached && (
-            <p className="text-xs text-amber-400 mt-1">
-              Cap exceeded — ${Math.round(totalConcessional).toLocaleString()} vs ${CONCESSIONAL_CAP.toLocaleString()}
-            </p>
-          )}
+          <p className={`text-xs mt-1 min-h-4 ${concessionalBreached ? 'text-amber-400' : 'text-transparent'}`}>
+            {concessionalBreached
+              ? `Cap exceeded — $${Math.round(totalConcessional).toLocaleString()} vs $${CONCESSIONAL_CAP.toLocaleString()}`
+              : 'placeholder'}
+          </p>
         </div>
         <CurrencyInput
           label="Extra concessional"
           value={s.voluntaryConcessional}
           onChange={v => onUpdate({ voluntaryConcessional: v })}
-          className="w-full"
+          className="max-w-40"
         />
         <div>
           <CurrencyInput
@@ -745,32 +836,35 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate }) {
             onChange={v => onUpdate({ voluntaryNonConcessional: v })}
             hint={`Cap $${NON_CONCESSIONAL_CAP.toLocaleString()}`}
             max={nccBreached ? NON_CONCESSIONAL_CAP : undefined}
-            className="w-full"
+            className="max-w-40"
           />
-          {nccBreached && (
-            <p className="text-xs text-amber-400 mt-1">Exceeds annual cap</p>
-          )}
+          <p className={`text-xs mt-1 min-h-4 ${nccBreached ? 'text-amber-400' : 'text-transparent'}`}>
+            {nccBreached ? 'Exceeds annual cap' : 'placeholder'}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id={`ttr-${personLabel}`}
-          checked={!!s.isTTR}
-          onChange={e => onUpdate({ isTTR: e.target.checked })}
+      <div className="border-t border-gray-800 pt-3 space-y-3">
+        <div className="flex items-center gap-2 h-8">
+          <input
+            type="checkbox"
+            id={`ttr-${personLabel}`}
+            className="shrink-0"
+            checked={!!s.isTTR}
+            onChange={e => onUpdate({ isTTR: e.target.checked })}
+          />
+          <label htmlFor={`ttr-${personLabel}`} className="text-sm leading-5 text-gray-400">
+            Transition to Retirement (TTR) income stream active
+          </label>
+        </div>
+        <HoldingsSubForm
+          holdings={s.holdings}
+          fields={['pensionReturnRate']}
+          createDefault={createDefaultSuperHolding}
+          label="fund allocation"
+          onUpdate={holdings => onUpdate({ holdings })}
         />
-        <label htmlFor={`ttr-${personLabel}`} className="text-sm text-gray-400">
-          Transition to Retirement (TTR) income stream active
-        </label>
       </div>
-      <HoldingsSubForm
-        holdings={s.holdings}
-        fields={['pensionReturnRate']}
-        createDefault={createDefaultSuperHolding}
-        label="fund allocation"
-        onUpdate={holdings => onUpdate({ holdings })}
-      />
     </div>
   )
 }
@@ -814,11 +908,11 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             </label>
           </div>
 
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+            <div className="w-full">
               <label className="compact-label">State</label>
               <select
-                className="compact-input w-20"
+                className="compact-input w-full max-w-24"
                 value={p.state || ''}
                 onChange={e => onUpdate({ state: e.target.value || null })}
               >
@@ -851,17 +945,21 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               onChange={v => onUpdate({ growthRate: v })}
               step={0.1}
               hint="Annual capital growth"
+              className="max-w-40"
             />
             {p.isPrimaryResidence && (
-              <label className="flex items-center gap-1.5 cursor-pointer mt-4">
-                <input
-                  type="checkbox"
-                  checked={!!p.isFirstHomeBuyer}
-                  onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })}
-                  className="accent-brand-500"
-                />
-                <span className="text-xs text-gray-400">First home buyer</span>
-              </label>
+              <div className="w-full">
+                <label className="compact-label text-transparent">Toggle</label>
+                <label className="flex items-center gap-1.5 cursor-pointer min-h-8">
+                  <input
+                    type="checkbox"
+                    checked={!!p.isFirstHomeBuyer}
+                    onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })}
+                    className="accent-brand-500"
+                  />
+                  <span className="text-xs text-gray-400">First home buyer</span>
+                </label>
+              </div>
             )}
           </div>
 
@@ -883,20 +981,20 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             )
           })()}
 
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-            <div>
+          <div className="border-t border-gray-800 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
+            <div className="w-full">
               <label className="compact-label">Purchase date</label>
               <input
-                className="compact-input w-36"
+                className="compact-input w-full max-w-40"
                 type="date"
                 value={p.purchaseDate || ''}
                 onChange={e => onUpdate({ purchaseDate: e.target.value })}
               />
             </div>
-            <div>
+            <div className="w-full">
               <label className="compact-label">Purchase method</label>
               <select
-                className="compact-input w-44"
+                className="compact-input w-full max-w-44"
                 value={p.purchasedCash ? 'cash' : 'mortgage'}
                 onChange={e => {
                   const isCash = e.target.value === 'cash'
@@ -919,7 +1017,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           </div>
 
           {!p.purchasedCash && (
-            <>
+            <div className="border-t border-gray-800 pt-4 space-y-3">
               <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
                 <CurrencyInput
                   label="Outstanding mortgage"
@@ -1012,11 +1110,11 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   <span className="text-sm text-gray-300">Pay off mortgage when liquid assets can cover it</span>
                 </label>
               )}
-            </>
+            </div>
           )}
 
           {!p.isPrimaryResidence && (
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
+            <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-end">
               <CurrencyInput
                 label="Annual rental income"
                 value={p.annualRentalIncome}
@@ -1033,7 +1131,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             </div>
           )}
 
-          <div>
+          <div className="border-t border-gray-800 pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="compact-label">CGT ownership — Person A</label>
@@ -1185,7 +1283,7 @@ function SharesForm({ shares, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+      <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-start">
         <PctInput
           label="Annual increase"
           value={s.annualIncreaseRate || 0}
@@ -1234,13 +1332,15 @@ function SharesForm({ shares, onUpdate }) {
           />
         </div>
       )}
-      <HoldingsSubForm
-        holdings={s.holdings}
-        fields={['ticker', 'dividendYield']}
-        createDefault={createDefaultShareHolding}
-        label="share holding"
-        onUpdate={holdings => onUpdate({ holdings })}
-      />
+      <div className="border-t border-gray-800 pt-4">
+        <HoldingsSubForm
+          holdings={s.holdings}
+          fields={['ticker', 'dividendYield']}
+          createDefault={createDefaultShareHolding}
+          label="share holding"
+          onUpdate={holdings => onUpdate({ holdings })}
+        />
+      </div>
     </div>
   )
 }
@@ -1266,234 +1366,328 @@ function fmt$(n) {
 }
 
 function HoldingCard({ holding, fields, onUpdate, onRemove }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(!holding.name && !holding.ticker && !(holding.currentValue > 0))
   const hasTicker     = fields.includes('ticker')
   const tickerEntered = hasTicker && (holding.ticker || '').trim().length > 0
   const hasLivePrice  = tickerEntered && holding.livePrice != null
   const liveValue     = hasLivePrice ? (holding.units || 0) * holding.livePrice : null
 
-  const headerLabel = holding.ticker
-    ? `${holding.ticker}${holding.name ? ` — ${holding.name}` : ''}`
-    : (holding.name || 'Unnamed holding')
+  const primaryLabel = holding.ticker || holding.name || 'New holding'
+  const secondLabel  = holding.ticker && holding.name ? holding.name : null
+  const displayValue = liveValue != null && (holding.units || 0) > 0
+    ? fmt$(liveValue)
+    : holding.currentValue ? fmt$(holding.currentValue) : null
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
+    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+      {/* Collapsed summary card — click to expand */}
       <button
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-800/40 text-left"
+        className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
         onClick={() => setOpen(o => !o)}
       >
-        <span className="text-sm text-gray-300 flex items-center gap-2">
-          {headerLabel}
-          {hasLivePrice && (
-            <span className="text-xs text-green-400 font-normal">
-              {fmt$(liveValue)}
+        <div className="flex items-start justify-between gap-1 mb-1.5">
+          <span className="text-sm font-semibold text-gray-100 truncate leading-tight">
+            {primaryLabel}
+          </span>
+          <span className="text-gray-600 text-xs shrink-0 mt-0.5">{open ? '▾' : '▸'}</span>
+        </div>
+        {secondLabel && (
+          <p className="text-xs text-gray-500 truncate mb-1.5 -mt-0.5">{secondLabel}</p>
+        )}
+        {hasLivePrice && (
+          <p className="text-xs text-green-400 mb-1">
+            ${holding.livePrice.toFixed(2)}
+            <span className="text-gray-600 ml-1">· {livePriceAge(holding.livePriceFetchedAt)}</span>
+          </p>
+        )}
+        <div className="flex items-end justify-between gap-2 mt-1">
+          {displayValue ? (
+            <span className="text-sm font-bold text-white">{displayValue}</span>
+          ) : (
+            <span className="text-xs text-gray-600 italic">No value</span>
+          )}
+          {holding.returnRate != null && (
+            <span className="text-xs text-gray-500 shrink-0">
+              {(holding.returnRate * 100).toFixed(1)}%/yr
             </span>
           )}
-        </span>
-        <div className="flex items-center gap-3">
-          <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
-          <button
-            className="text-xs text-red-400 hover:text-red-300"
-            onClick={e => { e.stopPropagation(); onRemove() }}
-          >
-            Remove
-          </button>
         </div>
       </button>
 
+      {/* Expanded detail panel — label left, value right */}
       {open && (
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="compact-label">Name</label>
+        <div className="border-t border-gray-700/60 bg-gray-800/20 divide-y divide-gray-700/30 text-xs">
+
+          {/* Name */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-64"
+              className="compact-input w-32 text-right text-sm"
               value={holding.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
-              placeholder="e.g. VAS ETF, CBA"
+              placeholder="e.g. VAS ETF"
             />
           </div>
 
-          {/* Ticker section */}
+          {/* Ticker */}
           {hasTicker && (
-            <div className="space-y-3 border-t border-gray-700/50 pt-3">
-              <div>
-                <label className="compact-label">ASX / Exchange Ticker <span className="text-gray-600 font-normal">(optional)</span></label>
-                <div className="flex items-center gap-2">
-                  <input
-                    className="compact-input w-36"
-                    value={holding.ticker || ''}
-                    onChange={e => onUpdate({ ticker: e.target.value.toUpperCase() })}
-                    placeholder="e.g. CBA.AX"
-                  />
-                  {tickerEntered && (
-                    hasLivePrice ? (
-                      <span className="text-xs text-green-400 whitespace-nowrap flex-shrink-0">
-                        ${holding.livePrice.toFixed(2)} {holding.livePriceCurrency ?? ''}
-                        <span className="text-gray-500 ml-1">· {livePriceAge(holding.livePriceFetchedAt)}</span>
-                      </span>
-                    ) : (
-                      <span className="text-xs text-amber-400 whitespace-nowrap flex-shrink-0">Fetching…</span>
-                    )
-                  )}
-                </div>
-                {tickerEntered && (
-                  <p className="text-xs text-gray-600 mt-1">
-                    ASX tickers need <span className="text-gray-500">.AX</span> suffix (e.g. CBA.AX). US tickers use symbol only (e.g. AAPL).
-                  </p>
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">
+                Ticker <span className="text-gray-600">(opt.)</span>
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <input
+                  className="compact-input w-32 text-right text-sm"
+                  value={holding.ticker || ''}
+                  onChange={e => onUpdate({ ticker: e.target.value.toUpperCase() })}
+                  placeholder="CBA.AX"
+                />
+                {tickerEntered && !hasLivePrice && (
+                  <span className="text-amber-400">…</span>
                 )}
               </div>
-
-              {tickerEntered && (
-                <>
-                  <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                    <div>
-                      <label className="compact-label">Units held</label>
-                      <input
-                        className="compact-input w-24"
-                        type="number"
-                        step="1"
-                        value={holding.units ?? ''}
-                        onChange={e => onUpdate({ units: numVal(e.target.value) })}
-                        onWheel={e => e.target.blur()}
-                        placeholder="0"
-                      />
-                    </div>
-                    <CurrencyInput
-                      label="Purchase price / unit"
-                      value={holding.purchasePrice}
-                      onChange={v => onUpdate({ purchasePrice: v })}
-                      className="w-32"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <MonthYearInput
-                      label="Purchase date"
-                      value={holding.purchaseDate}
-                      onChange={v => onUpdate({ purchaseDate: v })}
-                      placeholder="Year"
-                      minYear={1970}
-                      maxYear={new Date().getFullYear()}
-                    />
-                    <div />
-                  </div>
-
-                  {/* Live value summary */}
-                  {hasLivePrice && (holding.units || 0) > 0 && (
-                    <div className="bg-green-900/20 border border-green-800/40 rounded-lg px-3 py-2">
-                      <p className="text-xs text-green-400">
-                        Live portfolio value: <span className="font-semibold">{fmt$(liveValue)}</span>
-                        <span className="text-green-600 ml-1">({holding.units} units × ${holding.livePrice.toFixed(2)})</span>
-                      </p>
-                      <p className="text-xs text-gray-600 mt-0.5">
-                        This overrides the "Current value" field in projections.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Sold toggle */}
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-                      <input
-                        type="checkbox"
-                        className="accent-brand-500"
-                        checked={!!holding.saleDate}
-                        onChange={e => onUpdate({ saleDate: e.target.checked ? (holding.saleDate || `${new Date().getFullYear()}-01`) : null })}
-                      />
-                      Sold / disposed
-                    </label>
-                  </div>
-
-                  {holding.saleDate && (
-                    <div className="flex flex-wrap gap-x-3 gap-y-2 items-start pl-4 border-l border-gray-700">
-                      <MonthYearInput
-                        label="Sale date"
-                        value={holding.saleDate}
-                        onChange={v => onUpdate({ saleDate: v })}
-                        placeholder="Year"
-                        minYear={1970}
-                        maxYear={new Date().getFullYear() + 1}
-                      />
-                      <CurrencyInput
-                        label="Sale price / unit"
-                        value={holding.salePrice}
-                        onChange={v => onUpdate({ salePrice: v })}
-                        className="w-32"
-                      />
-                    </div>
-                  )}
-                </>
-              )}
+            </div>
+          )}
+          {tickerEntered && (
+            <div className="px-3 py-1 text-gray-600">
+              ASX: add <span className="text-gray-500">.AX</span> suffix. US: symbol only.
             </div>
           )}
 
-          {/* Current value — shown when no live price available */}
+          {/* Units */}
+          {tickerEntered && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Units</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number"
+                step="1"
+                value={holding.units ?? ''}
+                onChange={e => onUpdate({ units: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
+          )}
+
+          {/* Buy price / unit */}
+          {tickerEntered && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Buy price / unit</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-gray-500">$</span>
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number"
+                  step="0.01"
+                  value={holding.purchasePrice ?? ''}
+                  onChange={e => onUpdate({ purchasePrice: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Purchase date */}
+          {tickerEntered && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Purchase date</span>
+              <div className="shrink-0">
+                <MonthYearInput
+                  value={holding.purchaseDate}
+                  onChange={v => onUpdate({ purchaseDate: v })}
+                  placeholder="Year"
+                  minYear={1970}
+                  maxYear={new Date().getFullYear()}
+                  selectWidth="w-16"
+                  yearWidth="w-20"
+                  yearClassName="text-right"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Live value note */}
+          {hasLivePrice && (holding.units || 0) > 0 && (
+            <div className="px-3 py-2 bg-green-900/10">
+              <span className="text-green-400">
+                Live value {fmt$(liveValue)}
+                <span className="text-green-700 ml-1">· {holding.units} × ${holding.livePrice.toFixed(2)}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Current value */}
           {(!hasTicker || !hasLivePrice) && (
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <CurrencyInput
-                label={hasLivePrice ? 'Current value (fallback)' : 'Current value'}
-                value={holding.currentValue}
-                onChange={v => onUpdate({ currentValue: v })}
-                className="max-w-40"
-              />
-              <PctInput
-                label="Return rate"
-                value={holding.returnRate}
-                onChange={v => onUpdate({ returnRate: v })}
-                min={-20}
-                max={50}
-                step={0.5}
-                className="w-20"
-              />
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Current value</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-gray-500">$</span>
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number"
+                  step="1"
+                  value={holding.currentValue ?? ''}
+                  onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
             </div>
-          )}
-          {hasTicker && hasLivePrice && (
-            <PctInput
-              label="Return rate (for projection)"
-              value={holding.returnRate}
-              onChange={v => onUpdate({ returnRate: v })}
-              min={-20}
-              max={50}
-              step={0.5}
-              hint="Used to project future value — live price sets today's starting point"
-            />
           )}
 
-          {fields.includes('dividendYield') && (
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <PctInput
-                label="Dividend yield"
-                value={holding.dividendYield}
-                onChange={v => onUpdate({ dividendYield: v })}
-                className="w-24"
+          {/* Return rate */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">
+              {hasTicker && hasLivePrice ? 'Return rate (proj.)' : 'Return rate'}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number"
+                step="0.5"
+                value={holding.returnRate != null && holding.returnRate !== '' ? (holding.returnRate * 100).toFixed(1) : ''}
+                onChange={e => { const v = numVal(e.target.value); onUpdate({ returnRate: v === '' ? '' : v / 100 }) }}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
               />
-              <PctInput
-                label="Franking %"
-                value={holding.frankingPct}
-                onChange={v => onUpdate({ frankingPct: v })}
-                step={5}
-                className="w-24"
+              <span className="text-gray-500">%</span>
+            </div>
+          </div>
+
+          {/* Dividend yield + franking */}
+          {fields.includes('dividendYield') && (
+            <>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-gray-400 flex-1">Dividend yield</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <input
+                    className="compact-input w-20 text-right text-sm"
+                    type="number"
+                    step="0.1"
+                    value={holding.dividendYield != null && holding.dividendYield !== '' ? (holding.dividendYield * 100).toFixed(1) : ''}
+                    onChange={e => { const v = numVal(e.target.value); onUpdate({ dividendYield: v === '' ? '' : v / 100 }) }}
+                    onWheel={e => e.target.blur()}
+                    placeholder="0"
+                  />
+                  <span className="text-gray-500">%</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-gray-400 flex-1">Franking</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <input
+                    className="compact-input w-20 text-right text-sm"
+                    type="number"
+                    step="5"
+                    value={holding.frankingPct != null && holding.frankingPct !== '' ? (holding.frankingPct * 100).toFixed(0) : ''}
+                    onChange={e => { const v = numVal(e.target.value); onUpdate({ frankingPct: v === '' ? '' : v / 100 }) }}
+                    onWheel={e => e.target.blur()}
+                    placeholder="0"
+                  />
+                  <span className="text-gray-500">%</span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Coupon rate */}
+          {fields.includes('couponRate') && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Coupon rate</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number"
+                  step="0.1"
+                  value={holding.couponRate != null && holding.couponRate !== '' ? (holding.couponRate * 100).toFixed(1) : ''}
+                  onChange={e => { const v = numVal(e.target.value); onUpdate({ couponRate: v === '' ? '' : v / 100 }) }}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+                <span className="text-gray-500">%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Pension phase return */}
+          {fields.includes('pensionReturnRate') && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Pension return</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number"
+                  step="0.5"
+                  value={holding.pensionReturnRate != null && holding.pensionReturnRate !== '' ? (holding.pensionReturnRate * 100).toFixed(1) : ''}
+                  onChange={e => { const v = numVal(e.target.value); onUpdate({ pensionReturnRate: v === '' ? '' : v / 100 }) }}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+                <span className="text-gray-500">%</span>
+              </div>
+            </div>
+          )}
+
+          {/* Sold toggle */}
+          {tickerEntered && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Sold / disposed</span>
+              <input
+                type="checkbox"
+                className="accent-brand-500 shrink-0"
+                checked={!!holding.saleDate}
+                onChange={e => onUpdate({ saleDate: e.target.checked ? (holding.saleDate || `${new Date().getFullYear()}-01`) : null })}
               />
             </div>
           )}
-          {fields.includes('couponRate') && (
-            <PctInput
-              label="Coupon rate"
-              value={holding.couponRate}
-              onChange={v => onUpdate({ couponRate: v })}
-              hint="Annual coupon payment as % of face value"
-            />
+
+          {/* Sale date + price */}
+          {holding.saleDate && (
+            <>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-gray-400 flex-1">Sale date</span>
+                <div className="shrink-0">
+                  <MonthYearInput
+                    value={holding.saleDate}
+                    onChange={v => onUpdate({ saleDate: v })}
+                    placeholder="Year"
+                    minYear={1970}
+                    maxYear={new Date().getFullYear() + 1}
+                    selectWidth="w-16"
+                    yearWidth="w-20"
+                    yearClassName="text-right"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-gray-400 flex-1">Sale price / unit</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-gray-500">$</span>
+                  <input
+                    className="compact-input w-20 text-right text-sm"
+                    type="number"
+                    step="0.01"
+                    value={holding.salePrice ?? ''}
+                    onChange={e => onUpdate({ salePrice: numVal(e.target.value) })}
+                    onWheel={e => e.target.blur()}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </>
           )}
-          {fields.includes('pensionReturnRate') && (
-            <PctInput
-              label="Pension phase return"
-              value={holding.pensionReturnRate}
-              onChange={v => onUpdate({ pensionReturnRate: v })}
-              min={-10}
-              max={30}
-              step={0.5}
-              hint="Rate used once in pension phase"
-            />
-          )}
+
+          {/* Remove */}
+          <div className="flex justify-end px-3 py-2">
+            <button
+              className="text-red-400 hover:text-red-300"
+              onClick={e => { e.stopPropagation(); onRemove() }}
+            >
+              Remove
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -1514,7 +1708,7 @@ function HoldingsSubForm({ holdings, fields, createDefault, label, onUpdate }) {
 
   return (
     <div className="border border-gray-700/50 rounded-lg p-3 mt-3">
-      <div className="w-full flex items-center justify-between">
+      <div className="w-full flex items-center justify-between mb-1">
         <button
           className="flex-1 flex items-center gap-2 text-left"
           onClick={() => setExpanded(o => !o)}
@@ -1525,40 +1719,44 @@ function HoldingsSubForm({ holdings, fields, createDefault, label, onUpdate }) {
           </span>
           <span className="text-gray-500 text-xs">{expanded ? '▾' : '▸'}</span>
         </button>
-        {hasTickers && (
+        {hasTickers && expanded && (
           <button
             className="text-xs text-brand-500 hover:text-brand-400 flex-shrink-0 ml-2"
             onClick={handleRefreshPrices}
             title="Force re-fetch all live prices"
           >
-            ↻ Refresh prices
+            ↻ Refresh
           </button>
         )}
       </div>
+
       {expanded && (
-        <div className="mt-3 space-y-2">
-          {(holdings || []).map((h, i) => (
-            <HoldingCard
-              key={h.id}
-              holding={h}
-              fields={fields}
-              onUpdate={patch => {
-                const updated = [...holdings]
-                updated[i] = { ...updated[i], ...patch }
-                onUpdate(updated)
-              }}
-              onRemove={() => onUpdate(holdings.filter((_, idx) => idx !== i))}
-            />
-          ))}
-          <button
-            className="btn-ghost w-full py-2 border border-dashed border-gray-700 rounded-lg text-xs"
-            onClick={() => onUpdate([...(holdings || []), createDefault()])}
-          >
-            + Add {label}
-          </button>
+        <div className="mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+            {(holdings || []).map((h, i) => (
+              <HoldingCard
+                key={h.id}
+                holding={h}
+                fields={fields}
+                onUpdate={patch => {
+                  const updated = [...holdings]
+                  updated[i] = { ...updated[i], ...patch }
+                  onUpdate(updated)
+                }}
+                onRemove={() => onUpdate(holdings.filter((_, idx) => idx !== i))}
+              />
+            ))}
+            <button
+              className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
+              onClick={() => onUpdate([...(holdings || []), createDefault()])}
+            >
+              <span className="text-xl leading-none">+</span>
+              <span className="text-xs">Add {label}</span>
+            </button>
+          </div>
           {(holdings || []).length > 0 && (
-            <p className="text-xs text-gray-600">
-              When holdings exist, the category uses weighted-average rates from holdings.
+            <p className="text-xs text-gray-600 mt-2">
+              Weighted-average rates from holdings override the category defaults.
             </p>
           )}
         </div>
@@ -1617,7 +1815,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+      <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-start">
         <PctInput
           label="Annual increase"
           value={b.annualIncreaseRate || 0}
@@ -1659,13 +1857,15 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
           />
         </div>
       )}
-      <HoldingsSubForm
-        holdings={b.holdings}
-        fields={['ticker', 'couponRate']}
-        createDefault={createDefaultTreasuryBondHolding}
-        label="bond ETF holding"
-        onUpdate={holdings => onUpdate({ holdings })}
-      />
+      <div className="border-t border-gray-800 pt-4">
+        <HoldingsSubForm
+          holdings={b.holdings}
+          fields={['ticker', 'couponRate']}
+          createDefault={createDefaultTreasuryBondHolding}
+          label="bond ETF holding"
+          onUpdate={holdings => onUpdate({ holdings })}
+        />
+      </div>
     </div>
   )
 }
@@ -1720,7 +1920,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+      <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-start">
         <PctInput
           label="Annual increase"
           value={c.annualIncreaseRate || 0}
@@ -1734,13 +1934,15 @@ function CommoditiesForm({ commodities, onUpdate }) {
       <p className="text-xs text-gray-500">
         Pure capital growth — no income component. Includes forex, metals, oil, and other commodity investments.
       </p>
-      <HoldingsSubForm
-        holdings={c.holdings}
-        fields={[]}
-        createDefault={createDefaultCommodityHolding}
-        label="commodity holding"
-        onUpdate={holdings => onUpdate({ holdings })}
-      />
+      <div className="border-t border-gray-800 pt-4">
+        <HoldingsSubForm
+          holdings={c.holdings}
+          fields={[]}
+          createDefault={createDefaultCommodityHolding}
+          label="commodity holding"
+          onUpdate={holdings => onUpdate({ holdings })}
+        />
+      </div>
     </div>
   )
 }
@@ -1791,7 +1993,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
           <div>
             <label className="compact-label">Bond name / label</label>
             <input
-              className="compact-input w-full"
+              className="compact-input w-64 max-w-full"
               value={b.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="e.g. Education fund"
@@ -1857,7 +2059,7 @@ function BondForm({ bond, onUpdate, onRemove }) {
               Contribution will increase by {Math.round((b.annualIncreaseRate || 0) * 100)}% each year (capped at 25% for bonds). This can significantly erode cashflow over time.
             </p>
           )}
-          <div>
+          <div className="border-t border-gray-800 pt-4">
             <label className="compact-label">Bond inception date</label>
             <input
               className="compact-input w-36"
@@ -2046,31 +2248,33 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
               </label>
             </div>
 
-            {item.amountType === 'one_off' ? (
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                <MonthYearInput
-                  label="Date"
-                  value={item.activeFrom}
-                  onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
-                  placeholder={planStartYear ? String(planStartYear) : 'Year'}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                <MonthYearInput
-                  label="Start"
-                  value={item.activeFrom}
-                  onChange={v => onUpdate({ activeFrom: v })}
-                  placeholder={planStartYear ? String(planStartYear) : 'Year'}
-                />
-                <MonthYearInput
-                  label="End"
-                  value={item.activeTo}
-                  onChange={v => onUpdate({ activeTo: v })}
-                  placeholder="Ongoing"
-                />
-              </div>
-            )}
+            <div className="border-t border-gray-800 pt-3">
+              {item.amountType === 'one_off' ? (
+                <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+                  <MonthYearInput
+                    label="Date"
+                    value={item.activeFrom}
+                    onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
+                    placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+                  <MonthYearInput
+                    label="Start"
+                    value={item.activeFrom}
+                    onChange={v => onUpdate({ activeFrom: v })}
+                    placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                  />
+                  <MonthYearInput
+                    label="End"
+                    value={item.activeTo}
+                    onChange={v => onUpdate({ activeTo: v })}
+                    placeholder="Ongoing"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Children */}
@@ -2613,7 +2817,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
     })
 
   return (
-    <div className="px-6 py-4 max-w-7xl mx-auto">
+    <div className="px-6 py-4 max-w-6xl mx-auto">
       {showTutorial && <Tutorial steps={HOUSEHOLD_TUTORIAL} onClose={closeTutorial} />}
       <div className="flex items-center gap-2 mb-3">
         <h1 className="text-lg font-semibold text-white">Household Profile</h1>
@@ -2633,8 +2837,41 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
       <Section title="People">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <PersonForm person={personA} label="A" onUpdate={updatePersonA} />
-          <PersonForm person={personB} label="B" onUpdate={updatePersonB} />
+          {(() => {
+            const hasSharedSalaryPeriodHint =
+              ((personA.salaryPeriod || 'annual') !== 'annual' && (personA.currentSalary || 0) > 0) ||
+              ((personB.salaryPeriod || 'annual') !== 'annual' && (personB.currentSalary || 0) > 0)
+            const hasSharedEmployerPackaging =
+              (personA.employerType || 'standard') !== 'standard' ||
+              (personB.employerType || 'standard') !== 'standard'
+            const hasSharedHecs = !!personA.hecs || !!personB.hecs
+            const maxSalaryChanges = Math.max(
+              (personA.salaryChanges || []).length,
+              (personB.salaryChanges || []).length
+            )
+            return (
+              <>
+                <PersonForm
+                  person={personA}
+                  label="A"
+                  onUpdate={updatePersonA}
+                  alignSalaryPeriodHintSlot={hasSharedSalaryPeriodHint}
+                  alignEmployerPackagingSlot={hasSharedEmployerPackaging}
+                  alignHecsSlot={hasSharedHecs}
+                  alignSalaryChangesCount={maxSalaryChanges}
+                />
+                <PersonForm
+                  person={personB}
+                  label="B"
+                  onUpdate={updatePersonB}
+                  alignSalaryPeriodHintSlot={hasSharedSalaryPeriodHint}
+                  alignEmployerPackagingSlot={hasSharedEmployerPackaging}
+                  alignHecsSlot={hasSharedHecs}
+                  alignSalaryChangesCount={maxSalaryChanges}
+                />
+              </>
+            )
+          })()}
         </div>
         <p className="text-xs text-gray-600 mt-3">
           Preservation age is auto-set to 60 for anyone born after 1 July 1964.
@@ -2643,18 +2880,31 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
       <Section title="Superannuation">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {(() => {
+            const alignEmployerPctSlot =
+              (superA?.employerScheme || 'sg') === 'match' ||
+              (superA?.employerScheme || 'sg') === 'fixed_pct' ||
+              (superB?.employerScheme || 'sg') === 'match' ||
+              (superB?.employerScheme || 'sg') === 'fixed_pct'
+            return (
+              <>
           <SuperForm
             superProfile={superA}
             personLabel="A"
             grossSalary={personA.currentSalary}
+            alignEmployerPctSlot={alignEmployerPctSlot}
             onUpdate={updateSuperA}
           />
           <SuperForm
             superProfile={superB}
             personLabel="B"
             grossSalary={personB.currentSalary}
+            alignEmployerPctSlot={alignEmployerPctSlot}
             onUpdate={updateSuperB}
           />
+              </>
+            )
+          })()}
         </div>
       </Section>
 
@@ -2843,7 +3093,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             <div key={asset.id} className="bg-gray-800/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <input
-                  className="compact-input flex-1 text-sm py-1.5 mr-3"
+                  className="compact-input w-80 max-w-full text-sm py-1.5 mr-3"
                   placeholder="Asset name (e.g. Private Equity Fund)"
                   value={asset.name}
                   onChange={e => {
@@ -3084,7 +3334,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                 <div key={dest} className="flex items-center gap-3">
                   <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
                   <select
-                    className="compact-input flex-1 text-sm py-1.5"
+                    className="compact-input w-72 max-w-full text-sm py-1.5"
                     value={dest}
                     onChange={e => {
                       const newOrder = [...order]
@@ -3151,7 +3401,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                 <div key={dest} className="flex items-center gap-3">
                   <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
                   <select
-                    className="compact-input flex-1 text-sm py-1.5"
+                    className="compact-input w-72 max-w-full text-sm py-1.5"
                     value={dest}
                     onChange={e => {
                       const newOrder = [...order]
