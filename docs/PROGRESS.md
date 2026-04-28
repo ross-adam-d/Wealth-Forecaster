@@ -120,6 +120,34 @@
 
 ## Session Log
 
+### Session 39 — 2026-04-29
+
+**What was done:**
+
+- **Card grid applied to all remaining item-list sections** — Extended the `HoldingCard` compact card grid pattern (introduced for Holdings in Session 38) to Investment Bonds, Other Income, Other Assets, and Debts sections. Each section now uses `grid grid-cols-2 sm:grid-cols-3 gap-3 items-start` instead of a vertical accordion list.
+
+- **New card components**: `BondCard`, `OtherIncomeCard`, `OtherAssetCard`, `DebtCard` — all follow the same pattern:
+  - Collapsed summary: name (bold), key metadata (balance/amount/type badge), value + rate/yr
+  - Expanded detail: `divide-y divide-gray-700/30` rows, label `flex-1` left, input `shrink-0 text-right` right, `$` / `%` inline (not absolute-positioned)
+  - Auto-opens when newly created (name + value both empty)
+  - Remove button at bottom of expanded panel
+
+- **Investment Bonds** (`BondCard`) — collapsed shows name, tax-free / Year X of 10 badge, balance, +contribution/yr. Expanded: name, balance, contribution, mode toggle, annual increase, inception date, tax status note.
+
+- **Other Income** (`OtherIncomeCard`) — collapsed shows name, person + taxable flag, amount/yr. Expanded: name, amount, frequency, attributed person, taxable, start/end, adjustment type/rate, post-retirement routing.
+
+- **Other Assets** (`OtherAssetCard`) — replaces the old always-expanded `bg-gray-800/50 rounded-lg p-4` flat cards (the most inconsistent section). Collapsed shows name, value, return %/yr. Expanded: name, value, contribution, return rate, mode toggle, annual increase, drawdown checkbox.
+
+- **Debts** (`DebtCard`) — collapsed shows name, type badge, balance (red), repayment/yr. Expanded: name, balance, interest rate, term + start year (loan/lease), residual (lease), monthly repayment, mode (credit card), auto-calc note (lease). Three separate "+" dashed add cards in the grid (Personal loan / Lease / Credit card).
+
+- **Cleanup**: Removed `lastAddedIncomeId` / `setLastAddedIncomeId` state (no longer needed — new cards auto-open). Removed `_autoOpen` flag from debt creation (same reason). Removed old `BondForm`, `OtherIncomeItem`, `DebtItem` components.
+
+- Properties section left as vertical accordion list (too many fields for compact card grid).
+
+**Tests:** 568 passing (no engine changes).
+
+---
+
 ### Session 38 — 2026-04-28
 
 **What was done:**

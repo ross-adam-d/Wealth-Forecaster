@@ -1947,137 +1947,129 @@ function CommoditiesForm({ commodities, onUpdate }) {
   )
 }
 
-// ── Investment bond form ──────────────────────────────────────────────────
+// ── Bond card (card-grid style) ───────────────────────────────────────────
 
-function BondForm({ bond, onUpdate, onRemove }) {
+function BondCard({ bond, onUpdate, onRemove }) {
   const b = bond || {}
-  const [open, setOpen] = useState(false)
   const currentYear = new Date().getFullYear()
   const inceptionYear = b.inceptionDate ? new Date(b.inceptionDate).getFullYear() : null
   const yearsElapsed = inceptionYear != null ? currentYear - inceptionYear : null
   const isTaxFree = yearsElapsed != null && yearsElapsed >= 10
+  const contributionMode = b.contributionMode || 'fixed'
+  const [open, setOpen] = useState(!b.name && !(b.currentBalance > 0))
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
+    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
       <button
-        className="w-full flex items-center justify-between px-4 py-3 bg-gray-800/40 text-left"
+        className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
         onClick={() => setOpen(o => !o)}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-300">
+        <div className="flex items-start justify-between gap-1 mb-1.5">
+          <span className="text-sm font-semibold text-gray-100 truncate leading-tight">
             {b.name || 'Unnamed bond'}
           </span>
-          {yearsElapsed != null && (
-            <span className={`text-xs px-2 py-0.5 rounded-full border ${
-              isTaxFree
-                ? 'bg-green-900/50 text-green-400 border-green-800'
-                : 'bg-amber-900/50 text-amber-400 border-amber-800'
-            }`}>
-              {isTaxFree ? 'Tax-free' : `Year ${yearsElapsed} of 10`}
-            </span>
-          )}
+          <span className="text-gray-600 text-xs shrink-0 mt-0.5">{open ? '▾' : '▸'}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
-          <button
-            className="text-xs text-red-400 hover:text-red-300"
-            onClick={e => { e.stopPropagation(); onRemove() }}
-          >
-            Remove
-          </button>
+        {yearsElapsed != null && (
+          <p className={`text-xs mb-1 ${isTaxFree ? 'text-green-400' : 'text-amber-400'}`}>
+            {isTaxFree ? 'Tax-free' : `Year ${yearsElapsed} of 10`}
+          </p>
+        )}
+        <div className="flex items-end justify-between gap-2 mt-1">
+          {b.currentBalance ? (
+            <span className="text-sm font-bold text-white">{fmt$(b.currentBalance)}</span>
+          ) : (
+            <span className="text-xs text-gray-600 italic">No balance</span>
+          )}
+          {(b.annualContribution || 0) > 0 && (
+            <span className="text-xs text-gray-500 shrink-0">+{fmt$(b.annualContribution)}/yr</span>
+          )}
         </div>
       </button>
 
       {open && (
-        <div className="p-4 space-y-4">
-          <div>
-            <label className="compact-label">Bond name / label</label>
+        <div className="border-t border-gray-700/60 bg-gray-800/20 divide-y divide-gray-700/30 text-xs">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-64 max-w-full"
+              className="compact-input w-32 text-right text-sm"
               value={b.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="e.g. Education fund"
             />
           </div>
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-            <CurrencyInput
-              label="Current balance"
-              value={b.currentBalance}
-              onChange={v => onUpdate({ currentBalance: v })}
-            />
-            <CurrencyInput
-              label={b.contributionMode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
-              value={b.annualContribution}
-              onChange={v => onUpdate({ annualContribution: v })}
-              hint="Max 125% of prior year"
-              className="max-w-40"
-            />
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Current balance</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={b.currentBalance ?? ''}
+                onChange={e => onUpdate({ currentBalance: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
           </div>
-          <div>
-            <label className="compact-label">Contribution mode</label>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">{contributionMode === 'surplus' ? 'Target contribution' : 'Annual contribution'}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={b.annualContribution ?? ''}
+                onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="px-3 py-2 space-y-1.5">
+            <span className="text-gray-400">Contribution mode</span>
             <div className="flex gap-2 mt-1">
               <button
-                className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-                  (b.contributionMode || 'fixed') === 'fixed'
-                    ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-                }`}
-                onClick={() => onUpdate({ contributionMode: 'fixed' })}
-              >
-                Fixed expense
-              </button>
+                className={`flex-1 text-xs py-1.5 px-2 rounded-lg border transition-colors ${contributionMode === 'fixed' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+                onClick={e => { e.stopPropagation(); onUpdate({ contributionMode: 'fixed' }) }}
+              >Fixed</button>
               <button
-                className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-                  b.contributionMode === 'surplus'
-                    ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                    : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-                }`}
-                onClick={() => onUpdate({ contributionMode: 'surplus' })}
-              >
-                From surplus
-              </button>
+                className={`flex-1 text-xs py-1.5 px-2 rounded-lg border transition-colors ${contributionMode === 'surplus' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+                onClick={e => { e.stopPropagation(); onUpdate({ contributionMode: 'surplus' }) }}
+              >Surplus</button>
             </div>
-            <p className="text-xs text-gray-600 mt-1.5">
-              {(b.contributionMode || 'fixed') === 'fixed'
-                ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
-                : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
-            </p>
           </div>
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-            <PctInput
-              label="Annual increase"
-              value={b.annualIncreaseRate || 0}
-              onChange={v => onUpdate({ annualIncreaseRate: v })}
-              min={0}
-              max={25}
-              step={1}
-              hint="Capped at 25% (125% rule)"
-            />
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Annual increase</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={b.annualIncreaseRate != null && b.annualIncreaseRate !== '' ? (b.annualIncreaseRate * 100).toFixed(0) : ''}
+                onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+              <span className="text-gray-500">%</span>
+            </div>
           </div>
-          {(b.annualIncreaseRate || 0) > 0 && (
-            <p className="text-xs text-amber-400">
-              Contribution will increase by {Math.round((b.annualIncreaseRate || 0) * 100)}% each year (capped at 25% for bonds). This can significantly erode cashflow over time.
-            </p>
-          )}
-          <div className="border-t border-gray-800 pt-4">
-            <label className="compact-label">Bond inception date</label>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Inception date</span>
             <input
-              className="compact-input w-36"
+              className="compact-input w-32 text-right text-sm"
               type="date"
               value={b.inceptionDate || ''}
               onChange={e => onUpdate({ inceptionDate: e.target.value })}
             />
-            {yearsElapsed != null && !isTaxFree && (
-              <p className="text-xs text-amber-400 mt-1">
-                {10 - yearsElapsed} year{10 - yearsElapsed !== 1 ? 's' : ''} until tax-free
-                withdrawals. Any withdrawal before then resets the 10-year clock.
-              </p>
-            )}
-            {isTaxFree && (
-              <p className="text-xs text-green-400 mt-1">
-                10-year threshold passed — withdrawals are fully tax-free.
-              </p>
-            )}
+          </div>
+          {yearsElapsed != null && !isTaxFree && (
+            <div className="px-3 py-2 text-amber-400">{10 - yearsElapsed} yr{10 - yearsElapsed !== 1 ? 's' : ''} until tax-free</div>
+          )}
+          {isTaxFree && (
+            <div className="px-3 py-2 text-green-400">10-year threshold passed — tax-free</div>
+          )}
+          <div className="flex justify-end px-3 py-2">
+            <button className="text-red-400 hover:text-red-300" onClick={e => { e.stopPropagation(); onRemove() }}>Remove</button>
           </div>
         </div>
       )}
@@ -2306,154 +2298,192 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
   )
 }
 
-function OtherIncomeItem({ item, personAName, personBName, onUpdate, onRemove, defaultOpen }) {
-  const [open, setOpen] = useState(!!defaultOpen)
-  const annualAmt = item.amountType === 'monthly'
-    ? (item.amount || 0) * 12
-    : (item.amount || 0)
+function OtherIncomeCard({ item, personAName, personBName, onUpdate, onRemove }) {
+  const [open, setOpen] = useState(!item.name && !(item.amount > 0))
+  const annualAmt = item.amountType === 'monthly' ? (item.amount || 0) * 12 : (item.amount || 0)
+  const personLabel = item.person === 'household' ? 'Joint' : item.person === 'B' ? personBName : personAName
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-800/30">
-        <button
-          className="text-gray-500 text-xs w-4 shrink-0"
-          onClick={() => setOpen(o => !o)}
-        >
-          {open ? '▾' : '▸'}
-        </button>
-        <input
-          className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
-          value={item.name || ''}
-          onChange={e => onUpdate({ name: e.target.value })}
-          placeholder="Income source name"
-        />
-        <span className="text-xs text-gray-500 shrink-0">
-          {item.person === 'household' ? 'Joint' : item.person === 'B' ? personBName : personAName}
-        </span>
-        {!item.isTaxable && (
-          <span className="text-xs text-green-500 shrink-0">tax-free</span>
-        )}
-        <span className="text-xs text-gray-400 font-mono shrink-0">
-          ${Math.round(annualAmt).toLocaleString()}{item.amountType !== 'one_off' ? '/yr' : ''}
-        </span>
-        <button
-          className="text-gray-600 hover:text-red-400 text-sm shrink-0 ml-1"
-          onClick={onRemove}
-        >
-          ×
-        </button>
-      </div>
+    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+      <button
+        className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
+        onClick={() => setOpen(o => !o)}
+      >
+        <div className="flex items-start justify-between gap-1 mb-1.5">
+          <span className="text-sm font-semibold text-gray-100 truncate leading-tight">
+            {item.name || 'Unnamed source'}
+          </span>
+          <span className="text-gray-600 text-xs shrink-0 mt-0.5">{open ? '▾' : '▸'}</span>
+        </div>
+        <p className="text-xs text-gray-500 mb-1">
+          {personLabel}{!item.isTaxable && ' · tax-free'}
+        </p>
+        <div className="flex items-end justify-between gap-2 mt-1">
+          {annualAmt > 0 ? (
+            <span className="text-sm font-bold text-white">
+              {fmt$(annualAmt)}{item.amountType !== 'one_off' ? '/yr' : ''}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-600 italic">No amount</span>
+          )}
+        </div>
+      </button>
 
       {open && (
-        <div className="p-4 space-y-3 bg-gray-800/20">
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-            <CurrencyInput
-              label="Amount"
-              value={item.amount}
-              onChange={v => onUpdate({ amount: v })}
-              className="max-w-40"
+        <div className="border-t border-gray-700/60 bg-gray-800/20 divide-y divide-gray-700/30 text-xs">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Name</span>
+            <input
+              className="compact-input w-32 text-right text-sm"
+              value={item.name || ''}
+              onChange={e => onUpdate({ name: e.target.value })}
+              placeholder="Income source"
             />
-            <div>
-              <label className="compact-label">Amount type</label>
-              <select
-                className="compact-input w-36"
-                value={item.amountType || 'annual'}
-                onChange={e => onUpdate({ amountType: e.target.value })}
-              >
-                <option value="annual">Annual</option>
-                <option value="monthly">Monthly (×12)</option>
-                <option value="one_off">One-off</option>
-              </select>
-            </div>
-            <div>
-              <label className="compact-label">Attributed to</label>
-              <select
-                className="compact-input w-32"
-                value={item.person || 'A'}
-                onChange={e => onUpdate({ person: e.target.value })}
-              >
-                <option value="A">{personAName}</option>
-                <option value="B">{personBName}</option>
-                <option value="household">Joint (50/50)</option>
-              </select>
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer mt-4">
-              <input
-                type="checkbox"
-                id={`taxable-${item.id}`}
-                checked={item.isTaxable !== false}
-                onChange={e => onUpdate({ isTaxable: e.target.checked })}
-              />
-              <span className="text-xs text-gray-400">Taxable</span>
-            </label>
-            <MonthYearInput
-              label={item.amountType === 'one_off' ? 'Date' : 'Starts'}
-              value={item.activeFrom}
-              onChange={v => onUpdate({ activeFrom: v })}
-              placeholder="Year"
-            />
-            {item.amountType !== 'one_off' && (
-              <MonthYearInput
-                label="Ends"
-                value={item.activeTo}
-                onChange={v => onUpdate({ activeTo: v })}
-                placeholder="Indefinite"
-              />
-            )}
-            {item.amountType !== 'one_off' && (
-              <>
-                <div>
-                  <label className="compact-label">Annual adjustment</label>
-                  <select
-                    className="compact-input w-36"
-                    value={item.adjustmentType || 'none'}
-                    onChange={e => onUpdate({ adjustmentType: e.target.value, adjustmentRate: 0 })}
-                  >
-                    <option value="none">None (flat)</option>
-                    <option value="percent">By % per year</option>
-                    <option value="dollar">By $ per year</option>
-                  </select>
-                </div>
-                {item.adjustmentType === 'percent' && (
-                  <PctInput
-                    label="Rate %/yr"
-                    value={item.adjustmentRate}
-                    onChange={v => onUpdate({ adjustmentRate: v })}
-                    min={-50}
-                    hint="Negative to decrease"
-                  />
-                )}
-                {item.adjustmentType === 'dollar' && (
-                  <CurrencyInput
-                    label="$ per year"
-                    value={item.adjustmentRate}
-                    onChange={v => onUpdate({ adjustmentRate: v })}
-                    hint="Negative to decrease"
-                    className="max-w-40"
-                  />
-                )}
-              </>
-            )}
           </div>
-
-          <div>
-            <label className="compact-label">Post-retirement routing</label>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Amount</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={item.amount ?? ''}
+                onChange={e => onUpdate({ amount: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Frequency</span>
             <select
-              className="compact-input w-56"
+              className="compact-input w-28 text-sm"
+              value={item.amountType || 'annual'}
+              onChange={e => onUpdate({ amountType: e.target.value })}
+              onClick={e => e.stopPropagation()}
+            >
+              <option value="annual">Annual</option>
+              <option value="monthly">Monthly</option>
+              <option value="one_off">One-off</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Attributed to</span>
+            <select
+              className="compact-input w-28 text-sm"
+              value={item.person || 'A'}
+              onChange={e => onUpdate({ person: e.target.value })}
+              onClick={e => e.stopPropagation()}
+            >
+              <option value="A">{personAName}</option>
+              <option value="B">{personBName}</option>
+              <option value="household">Joint</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Taxable</span>
+            <input
+              type="checkbox"
+              className="accent-brand-500 shrink-0"
+              checked={item.isTaxable !== false}
+              onChange={e => onUpdate({ isTaxable: e.target.checked })}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">{item.amountType === 'one_off' ? 'Date' : 'Starts'}</span>
+            <div className="shrink-0">
+              <MonthYearInput
+                value={item.activeFrom}
+                onChange={v => onUpdate({ activeFrom: v })}
+                placeholder="Year"
+                selectWidth="w-14"
+                yearWidth="w-20"
+                yearClassName="text-right"
+              />
+            </div>
+          </div>
+          {item.amountType !== 'one_off' && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Ends</span>
+              <div className="shrink-0">
+                <MonthYearInput
+                  value={item.activeTo}
+                  onChange={v => onUpdate({ activeTo: v })}
+                  placeholder="Ongoing"
+                  selectWidth="w-14"
+                  yearWidth="w-20"
+                  yearClassName="text-right"
+                />
+              </div>
+            </div>
+          )}
+          {item.amountType !== 'one_off' && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Adjustment</span>
+              <select
+                className="compact-input w-28 text-sm"
+                value={item.adjustmentType || 'none'}
+                onChange={e => onUpdate({ adjustmentType: e.target.value, adjustmentRate: 0 })}
+                onClick={e => e.stopPropagation()}
+              >
+                <option value="none">None</option>
+                <option value="percent">% / yr</option>
+                <option value="dollar">$ / yr</option>
+              </select>
+            </div>
+          )}
+          {item.amountType !== 'one_off' && item.adjustmentType === 'percent' && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Rate</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number" step="0.1"
+                  value={item.adjustmentRate != null && item.adjustmentRate !== '' ? (item.adjustmentRate * 100).toFixed(1) : ''}
+                  onChange={e => { const v = numVal(e.target.value); onUpdate({ adjustmentRate: v === '' ? '' : v / 100 }) }}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+                <span className="text-gray-500">%</span>
+              </div>
+            </div>
+          )}
+          {item.amountType !== 'one_off' && item.adjustmentType === 'dollar' && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">$ / yr</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-gray-500">$</span>
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number" step="1"
+                  value={item.adjustmentRate ?? ''}
+                  onChange={e => onUpdate({ adjustmentRate: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Retire routing</span>
+            <select
+              className="compact-input w-28 text-sm"
               value={item.routeTo || 'cashflow'}
               onChange={e => onUpdate({ routeTo: e.target.value })}
+              onClick={e => e.stopPropagation()}
             >
-              <option value="cashflow">General cashflow</option>
-              <option value="shares">Direct to shares</option>
-              <option value="treasuryBonds">Direct to treasury bonds</option>
-              <option value="commodities">Direct to commodities</option>
-              <option value="bonds">Direct to tax-deferred bonds</option>
-              <option value="otherAssets">Direct to other assets</option>
-              <option value="cash">Direct to cash buffer</option>
+              <option value="cashflow">Cashflow</option>
+              <option value="shares">Shares</option>
+              <option value="treasuryBonds">Bonds</option>
+              <option value="commodities">Commodities</option>
+              <option value="bonds">Tax bonds</option>
+              <option value="otherAssets">Other assets</option>
+              <option value="cash">Cash</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              After retirement, route this income directly to a specific vehicle instead of general cashflow
-            </p>
+          </div>
+          <div className="flex justify-end px-3 py-2">
+            <button className="text-red-400 hover:text-red-300" onClick={e => { e.stopPropagation(); onRemove() }}>Remove</button>
           </div>
         </div>
       )}
@@ -2479,11 +2509,9 @@ function createDebtDefaults(type) {
   return { ...base, monthlyRepayment: 0, repaymentMode: 'payoff' }
 }
 
-function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
-  const [open, setOpen] = useState(!!defaultOpen)
+function DebtCard({ item, onUpdate, onRemove }) {
+  const [open, setOpen] = useState(!item.name && !(item.currentBalance > 0))
   const annualRepay = (item.monthlyRepayment || 0) * 12
-
-  // For leases: auto-calc repayment if not manually set
   let displayRepay = annualRepay
   if (item.type === 'lease' && !item.monthlyRepayment && item.currentBalance > 0 && item.termYears > 0) {
     const financed = item.currentBalance - (item.residualValue || 0)
@@ -2492,160 +2520,281 @@ function DebtItem({ item, defaultOpen, onUpdate, onRemove }) {
   }
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-800/30">
-        <button
-          className="text-gray-500 text-xs w-4 shrink-0"
-          onClick={() => setOpen(o => !o)}
-        >
-          {open ? '▾' : '▸'}
-        </button>
-        <input
-          className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600 min-w-0"
-          value={item.name || ''}
-          onChange={e => onUpdate({ name: e.target.value })}
-          placeholder={`${DEBT_TYPE_LABELS[item.type] || 'Debt'} name`}
-        />
-        <span className="text-xs text-gray-500 shrink-0">{DEBT_TYPE_LABELS[item.type]}</span>
-        {item.currentBalance > 0 && (
-          <span className="text-xs text-red-400 font-mono shrink-0">
-            ${Math.round(item.currentBalance).toLocaleString()}
+    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+      <button
+        className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
+        onClick={() => setOpen(o => !o)}
+      >
+        <div className="flex items-start justify-between gap-1 mb-1.5">
+          <span className="text-sm font-semibold text-gray-100 truncate leading-tight">
+            {item.name || DEBT_TYPE_LABELS[item.type] || 'Debt'}
           </span>
-        )}
-        {displayRepay > 0 && (
-          <span className="text-xs text-gray-400 font-mono shrink-0">
-            ${Math.round(displayRepay).toLocaleString()}/yr
-          </span>
-        )}
-        <button
-          className="text-gray-600 hover:text-red-400 text-sm shrink-0 ml-1"
-          onClick={onRemove}
-        >
-          ×
-        </button>
-      </div>
+          <span className="text-gray-600 text-xs shrink-0 mt-0.5">{open ? '▾' : '▸'}</span>
+        </div>
+        <p className="text-xs text-gray-500 mb-1">{DEBT_TYPE_LABELS[item.type]}</p>
+        <div className="flex items-end justify-between gap-2 mt-1">
+          {item.currentBalance > 0 ? (
+            <span className="text-sm font-bold text-red-400">{fmt$(item.currentBalance)}</span>
+          ) : (
+            <span className="text-xs text-gray-600 italic">No balance</span>
+          )}
+          {displayRepay > 0 && (
+            <span className="text-xs text-gray-500 shrink-0">{fmt$(displayRepay)}/yr</span>
+          )}
+        </div>
+      </button>
 
       {open && (
-        <div className="p-4 space-y-3 bg-gray-800/20">
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-            <CurrencyInput
-              label="Current balance"
-              value={item.currentBalance}
-              onChange={v => onUpdate({ currentBalance: v })}
-              className="max-w-40"
+        <div className="border-t border-gray-700/60 bg-gray-800/20 divide-y divide-gray-700/30 text-xs">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Name</span>
+            <input
+              className="compact-input w-32 text-right text-sm"
+              value={item.name || ''}
+              onChange={e => onUpdate({ name: e.target.value })}
+              placeholder={DEBT_TYPE_LABELS[item.type]}
             />
-            <PctInput
-              label="Interest rate"
-              value={item.interestRate}
-              onChange={v => onUpdate({ interestRate: v })}
-              className="w-20"
-            />
-            {item.type !== 'credit_card' && (
-              <>
-                <div>
-                  <label className="compact-label">Term (years)</label>
-                  <input
-                    className="compact-input w-16"
-                    type="number"
-                    step="1"
-                    value={item.termYears || ''}
-                    onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
-                    onWheel={e => e.target.blur()}
-                    placeholder="5"
-                  />
-                </div>
-                <div>
-                  <label className="compact-label">Start year</label>
-                  <input
-                    className="compact-input w-20"
-                    type="number"
-                    step="1"
-                    value={item.startYear || ''}
-                    onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
-                    onWheel={e => e.target.blur()}
-                    placeholder="Already held"
-                  />
-                </div>
-              </>
-            )}
           </div>
-
-          {item.type === 'lease' && (
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-              <CurrencyInput
-                label="Residual / balloon value"
-                value={item.residualValue}
-                onChange={v => onUpdate({ residualValue: v })}
-                className="max-w-40"
-              />
-              <CurrencyInput
-                label="Monthly repayment (0 = auto-calc)"
-                value={item.monthlyRepayment}
-                onChange={v => onUpdate({ monthlyRepayment: v })}
-                className="max-w-40"
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Current balance</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={item.currentBalance ?? ''}
+                onChange={e => onUpdate({ currentBalance: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
               />
             </div>
-          )}
-
-          {item.type === 'lease' && item.currentBalance > 0 && item.termYears > 0 && (
-            <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
-              {(() => {
-                const financed = item.currentBalance - (item.residualValue || 0)
-                const totalInterest = financed * (item.interestRate || 0) * item.termYears
-                const totalCost = financed + totalInterest
-                const annualPay = totalCost / item.termYears
-                return (
-                  <>
-                    <div>Financed: ${Math.round(financed).toLocaleString()} (balance − residual)</div>
-                    <div>Total interest: ${Math.round(totalInterest).toLocaleString()} (calculated upfront)</div>
-                    <div>Total cost: ${Math.round(totalCost).toLocaleString()}</div>
-                    <div className="text-gray-300 font-medium">Annual repayment: ${Math.round(annualPay).toLocaleString()}/yr (${Math.round(annualPay / 12).toLocaleString()}/mo)</div>
-                    {(item.residualValue || 0) > 0 && (
-                      <div className="text-amber-400">Residual of ${Math.round(item.residualValue).toLocaleString()} due in final year</div>
-                    )}
-                  </>
-                )
-              })()}
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Interest rate</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="0.1"
+                value={item.interestRate != null && item.interestRate !== '' ? (item.interestRate * 100).toFixed(1) : ''}
+                onChange={e => { const v = numVal(e.target.value); onUpdate({ interestRate: v === '' ? '' : v / 100 }) }}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+              <span className="text-gray-500">%</span>
             </div>
-          )}
-
-          {item.type === 'personal_loan' && (
-            <CurrencyInput
-              label="Monthly repayment"
-              value={item.monthlyRepayment}
-              onChange={v => onUpdate({ monthlyRepayment: v })}
-              className="max-w-40"
-            />
-          )}
-
-          {item.type === 'credit_card' && (
+          </div>
+          {item.type !== 'credit_card' && (
             <>
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-                <CurrencyInput
-                  label="Monthly repayment (0 = min 2%)"
-                  value={item.monthlyRepayment}
-                  onChange={v => onUpdate({ monthlyRepayment: v })}
-                  className="max-w-40"
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-gray-400 flex-1">Term (years)</span>
+                <input
+                  className="compact-input w-16 text-right text-sm"
+                  type="number" step="1"
+                  value={item.termYears || ''}
+                  onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="5"
                 />
-                <div>
-                  <label className="compact-label">Mode</label>
-                  <select
-                    className="compact-input w-40"
-                    value={item.repaymentMode || 'payoff'}
-                    onChange={e => onUpdate({ repaymentMode: e.target.value })}
-                  >
-                    <option value="payoff">Pay off (balance reduces)</option>
-                    <option value="revolving">Revolving (balance steady)</option>
-                  </select>
-                </div>
               </div>
-              {item.repaymentMode === 'revolving' && (
-                <p className="text-xs text-amber-400">
-                  Revolving mode assumes the balance stays constant — interest is paid each year but principal is not reduced.
-                </p>
-              )}
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-gray-400 flex-1">Start year</span>
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number" step="1"
+                  value={item.startYear || ''}
+                  onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="Already held"
+                />
+              </div>
             </>
           )}
+          {item.type === 'lease' && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Residual value</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-gray-500">$</span>
+                <input
+                  className="compact-input w-20 text-right text-sm"
+                  type="number" step="1"
+                  value={item.residualValue ?? ''}
+                  onChange={e => onUpdate({ residualValue: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">
+              {item.type === 'lease' ? 'Monthly repay (0=auto)' : item.type === 'credit_card' ? 'Monthly repay (0=min 2%)' : 'Monthly repayment'}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={item.monthlyRepayment ?? ''}
+                onChange={e => onUpdate({ monthlyRepayment: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          {item.type === 'credit_card' && (
+            <div className="flex items-center gap-2 px-3 py-2">
+              <span className="text-gray-400 flex-1">Mode</span>
+              <select
+                className="compact-input w-28 text-sm"
+                value={item.repaymentMode || 'payoff'}
+                onChange={e => onUpdate({ repaymentMode: e.target.value })}
+                onClick={e => e.stopPropagation()}
+              >
+                <option value="payoff">Pay off</option>
+                <option value="revolving">Revolving</option>
+              </select>
+            </div>
+          )}
+          {item.type === 'lease' && item.currentBalance > 0 && item.termYears > 0 && (() => {
+            const financed = item.currentBalance - (item.residualValue || 0)
+            const totalInterest = financed * (item.interestRate || 0) * item.termYears
+            const annualPay = (financed + totalInterest) / item.termYears
+            return <div className="px-3 py-2 text-gray-500">{fmt$(annualPay)}/yr auto-calculated</div>
+          })()}
+          <div className="flex justify-end px-3 py-2">
+            <button className="text-red-400 hover:text-red-300" onClick={e => { e.stopPropagation(); onRemove() }}>Remove</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Other asset card (card-grid style) ───────────────────────────────────
+
+function OtherAssetCard({ asset, onUpdate, onRemove }) {
+  const [open, setOpen] = useState(!asset.name && !(asset.currentValue > 0))
+  const contributionMode = asset.contributionMode || 'fixed'
+
+  return (
+    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+      <button
+        className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
+        onClick={() => setOpen(o => !o)}
+      >
+        <div className="flex items-start justify-between gap-1 mb-1.5">
+          <span className="text-sm font-semibold text-gray-100 truncate leading-tight">
+            {asset.name || 'Unnamed asset'}
+          </span>
+          <span className="text-gray-600 text-xs shrink-0 mt-0.5">{open ? '▾' : '▸'}</span>
+        </div>
+        <div className="flex items-end justify-between gap-2 mt-1">
+          {asset.currentValue ? (
+            <span className="text-sm font-bold text-white">{fmt$(asset.currentValue)}</span>
+          ) : (
+            <span className="text-xs text-gray-600 italic">No value</span>
+          )}
+          {asset.returnRate != null && (
+            <span className="text-xs text-gray-500 shrink-0">
+              {(asset.returnRate * 100).toFixed(1)}%/yr
+            </span>
+          )}
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-700/60 bg-gray-800/20 divide-y divide-gray-700/30 text-xs">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Name</span>
+            <input
+              className="compact-input w-32 text-right text-sm"
+              value={asset.name || ''}
+              onChange={e => onUpdate({ name: e.target.value })}
+              placeholder="Asset name"
+            />
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Current value</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={asset.currentValue ?? ''}
+                onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">{contributionMode === 'surplus' ? 'Target contribution' : 'Annual contribution'}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-gray-500">$</span>
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={asset.annualContribution ?? ''}
+                onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Return rate</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="0.5"
+                value={asset.returnRate != null && asset.returnRate !== '' ? (asset.returnRate * 100).toFixed(1) : ''}
+                onChange={e => { const v = numVal(e.target.value); onUpdate({ returnRate: v === '' ? '' : v / 100 }) }}
+                onWheel={e => e.target.blur()}
+                placeholder="7.0"
+              />
+              <span className="text-gray-500">%</span>
+            </div>
+          </div>
+          <div className="px-3 py-2 space-y-1.5">
+            <span className="text-gray-400">Contribution mode</span>
+            <div className="flex gap-2 mt-1">
+              <button
+                className={`flex-1 text-xs py-1.5 px-2 rounded-lg border transition-colors ${contributionMode === 'fixed' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+                onClick={e => { e.stopPropagation(); onUpdate({ contributionMode: 'fixed' }) }}
+              >Fixed</button>
+              <button
+                className={`flex-1 text-xs py-1.5 px-2 rounded-lg border transition-colors ${contributionMode === 'surplus' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+                onClick={e => { e.stopPropagation(); onUpdate({ contributionMode: 'surplus' }) }}
+              >Surplus</button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Annual increase</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <input
+                className="compact-input w-20 text-right text-sm"
+                type="number" step="1"
+                value={asset.annualIncreaseRate != null && asset.annualIncreaseRate !== '' ? (asset.annualIncreaseRate * 100).toFixed(0) : ''}
+                onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
+                onWheel={e => e.target.blur()}
+                placeholder="0"
+              />
+              <span className="text-gray-500">%</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <span className="text-gray-400 flex-1">Available for drawdown</span>
+            <input
+              type="checkbox"
+              className="accent-brand-500 shrink-0"
+              checked={asset.canDrawdown ?? true}
+              onChange={e => onUpdate({ canDrawdown: e.target.checked })}
+              onClick={e => e.stopPropagation()}
+            />
+          </div>
+          <div className="flex justify-end px-3 py-2">
+            <button className="text-red-400 hover:text-red-300" onClick={e => { e.stopPropagation(); onRemove() }}>Remove</button>
+          </div>
         </div>
       )}
     </div>
@@ -2679,7 +2828,6 @@ const HOUSEHOLD_TUTORIAL = [
 
 export default function HouseholdProfile({ scenario, updateScenario }) {
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('householdTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
-  const [lastAddedIncomeId, setLastAddedIncomeId] = useState(null)
   const { personA, personB } = scenario.household
   const superA = scenario.super.find(s => s.personLabel === 'A') || {}
   const superB = scenario.super.find(s => s.personLabel === 'B') || {}
@@ -2979,9 +3127,14 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
       </Section>
 
       <Section title={`Tax-Deferred Bonds — 10yr (${scenario.investmentBonds.length})`}>
-        <div className="space-y-3">
+        {scenario.investmentBonds.length === 0 && (
+          <p className="text-sm text-gray-500 mb-3">
+            Tax-deferred bonds offer tax-free withdrawals after 10 years — useful for high-income earners.
+          </p>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
           {scenario.investmentBonds.map((b, i) => (
-            <BondForm
+            <BondCard
               key={b.id}
               bond={b}
               onUpdate={patch => updateBond(i, patch)}
@@ -2989,16 +3142,12 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             />
           ))}
           <button
-            className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm"
+            className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
             onClick={addBond}
           >
-            + Add tax-deferred bond
+            <span className="text-xl leading-none">+</span>
+            <span className="text-xs">Add bond</span>
           </button>
-          {scenario.investmentBonds.length === 0 && (
-            <p className="text-sm text-gray-500 mt-1">
-              Tax-deferred bonds offer tax-free withdrawals after 10 years — useful for high-income earners.
-            </p>
-          )}
         </div>
       </Section>
 
@@ -3036,12 +3185,11 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-3">
           Consulting, part-time work, gifts, pensions, trust distributions, or any non-salary income.
         </p>
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
           {(scenario.otherIncome || []).map((src, i) => (
-            <OtherIncomeItem
+            <OtherIncomeCard
               key={src.id}
               item={src}
-              defaultOpen={src.id === lastAddedIncomeId}
               personAName={scenario.household.personA.name || 'Person A'}
               personBName={scenario.household.personB.name || 'Person B'}
               onUpdate={patch => {
@@ -3055,15 +3203,13 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             />
           ))}
           <button
-            className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm mt-2"
+            className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
             onClick={() => {
-              const newId = crypto.randomUUID()
-              setLastAddedIncomeId(newId)
               updateScenario({
                 otherIncome: [
                   ...(scenario.otherIncome || []),
                   {
-                    id: newId,
+                    id: crypto.randomUUID(),
                     name: '',
                     amount: 0,
                     amountType: 'annual',
@@ -3079,7 +3225,8 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
               })
             }}
           >
-            + Add income source
+            <span className="text-xl leading-none">+</span>
+            <span className="text-xs">Add income source</span>
           </button>
         </div>
       </Section>
@@ -3088,153 +3235,35 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-3">
           Private equity, business interests, collectibles, or any asset not covered above.
         </p>
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
           {(scenario.otherAssets || []).map((asset, i) => (
-            <div key={asset.id} className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <input
-                  className="compact-input w-80 max-w-full text-sm py-1.5 mr-3"
-                  placeholder="Asset name (e.g. Private Equity Fund)"
-                  value={asset.name}
-                  onChange={e => {
-                    const updated = [...scenario.otherAssets]
-                    updated[i] = { ...asset, name: e.target.value }
-                    updateScenario({ otherAssets: updated })
-                  }}
-                />
-                <button
-                  className="text-gray-600 hover:text-red-400 text-xs"
-                  onClick={() => {
-                    const updated = scenario.otherAssets.filter((_, j) => j !== i)
-                    updateScenario({ otherAssets: updated })
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                <CurrencyInput
-                  label="Current value"
-                  value={asset.currentValue}
-                  onChange={v => {
-                    const updated = [...scenario.otherAssets]
-                    updated[i] = { ...asset, currentValue: v }
-                    updateScenario({ otherAssets: updated })
-                  }}
-                />
-                <CurrencyInput
-                  label={(asset.contributionMode || 'fixed') === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
-                  value={asset.annualContribution}
-                  onChange={v => {
-                    const updated = [...scenario.otherAssets]
-                    updated[i] = { ...asset, annualContribution: v }
-                    updateScenario({ otherAssets: updated })
-                  }}
-                  className="max-w-40"
-                />
-                <PctInput
-                  label="Return rate"
-                  value={asset.returnRate}
-                  onChange={v => {
-                    const updated = [...scenario.otherAssets]
-                    updated[i] = { ...asset, returnRate: v }
-                    updateScenario({ otherAssets: updated })
-                  }}
-                  min={0}
-                  max={30}
-                  step={0.5}
-                  hint="Gross annual return"
-                />
-              </div>
-              <div>
-                <label className="compact-label">Contribution mode</label>
-                <div className="flex gap-2 mt-1">
-                  <button
-                    className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-                      (asset.contributionMode || 'fixed') === 'fixed'
-                        ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-                    }`}
-                    onClick={() => {
-                      const updated = [...scenario.otherAssets]
-                      updated[i] = { ...asset, contributionMode: 'fixed' }
-                      updateScenario({ otherAssets: updated })
-                    }}
-                  >
-                    Fixed expense
-                  </button>
-                  <button
-                    className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-                      asset.contributionMode === 'surplus'
-                        ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-                    }`}
-                    onClick={() => {
-                      const updated = [...scenario.otherAssets]
-                      updated[i] = { ...asset, contributionMode: 'surplus' }
-                      updateScenario({ otherAssets: updated })
-                    }}
-                  >
-                    From surplus
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-1.5">
-                  {(asset.contributionMode || 'fixed') === 'fixed'
-                    ? 'Deducted from cashflow each year like an expense.'
-                    : 'Funded from surplus only — set priority in Surplus Strategy below.'}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                <PctInput
-                  label="Annual contribution increase"
-                  value={asset.annualIncreaseRate || 0}
-                  onChange={v => {
-                    const updated = [...scenario.otherAssets]
-                    updated[i] = { ...asset, annualIncreaseRate: v }
-                    updateScenario({ otherAssets: updated })
-                  }}
-                  min={0}
-                  max={50}
-                  step={1}
-                  hint="Grows by this % each year"
-                />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={asset.canDrawdown ?? true}
-                  onChange={e => {
-                    const updated = [...scenario.otherAssets]
-                    updated[i] = { ...asset, canDrawdown: e.target.checked }
-                    updateScenario({ otherAssets: updated })
-                  }}
-                  className="accent-brand-500"
-                />
-                <span className="text-sm text-gray-300">Available for drawdown in deficit years</span>
-              </label>
-            </div>
+            <OtherAssetCard
+              key={asset.id}
+              asset={asset}
+              onUpdate={patch => {
+                const updated = [...(scenario.otherAssets || [])]
+                updated[i] = { ...updated[i], ...patch }
+                updateScenario({ otherAssets: updated })
+              }}
+              onRemove={() => {
+                updateScenario({ otherAssets: (scenario.otherAssets || []).filter((_, idx) => idx !== i) })
+              }}
+            />
           ))}
           <button
-            className="btn-ghost w-full py-2.5 border border-dashed border-gray-700 rounded-lg text-sm"
+            className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
             onClick={() => {
-              const newAsset = {
-                id: crypto.randomUUID(),
-                name: '',
-                currentValue: 0,
-                annualContribution: 0,
-                returnRate: 0.07,
-                canDrawdown: true,
-              }
-              updateScenario({ otherAssets: [...(scenario.otherAssets || []), newAsset] })
+              updateScenario({
+                otherAssets: [
+                  ...(scenario.otherAssets || []),
+                  { id: crypto.randomUUID(), name: '', currentValue: 0, annualContribution: 0, returnRate: 0.07, canDrawdown: true },
+                ],
+              })
             }}
           >
-            + Add other asset
+            <span className="text-xl leading-none">+</span>
+            <span className="text-xs">Add other asset</span>
           </button>
-          {(scenario.otherAssets || []).length === 0 && (
-            <p className="text-sm text-gray-500 mt-1">
-              Add private equity, business interests, collectibles, or any other asset class with a custom return rate.
-            </p>
-          )}
         </div>
       </Section>
 
@@ -3242,16 +3271,14 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-3">
           Personal loans, car leases, credit cards — any non-mortgage liabilities. Repayments are deducted from cashflow.
         </p>
-        <div className="space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
           {(scenario.debts || []).map((debt, i) => (
-            <DebtItem
+            <DebtCard
               key={debt.id}
               item={debt}
-              defaultOpen={debt._autoOpen}
               onUpdate={patch => {
                 const updated = [...(scenario.debts || [])]
-                const { _autoOpen, ...clean } = { ...updated[i], ...patch }
-                updated[i] = clean
+                updated[i] = { ...updated[i], ...patch }
                 updateScenario({ debts: updated })
               }}
               onRemove={() => {
@@ -3259,32 +3286,27 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
               }}
             />
           ))}
-          <div className="flex gap-2">
-            <button
-              className="btn-ghost flex-1 py-2 border border-dashed border-gray-700 rounded-lg text-sm"
-              onClick={() => updateScenario({
-                debts: [...(scenario.debts || []), { ...createDebtDefaults('personal_loan'), _autoOpen: true }],
-              })}
-            >
-              + Personal loan
-            </button>
-            <button
-              className="btn-ghost flex-1 py-2 border border-dashed border-gray-700 rounded-lg text-sm"
-              onClick={() => updateScenario({
-                debts: [...(scenario.debts || []), { ...createDebtDefaults('lease'), _autoOpen: true }],
-              })}
-            >
-              + Lease
-            </button>
-            <button
-              className="btn-ghost flex-1 py-2 border border-dashed border-gray-700 rounded-lg text-sm"
-              onClick={() => updateScenario({
-                debts: [...(scenario.debts || []), { ...createDebtDefaults('credit_card'), _autoOpen: true }],
-              })}
-            >
-              + Credit card
-            </button>
-          </div>
+          <button
+            className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
+            onClick={() => updateScenario({ debts: [...(scenario.debts || []), createDebtDefaults('personal_loan')] })}
+          >
+            <span className="text-xl leading-none">+</span>
+            <span className="text-xs">Personal loan</span>
+          </button>
+          <button
+            className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
+            onClick={() => updateScenario({ debts: [...(scenario.debts || []), createDebtDefaults('lease')] })}
+          >
+            <span className="text-xl leading-none">+</span>
+            <span className="text-xs">Lease</span>
+          </button>
+          <button
+            className="border border-dashed border-gray-700 rounded-xl p-4 text-gray-600 hover:text-gray-400 hover:border-gray-600 transition-colors flex flex-col items-center justify-center min-h-[88px] gap-1"
+            onClick={() => updateScenario({ debts: [...(scenario.debts || []), createDebtDefaults('credit_card')] })}
+          >
+            <span className="text-xl leading-none">+</span>
+            <span className="text-xs">Credit card</span>
+          </button>
         </div>
       </Section>
 
