@@ -144,6 +144,8 @@
 
 - Properties section left as vertical accordion list (too many fields for compact card grid).
 
+- **Light mode card backgrounds** — All five item-list card components (`HoldingCard`, `BondCard`, `OtherIncomeCard`, `OtherAssetCard`, `DebtCard`) previously rendered flat white in light mode. Added `.item-card` CSS class to `index.css`: dark mode `#111827` (gray-900 equivalent), light mode `#e0f2fe` (sky-100 — matches the brand sky-blue palette used by the Scenarios pin button). Applied to all five card outer `div`s.
+
 **Tests:** 568 passing (no engine changes).
 
 ---

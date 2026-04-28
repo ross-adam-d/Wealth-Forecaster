@@ -1379,7 +1379,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
     : holding.currentValue ? fmt$(holding.currentValue) : null
 
   return (
-    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+    <div className="border border-gray-700 rounded-xl item-card overflow-hidden flex flex-col">
       {/* Collapsed summary card — click to expand */}
       <button
         className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
@@ -1959,7 +1959,7 @@ function BondCard({ bond, onUpdate, onRemove }) {
   const [open, setOpen] = useState(!b.name && !(b.currentBalance > 0))
 
   return (
-    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+    <div className="border border-gray-700 rounded-xl item-card overflow-hidden flex flex-col">
       <button
         className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
         onClick={() => setOpen(o => !o)}
@@ -2304,7 +2304,7 @@ function OtherIncomeCard({ item, personAName, personBName, onUpdate, onRemove })
   const personLabel = item.person === 'household' ? 'Joint' : item.person === 'B' ? personBName : personAName
 
   return (
-    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+    <div className="border border-gray-700 rounded-xl item-card overflow-hidden flex flex-col">
       <button
         className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
         onClick={() => setOpen(o => !o)}
@@ -2520,7 +2520,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
   }
 
   return (
-    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+    <div className="border border-gray-700 rounded-xl item-card overflow-hidden flex flex-col">
       <button
         className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
         onClick={() => setOpen(o => !o)}
@@ -2677,7 +2677,7 @@ function OtherAssetCard({ asset, onUpdate, onRemove }) {
   const contributionMode = asset.contributionMode || 'fixed'
 
   return (
-    <div className="border border-gray-700 rounded-xl bg-gray-900 overflow-hidden flex flex-col">
+    <div className="border border-gray-700 rounded-xl item-card overflow-hidden flex flex-col">
       <button
         className="w-full p-3 text-left hover:bg-gray-800/40 transition-colors"
         onClick={() => setOpen(o => !o)}

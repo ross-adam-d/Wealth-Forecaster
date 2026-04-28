@@ -67,7 +67,7 @@ Fields that require only a single row of data entry should occupy equal vertical
 
 ## Implementation notes (learned through iteration)
 
-- **`className` override on `CurrencyInput` / `PctInput`**: The wrapper div uses `className || 'max-w-56'` (or `max-w-36` for PctInput), meaning any `className` you pass **fully replaces** the default — not appends to it. Pass the full width class you want (e.g. `className="max-w-40"`).
+- **`className` override on `CurrencyInput` / `PctInput`**: wrappers use `className ? \`w-full ${className}\` : default`, so custom sizing still gets consistent inner width behavior. In practice: pass `max-w-*` for the visual width you want (e.g. `className="max-w-40"`), avoid raw `w-full` in dense form rows.
 
 - **`grid-cols-N` vs `flex-wrap`**: Use `grid` when column count must be guaranteed (e.g. 3 super contribution fields). Use `flex-wrap` when you want fields to pack naturally and it's acceptable for rows to vary in count based on content.
 
@@ -76,3 +76,22 @@ Fields that require only a single row of data entry should occupy equal vertical
 - **`MonthYearInput`**: Year input is `w-24`. Avoid long placeholder text (e.g. "Already owned" truncates) — use "Year" instead.
 
 - **Do not use `w-full` inside flex rows** unless the field genuinely benefits from filling all available space (e.g. a search input, a free-text description). Dollar amounts, percentages, and years never need `w-full`.
+
+---
+
+## Household Layout Rules (Active)
+
+These are the current rules to apply first for any new HouseholdProfile UI edits.
+
+1. **Default container width**: keep Household page at `max-w-6xl` for data-entry density. Avoid widening to `7xl` unless there is a specific overflow reason.
+2. **Row strategy**:
+   - Use `grid` for rows that should intentionally spread across one line (e.g. `1/2/3` or `1/2/5` responsive layouts).
+   - Use `flex-wrap` for natural packing rows with mixed-width controls.
+3. **Stable conditional rows**: when controls appear/disappear (e.g. super employer scheme variants), reserve layout space so Person A and B remain aligned.
+4. **Input sizing policy**:
+   - Currency fields: prefer `max-w-40` (small/medium), `max-w-44` (larger values).
+   - Percent fields: typically `w-20` (or `max-w-40` wrapper where required by row layout).
+   - Short integers (age/term/years): `w-14` to `w-24` depending on expected range.
+5. **Avoid elastic text controls in dense forms**: for short labels/notes in cards, use bounded widths such as `w-64`/`w-72`/`w-80` plus `max-w-full`, not `flex-1`.
+6. **Vertical alignment consistency**: use minimum helper heights (`min-h-*`) for warning/help rows when needed so adjacent columns do not jump.
+7. **When a row has only one logical line, spread it**: prefer grid distribution over left-clustered controls to use horizontal space and reduce scrolling.

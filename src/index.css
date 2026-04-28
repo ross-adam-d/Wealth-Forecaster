@@ -141,6 +141,13 @@ html.light .border-red-600    { border-color: #f87171; } /* red-400 */
 html.light .border-red-500    { border-color: #ef4444; } /* red-500 */
 
 /* ── Component class overrides ── */
+.item-card {
+  background-color: #111827; /* dark mode: gray-900 */
+}
+html.light .item-card {
+  background-color: #e0f2fe; /* sky-100 — blue tint matching brand/scenarios palette */
+}
+
 html.light .card {
   background-color: #ffffff;
   border-color: #cbd5e1; /* slate-300 — crisper against deeper bg */
