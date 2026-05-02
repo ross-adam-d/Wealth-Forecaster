@@ -102,8 +102,6 @@ function PersonForm({
   person,
   label,
   onUpdate,
-  alignSalaryPeriodHintSlot = false,
-  alignEmployerPackagingSlot = false,
   alignHecsSlot = false,
   alignSalaryChangesCount = 0,
 }) {
@@ -111,10 +109,8 @@ function PersonForm({
   const [leaseOpen, setLeaseOpen] = useState(false)
   const hasLease = !!p.packaging?.novatedLease
   const hasSalaryPeriodHint = !!(p.salaryPeriod && p.salaryPeriod !== 'annual' && p.currentSalary > 0)
-  const showSalaryPeriodHintSlot = alignSalaryPeriodHintSlot || hasSalaryPeriodHint
   const employerType = p.employerType || 'standard'
   const hasEmployerPackagingFields = employerType === 'pbi_nfp' || employerType === 'qld_health'
-  const showEmployerPackagingSlot = alignEmployerPackagingSlot || hasEmployerPackagingFields
   const showHecsSlot = alignHecsSlot || !!p.hecs
 
   const updateLease = patch =>
@@ -193,81 +189,85 @@ function PersonForm({
   }, [hasLease, leasePaymentCalc, p.packaging?.novatedLease])
 
   return (
-    <div className="space-y-3">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {label}</h3>
+    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden person-card">
+      <div className="px-4 py-3 border-b border-gray-800 person-card-header">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {label}</h3>
+      </div>
 
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-        <div>
-          <label className="compact-label">Name</label>
+      <div className="divide-y divide-gray-800/60">
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Name</span>
           <input
-            className="compact-input w-28"
+            className="compact-input w-full text-right"
             value={p.name || ''}
             onChange={e => onUpdate({ name: e.target.value })}
             placeholder="e.g. Alex"
           />
         </div>
-        <div>
-          <label className="compact-label">Date of birth</label>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Date of birth</span>
           <input
-            className="compact-input w-36"
+            className="compact-input w-full"
             type="date"
             value={p.dateOfBirth || ''}
             onChange={e => onUpdate({ dateOfBirth: e.target.value })}
           />
         </div>
-        <div>
-          <label className="compact-label">Retire age</label>
-          <input
-            className="compact-input w-14"
-            type="number"
-            step="1"
-            value={p.retirementAge ?? ''}
-            onChange={e => onUpdate({ retirementAge: numVal(e.target.value) })}
-            onWheel={e => e.target.blur()}
-            placeholder="60"
-          />
-          {!p.retirementAge && <p className="text-xs text-amber-400 mt-0.5">Required</p>}
-        </div>
-        <div>
-          <label className="compact-label">Gross salary</label>
-          <div className="flex gap-1">
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-              <input
-                className="compact-input w-28 pl-7"
-                type="number"
-                step="1"
-                value={p.currentSalary ?? ''}
-                onChange={e => onUpdate({ currentSalary: numVal(e.target.value) })}
-                onWheel={e => e.target.blur()}
-                placeholder="0"
-              />
-            </div>
-            <select
-              className="compact-input w-24 flex-shrink-0"
-              value={p.salaryPeriod || 'annual'}
-              onChange={e => onUpdate({ salaryPeriod: e.target.value })}
-            >
-              <option value="annual">Annual</option>
-              <option value="monthly">Monthly</option>
-              <option value="fortnightly">F/nightly</option>
-              <option value="weekly">Weekly</option>
-            </select>
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-2 items-center gap-3">
+            <span className="text-sm text-gray-400">Retire age</span>
+            <input
+              className="compact-input w-full text-right"
+              type="number"
+              step="1"
+              value={p.retirementAge ?? ''}
+              onChange={e => onUpdate({ retirementAge: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()}
+              placeholder="60"
+            />
           </div>
-          {showSalaryPeriodHintSlot && (
-            <p className={`text-xs mt-0.5 min-h-4 ${hasSalaryPeriodHint ? 'text-gray-500' : 'text-transparent'}`}>
-              {hasSalaryPeriodHint
-                ? `= $${(p.salaryPeriod === 'weekly' ? p.currentSalary * 52
-                  : p.salaryPeriod === 'fortnightly' ? p.currentSalary * 26
-                  : p.currentSalary * 12).toLocaleString()}/yr`
-                : 'placeholder'}
+          {!p.retirementAge && <p className="text-xs text-amber-400 text-right mt-0.5">Required</p>}
+        </div>
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-2 items-center gap-3">
+            <span className="text-sm text-gray-400">Gross salary</span>
+            <div className="flex gap-1">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  className="compact-input w-full pl-7 text-right"
+                  type="number"
+                  step="1"
+                  value={p.currentSalary ?? ''}
+                  onChange={e => onUpdate({ currentSalary: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
+              <select
+                className="compact-input w-20 flex-shrink-0"
+                value={p.salaryPeriod || 'annual'}
+                onChange={e => onUpdate({ salaryPeriod: e.target.value })}
+              >
+                <option value="annual">Annual</option>
+                <option value="monthly">Monthly</option>
+                <option value="fortnightly">F/nightly</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </div>
+          </div>
+          {hasSalaryPeriodHint && (
+            <p className="text-xs text-gray-500 text-right mt-0.5">
+              = ${(p.salaryPeriod === 'weekly' ? p.currentSalary * 52
+                : p.salaryPeriod === 'fortnightly' ? p.currentSalary * 26
+                : p.currentSalary * 12).toLocaleString()}/yr
             </p>
           )}
         </div>
       </div>
 
       {/* Salary changes — part-time, career breaks, promotions */}
-      <div>
+      <div className="border-t border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-500">Salary changes (part-time, career break, promotion)</span>
           <button
@@ -289,10 +289,10 @@ function PersonForm({
           </button>
         </div>
         {(p.salaryChanges || []).map((change, ci) => (
-          <div key={change.id || ci} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2">
-            <div className="flex items-center justify-between mb-2">
+          <div key={change.id || ci} className="border border-gray-700 rounded-lg overflow-hidden mb-2">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/60">
               <input
-                className="compact-input w-80 max-w-full text-xs mr-2"
+                className="compact-input flex-1 text-xs"
                 value={change.note || ''}
                 onChange={e => {
                   const changes = [...(p.salaryChanges || [])]
@@ -309,13 +309,12 @@ function PersonForm({
                 }}
               >Remove</button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div>
-                <label className="compact-label">From</label>
+            <div className="divide-y divide-gray-700/40">
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">From year</span>
                 <input
-                  className="compact-input w-full"
-                  type="number"
-                  step="1"
+                  className="compact-input w-full text-right text-sm"
+                  type="number" step="1"
                   value={change.fromYear ?? ''}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
@@ -326,12 +325,11 @@ function PersonForm({
                   placeholder="Year"
                 />
               </div>
-              <div>
-                <label className="compact-label">To</label>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">To year</span>
                 <input
-                  className="compact-input w-full"
-                  type="number"
-                  step="1"
+                  className="compact-input w-full text-right text-sm"
+                  type="number" step="1"
                   value={change.toYear ?? ''}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
@@ -342,14 +340,13 @@ function PersonForm({
                   placeholder="Ongoing"
                 />
               </div>
-              <div>
-                <label className="compact-label">Salary</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Salary</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 shrink-0">$</span>
                   <input
-                    className="compact-input w-full pl-7"
-                    type="number"
-                    step="1"
+                    className="compact-input flex-1 text-right text-sm"
+                    type="number" step="1"
                     value={change.salary ?? ''}
                     onChange={e => {
                       const changes = [...(p.salaryChanges || [])]
@@ -361,10 +358,10 @@ function PersonForm({
                   />
                 </div>
               </div>
-              <div>
-                <label className="compact-label">Period</label>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Period</span>
                 <select
-                  className="compact-input w-full"
+                  className="compact-input w-full text-sm"
                   value={change.salaryPeriod || 'annual'}
                   onChange={e => {
                     const changes = [...(p.salaryChanges || [])]
@@ -379,42 +376,42 @@ function PersonForm({
                 </select>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Enter in today's dollars — grows with wages, so projection shows ≈ this amount in real terms</p>
+            <p className="text-xs text-gray-500 px-3 py-2 border-t border-gray-700/40">Today's dollars — grows with wages</p>
           </div>
         ))}
         {Array.from({ length: Math.max(0, alignSalaryChangesCount - (p.salaryChanges || []).length) }).map((_, i) => (
-          <div key={`sc-ph-${i}`} className="p-3 bg-gray-800/50 rounded-lg border border-gray-700 mb-2 opacity-0 pointer-events-none" aria-hidden="true">
-            <div className="flex items-center justify-between mb-2">
-              <input type="text" readOnly tabIndex={-1} className="compact-input w-80 max-w-full text-xs mr-2" />
+          <div key={`sc-ph-${i}`} className="border border-gray-700 rounded-lg overflow-hidden mb-2 opacity-0 pointer-events-none" aria-hidden="true">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/60">
+              <input type="text" readOnly tabIndex={-1} className="compact-input flex-1 text-xs" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div>
-                <label className="compact-label">&nbsp;</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+            <div className="divide-y divide-gray-700/40">
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs">&nbsp;</span>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-right text-sm" />
               </div>
-              <div>
-                <label className="compact-label">&nbsp;</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs">&nbsp;</span>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-right text-sm" />
               </div>
-              <div>
-                <label className="compact-label">&nbsp;</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input type="text" readOnly tabIndex={-1} className="compact-input w-full pl-7" />
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs">&nbsp;</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 shrink-0">$</span>
+                  <input type="text" readOnly tabIndex={-1} className="compact-input flex-1 text-right text-sm" />
                 </div>
               </div>
-              <div>
-                <label className="compact-label">&nbsp;</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs">&nbsp;</span>
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">&nbsp;</p>
+            <p className="text-xs px-3 py-2 border-t border-gray-700/40">&nbsp;</p>
           </div>
         ))}
       </div>
 
       {/* HECS/HELP debt */}
-      <div className="border-t border-gray-800 pt-4">
+      <div className="border-t border-gray-800 px-4 py-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-gray-400">HECS / HELP debt</span>
           {!p.hecs ? (
@@ -430,46 +427,58 @@ function PersonForm({
           )}
         </div>
         {p.hecs && (
-          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <CurrencyInput
-                label="Current HECS balance"
-                value={p.hecs.balance}
-                onChange={v => onUpdate({ hecs: { ...p.hecs, balance: v || 0 } })}
-                className="max-w-40"
-              />
-              <CurrencyInput
-                label="Extra annual repayment"
-                value={p.hecs.extraAnnual || 0}
-                onChange={v => onUpdate({ hecs: { ...p.hecs, extraAnnual: v || 0 } })}
-                hint="$0 = compulsory minimum only"
-                className="max-w-40"
-              />
+          <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+              <span className="text-xs text-gray-400">Current HECS balance</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500 shrink-0">$</span>
+                <input
+                  className="compact-input flex-1 text-right text-sm"
+                  type="number" step="1"
+                  value={p.hecs.balance ?? ''}
+                  onChange={e => onUpdate({ hecs: { ...p.hecs, balance: numVal(e.target.value) || 0 } })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
             </div>
+            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+              <span className="text-xs text-gray-400">Extra annual repayment</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500 shrink-0">$</span>
+                <input
+                  className="compact-input flex-1 text-right text-sm"
+                  type="number" step="1"
+                  value={p.hecs.extraAnnual ?? ''}
+                  onChange={e => onUpdate({ hecs: { ...p.hecs, extraAnnual: numVal(e.target.value) || 0 } })}
+                  onWheel={e => e.target.blur()}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 px-3 py-2">$0 extra = compulsory minimum only</p>
           </div>
         )}
         {showHecsSlot && !p.hecs && (
-          <div className="p-3 opacity-0 pointer-events-none" aria-hidden="true">
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <div className="w-full max-w-40">
-                <label className="compact-label">&nbsp;</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
-              </div>
-              <div className="w-full max-w-40">
-                <label className="compact-label">&nbsp;</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full" />
-                <p className="text-xs mt-0.5">&nbsp;</p>
-              </div>
+          <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden opacity-0 pointer-events-none" aria-hidden="true">
+            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+              <span className="text-xs">&nbsp;</span>
+              <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
             </div>
+            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+              <span className="text-xs">&nbsp;</span>
+              <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
+            </div>
+            <p className="text-xs px-3 py-2">&nbsp;</p>
           </div>
         )}
       </div>
 
-      <div className="border-t border-gray-800 pt-4 space-y-3">
-        <div>
-          <label className="compact-label">Employer type</label>
+      <div className="border-t border-gray-800 divide-y divide-gray-800/60">
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Employer type</span>
           <select
-            className="compact-input w-48"
+            className="compact-input w-full"
             value={employerType}
             onChange={e => onUpdate({ employerType: e.target.value })}
           >
@@ -479,69 +488,92 @@ function PersonForm({
           </select>
         </div>
 
-      {showEmployerPackagingSlot && (
-        hasEmployerPackagingFields ? (
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-            {employerType === 'pbi_nfp' ? (
+      {hasEmployerPackagingFields && (
+        <>
+          {employerType === 'pbi_nfp' ? (
               <>
-                <CurrencyInput
-                  label="PBI general packaging"
-                  value={p.packaging?.pbiGeneral}
-                  max={PBI_GENERAL_CAP}
-                  hint={`Max $${PBI_GENERAL_CAP.toLocaleString()}`}
-                  onChange={v => onUpdate({ packaging: { ...p.packaging, pbiGeneral: v } })}
-                />
-                <CurrencyInput
-                  label="Meal entertainment"
-                  value={p.packaging?.pbiMealEntertainment}
-                  max={PBI_MEAL_ENTERTAINMENT_CAP}
-                  hint={`Max $${PBI_MEAL_ENTERTAINMENT_CAP.toLocaleString()}`}
-                  onChange={v => onUpdate({ packaging: { ...p.packaging, pbiMealEntertainment: v } })}
-                />
+                <div className="px-4 py-3">
+                  <div className="grid grid-cols-2 items-center gap-3">
+                    <span className="text-sm text-gray-400">PBI general packaging <span className="text-xs text-gray-600 ml-1">max ${PBI_GENERAL_CAP.toLocaleString()}</span></span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500 shrink-0">$</span>
+                      <input
+                        className="compact-input flex-1 text-right text-sm"
+                        type="number" step="1"
+                        value={p.packaging?.pbiGeneral ?? ''}
+                        onChange={e => onUpdate({ packaging: { ...p.packaging, pbiGeneral: numVal(e.target.value) } })}
+                        onWheel={e => e.target.blur()}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  {(p.packaging?.pbiGeneral || 0) > PBI_GENERAL_CAP && <p className="text-xs text-amber-400 text-right mt-0.5">Exceeds cap of ${PBI_GENERAL_CAP.toLocaleString()}</p>}
+                </div>
+                <div className="px-4 py-3">
+                  <div className="grid grid-cols-2 items-center gap-3">
+                    <span className="text-sm text-gray-400">Meal entertainment <span className="text-xs text-gray-600 ml-1">max ${PBI_MEAL_ENTERTAINMENT_CAP.toLocaleString()}</span></span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500 shrink-0">$</span>
+                      <input
+                        className="compact-input flex-1 text-right text-sm"
+                        type="number" step="1"
+                        value={p.packaging?.pbiMealEntertainment ?? ''}
+                        onChange={e => onUpdate({ packaging: { ...p.packaging, pbiMealEntertainment: numVal(e.target.value) } })}
+                        onWheel={e => e.target.blur()}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  {(p.packaging?.pbiMealEntertainment || 0) > PBI_MEAL_ENTERTAINMENT_CAP && <p className="text-xs text-amber-400 text-right mt-0.5">Exceeds cap of ${PBI_MEAL_ENTERTAINMENT_CAP.toLocaleString()}</p>}
+                </div>
               </>
             ) : (
               <>
-                <CurrencyInput
-                  label="QLD Health general cap"
-                  value={p.packaging?.qldHealthGeneral}
-                  max={QLD_HEALTH_GENERAL_CAP}
-                  hint={`Max $${QLD_HEALTH_GENERAL_CAP.toLocaleString()}`}
-                  onChange={v => onUpdate({ packaging: { ...p.packaging, qldHealthGeneral: v } })}
-                />
-                <CurrencyInput
-                  label="Meal entertainment"
-                  value={p.packaging?.qldHealthMealEntertainment}
-                  max={QLD_HEALTH_MEAL_ENTERTAINMENT_CAP}
-                  hint={`Max $${QLD_HEALTH_MEAL_ENTERTAINMENT_CAP.toLocaleString()}`}
-                  onChange={v => onUpdate({ packaging: { ...p.packaging, qldHealthMealEntertainment: v } })}
-                />
+                <div className="px-4 py-3">
+                  <div className="grid grid-cols-2 items-center gap-3">
+                    <span className="text-sm text-gray-400">QLD Health general cap <span className="text-xs text-gray-600 ml-1">max ${QLD_HEALTH_GENERAL_CAP.toLocaleString()}</span></span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500 shrink-0">$</span>
+                      <input
+                        className="compact-input flex-1 text-right text-sm"
+                        type="number" step="1"
+                        value={p.packaging?.qldHealthGeneral ?? ''}
+                        onChange={e => onUpdate({ packaging: { ...p.packaging, qldHealthGeneral: numVal(e.target.value) } })}
+                        onWheel={e => e.target.blur()}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  {(p.packaging?.qldHealthGeneral || 0) > QLD_HEALTH_GENERAL_CAP && <p className="text-xs text-amber-400 text-right mt-0.5">Exceeds cap of ${QLD_HEALTH_GENERAL_CAP.toLocaleString()}</p>}
+                </div>
+                <div className="px-4 py-3">
+                  <div className="grid grid-cols-2 items-center gap-3">
+                    <span className="text-sm text-gray-400">Meal entertainment <span className="text-xs text-gray-600 ml-1">max ${QLD_HEALTH_MEAL_ENTERTAINMENT_CAP.toLocaleString()}</span></span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500 shrink-0">$</span>
+                      <input
+                        className="compact-input flex-1 text-right text-sm"
+                        type="number" step="1"
+                        value={p.packaging?.qldHealthMealEntertainment ?? ''}
+                        onChange={e => onUpdate({ packaging: { ...p.packaging, qldHealthMealEntertainment: numVal(e.target.value) } })}
+                        onWheel={e => e.target.blur()}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  {(p.packaging?.qldHealthMealEntertainment || 0) > QLD_HEALTH_MEAL_ENTERTAINMENT_CAP && <p className="text-xs text-amber-400 text-right mt-0.5">Exceeds cap of ${QLD_HEALTH_MEAL_ENTERTAINMENT_CAP.toLocaleString()}</p>}
+                </div>
               </>
             )}
-          </div>
-        ) : (
-          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700" aria-hidden="true">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="compact-label text-transparent">placeholder</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full opacity-0 pointer-events-none" />
-                <p className="text-xs mt-0.5 text-transparent">placeholder</p>
-              </div>
-              <div>
-                <label className="compact-label text-transparent">placeholder</label>
-                <input type="text" readOnly tabIndex={-1} className="compact-input w-full opacity-0 pointer-events-none" />
-                <p className="text-xs mt-0.5 text-transparent">placeholder</p>
-              </div>
-            </div>
-          </div>
-        )
-      )}
+          </>
+        )}
 
       {/* Novated lease */}
-      <div>
-        <div className="flex items-center justify-between">
-          <span className="compact-label mb-0">Novated lease</span>
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <span className="flex-1 text-sm text-gray-400">Novated lease</span>
           {hasLease ? (
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <button className="btn-ghost text-xs py-1" onClick={() => setLeaseOpen(o => !o)}>
                 {leaseOpen ? '▾ Hide' : '▸ Edit'}
               </button>
@@ -553,182 +585,150 @@ function PersonForm({
               </button>
             </div>
           ) : (
-            <button className="btn-ghost text-xs py-1" onClick={addLease}>
+            <button className="btn-ghost text-xs py-1 shrink-0" onClick={addLease}>
               + Add lease
             </button>
           )}
         </div>
 
         {hasLease && leaseOpen && (
-          <div className="mt-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700 space-y-3">
-            {/* Financing + core costs */}
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <CurrencyInput
-                label="Vehicle cost price"
-                value={p.packaging.novatedLease.vehicleCostPrice}
-                onChange={v => updateLease({ vehicleCostPrice: v })}
-                className="max-w-40"
-              />
-              <CurrencyInput
-                label="Residual / balloon"
-                value={p.packaging.novatedLease.residualValue}
-                onChange={v => updateLease({ residualValue: v })}
-                className="max-w-40"
-              />
-              <CurrencyInput
-                label="Annual running costs"
-                value={p.packaging.novatedLease.annualRunningCosts}
-                onChange={v => updateLease({ annualRunningCosts: v })}
-                className="max-w-40"
-              />
-              <PctInput
-                label="Interest rate"
-                value={p.packaging.novatedLease.interestRate}
-                onChange={v => updateLease({ interestRate: v })}
-                className="w-20"
-              />
-              <div>
-                <label className="compact-label">Term (years)</label>
-                <input
-                  className="compact-input w-16"
-                  type="number"
-                  step="1"
+          <div className="mt-3 border border-gray-700 rounded-lg overflow-hidden">
+            <div className="divide-y divide-gray-700/40">
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Vehicle cost price</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 shrink-0">$</span>
+                  <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                    value={p.packaging.novatedLease.vehicleCostPrice ?? ''}
+                    onChange={e => updateLease({ vehicleCostPrice: numVal(e.target.value) })}
+                    onWheel={e => e.target.blur()} placeholder="0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Residual / balloon</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 shrink-0">$</span>
+                  <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                    value={p.packaging.novatedLease.residualValue ?? ''}
+                    onChange={e => updateLease({ residualValue: numVal(e.target.value) })}
+                    onWheel={e => e.target.blur()} placeholder="0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Annual running costs</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500 shrink-0">$</span>
+                  <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                    value={p.packaging.novatedLease.annualRunningCosts ?? ''}
+                    onChange={e => updateLease({ annualRunningCosts: numVal(e.target.value) })}
+                    onWheel={e => e.target.blur()} placeholder="0" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Interest rate</span>
+                <div className="flex items-center gap-1">
+                  <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
+                    value={p.packaging.novatedLease.interestRate != null ? (p.packaging.novatedLease.interestRate * 100).toFixed(1) : ''}
+                    onChange={e => { const v = numVal(e.target.value); updateLease({ interestRate: v === '' ? '' : v / 100 }) }}
+                    onWheel={e => e.target.blur()} placeholder="0" />
+                  <span className="text-xs text-gray-500 shrink-0">%</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Term (years)</span>
+                <input className="compact-input w-full text-right text-sm" type="number" step="1"
                   value={p.packaging.novatedLease.termYears || ''}
                   onChange={e => updateLease({ termYears: numVal(e.target.value) || null })}
-                  onWheel={e => e.target.blur()}
-                  placeholder="5"
-                />
+                  onWheel={e => e.target.blur()} placeholder="5" />
               </div>
-            </div>
-
-            {/* Usage + active dates */}
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <div>
-                <label className="compact-label">Total km / year</label>
-                <input
-                  className="compact-input w-20"
-                  type="number"
-                  step="1"
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Total km / year</span>
+                <input className="compact-input w-full text-right text-sm" type="number" step="1"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
                   onChange={e => updateLease({ annualKmTotal: numVal(e.target.value) })}
-                  onWheel={e => e.target.blur()}
-                  placeholder="0"
-                />
+                  onWheel={e => e.target.blur()} placeholder="0" />
               </div>
-              <div>
-                <label className="compact-label">Business km / year</label>
-                <input
-                  className="compact-input w-20"
-                  type="number"
-                  step="1"
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Business km / year</span>
+                <input className="compact-input w-full text-right text-sm" type="number" step="1"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
                   onChange={e => updateLease({ annualKmBusiness: numVal(e.target.value) })}
-                  onWheel={e => e.target.blur()}
-                  placeholder="0"
-                />
+                  onWheel={e => e.target.blur()} placeholder="0" />
               </div>
-              <div>
-                <label className="compact-label">Lease start</label>
-                <input
-                  className="compact-input w-32"
-                  type="month"
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Lease start</span>
+                <input className="compact-input w-full" type="month"
                   value={p.packaging.novatedLease.activeYears?.from || ''}
-                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })}
-                />
+                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })} />
               </div>
-              <div>
-                <label className="compact-label">Lease end</label>
-                <input
-                  className="compact-input w-32"
-                  type="month"
+              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <span className="text-xs text-gray-400">Lease end</span>
+                <input className="compact-input w-full" type="month"
                   value={p.packaging.novatedLease.activeYears?.to || ''}
-                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: e.target.value || null } })}
-                />
+                  onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, to: e.target.value || null } })} />
               </div>
             </div>
 
-            {/* Lease payment breakdown */}
             {leasePaymentCalc && leasePaymentCalc.annualPayment > 0 && (
-              <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
-                <div className="text-gray-300 font-medium mb-1">Lease Payment</div>
-                <div>Financed: ${Math.round(leasePaymentCalc.financed).toLocaleString()} (cost − residual)</div>
-                <div>Total interest: ${Math.round(leasePaymentCalc.totalInterest).toLocaleString()} (upfront)</div>
-                <div className="text-gray-300 font-medium">Annual lease payment: ${Math.round(leasePaymentCalc.annualPayment).toLocaleString()}/yr</div>
+              <div className="border-t border-gray-700/60 px-3 py-2 bg-gray-800/30 text-xs text-gray-400 space-y-0.5">
+                <div className="text-gray-300 font-medium">Lease payment: ${Math.round(leasePaymentCalc.annualPayment).toLocaleString()}/yr</div>
+                <div>Financed: ${Math.round(leasePaymentCalc.financed).toLocaleString()} · Interest: ${Math.round(leasePaymentCalc.totalInterest).toLocaleString()}</div>
                 {(p.packaging.novatedLease.residualValue || 0) > 0 && (
                   <div className="text-amber-400">Balloon of ${Math.round(p.packaging.novatedLease.residualValue).toLocaleString()} due at end of term</div>
                 )}
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="border-t border-gray-700/60 px-3 py-2 space-y-2">
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={`ev-${label}`}
+                <input type="checkbox" id={`ev-${label}`}
                   checked={!!p.packaging.novatedLease.isEV}
-                  onChange={e => updateLease({ isEV: e.target.checked })}
-                />
-                <label htmlFor={`ev-${label}`} className="text-sm text-gray-400">
-                  Electric / zero-emission vehicle (FBT exempt)
-                </label>
+                  onChange={e => updateLease({ isEV: e.target.checked })} />
+                <label htmlFor={`ev-${label}`} className="text-xs text-gray-400">Electric / zero-emission vehicle (FBT exempt)</label>
               </div>
-
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id={`ecm-offset-${label}`}
+                <input type="checkbox" id={`ecm-offset-${label}`}
                   checked={!!p.packaging.novatedLease.offsetWithECM}
                   onChange={e => {
                     const offset = e.target.checked
                     const contrib = offset && fbtBreakdown ? fbtBreakdown.offsetContribution : 0
-                    updateLease({
-                      offsetWithECM: offset,
-                      employeePostTaxContribution: contrib,
-                    })
-                  }}
-                />
-                <label htmlFor={`ecm-offset-${label}`} className="text-sm text-gray-400">
-                  Offset FBT with employee post-tax contribution (auto-calculated)
-                </label>
+                    updateLease({ offsetWithECM: offset, employeePostTaxContribution: contrib })
+                  }} />
+                <label htmlFor={`ecm-offset-${label}`} className="text-xs text-gray-400">Offset FBT with employee post-tax contribution (auto-calculated)</label>
               </div>
             </div>
 
             {!p.packaging.novatedLease.offsetWithECM && (
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-                <div>
-                  <label className="compact-label">FBT method</label>
-                  <select
-                    className="compact-input w-48"
+              <div className="border-t border-gray-700/60 divide-y divide-gray-700/40">
+                <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                  <span className="text-xs text-gray-400">FBT method</span>
+                  <select className="compact-input w-full text-sm"
                     value={p.packaging.novatedLease.method}
-                    onChange={e => updateLease({ method: e.target.value })}
-                  >
+                    onChange={e => updateLease({ method: e.target.value })}>
                     <option value="statutory">Statutory (20% flat)</option>
                     <option value="ecm">Operating cost / ECM</option>
                   </select>
                 </div>
-                <CurrencyInput
-                  label="Employee post-tax contribution"
-                  value={p.packaging.novatedLease.employeePostTaxContribution}
-                  onChange={v => updateLease({ employeePostTaxContribution: v })}
-                />
+                <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                  <span className="text-xs text-gray-400">Employee post-tax contribution</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500 shrink-0">$</span>
+                    <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                      value={p.packaging.novatedLease.employeePostTaxContribution ?? ''}
+                      onChange={e => updateLease({ employeePostTaxContribution: numVal(e.target.value) })}
+                      onWheel={e => e.target.blur()} placeholder="0" />
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* FBT breakdown */}
             {fbtBreakdown && (
-              <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-1">
-                <div className="text-gray-300 font-medium mb-1">FBT Calculation ({fbtBreakdown.method === 'ev_exempt' ? 'EV exempt' : fbtBreakdown.method === 'ecm' ? 'Operating Cost (ECM)' : 'Statutory'})</div>
-                <div>FBT taxable value (cost × 20%): ${Math.round(fbtBreakdown.rawTaxableValue || 0).toLocaleString()}</div>
-                <div>Taxable value after contribution: ${Math.round(fbtBreakdown.taxableValue).toLocaleString()}</div>
-                <div>FBT liability: ${Math.round(fbtBreakdown.fbtLiability).toLocaleString()}</div>
-                <div className="border-t border-gray-700 pt-1 mt-1">Total running costs (lease + running): ${Math.round(fbtBreakdown.totalRunningCosts || 0).toLocaleString()}</div>
-                {(fbtBreakdown.employeePostTaxContrib || 0) > 0 && (
-                  <div>Less ECM contribution: −${Math.round(fbtBreakdown.employeePostTaxContrib).toLocaleString()}</div>
-                )}
-                <div className="text-gray-300">Pre-tax packaging reduction: ${Math.round(fbtBreakdown.pretaxPackageReduction).toLocaleString()}/yr</div>
-                <div>Est. income tax saving (@ 45%): ${Math.round(fbtBreakdown.incomeTaxSaving).toLocaleString()}</div>
+              <div className="border-t border-gray-700/60 px-3 py-2 bg-gray-800/30 text-xs text-gray-400 space-y-0.5">
+                <div className="text-gray-300 font-medium mb-0.5">FBT ({fbtBreakdown.method === 'ev_exempt' ? 'EV exempt' : fbtBreakdown.method === 'ecm' ? 'ECM' : 'Statutory'})</div>
+                <div>Taxable value: ${Math.round(fbtBreakdown.taxableValue).toLocaleString()} · FBT liability: ${Math.round(fbtBreakdown.fbtLiability).toLocaleString()}</div>
+                <div className="text-gray-300">Pre-tax reduction: ${Math.round(fbtBreakdown.pretaxPackageReduction).toLocaleString()}/yr · Tax saving: ${Math.round(fbtBreakdown.incomeTaxSaving).toLocaleString()}</div>
                 {p.packaging.novatedLease.offsetWithECM && (
-                  <div className="text-sky-400">FBT offset: contributing ${Math.round(fbtBreakdown.offsetContribution || 0).toLocaleString()}/yr post-tax to eliminate FBT</div>
+                  <div className="text-sky-400">FBT offset: contributing ${Math.round(fbtBreakdown.offsetContribution || 0).toLocaleString()}/yr post-tax</div>
                 )}
                 <div className="text-green-400 font-medium">Net annual benefit: ${Math.round(fbtBreakdown.netAnnualBenefit).toLocaleString()}/yr</div>
                 {fbtBreakdown.warnings?.map((w, i) => (
@@ -2986,12 +2986,6 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
       <Section title="People">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {(() => {
-            const hasSharedSalaryPeriodHint =
-              ((personA.salaryPeriod || 'annual') !== 'annual' && (personA.currentSalary || 0) > 0) ||
-              ((personB.salaryPeriod || 'annual') !== 'annual' && (personB.currentSalary || 0) > 0)
-            const hasSharedEmployerPackaging =
-              (personA.employerType || 'standard') !== 'standard' ||
-              (personB.employerType || 'standard') !== 'standard'
             const hasSharedHecs = !!personA.hecs || !!personB.hecs
             const maxSalaryChanges = Math.max(
               (personA.salaryChanges || []).length,
@@ -3003,8 +2997,6 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   person={personA}
                   label="A"
                   onUpdate={updatePersonA}
-                  alignSalaryPeriodHintSlot={hasSharedSalaryPeriodHint}
-                  alignEmployerPackagingSlot={hasSharedEmployerPackaging}
                   alignHecsSlot={hasSharedHecs}
                   alignSalaryChangesCount={maxSalaryChanges}
                 />
@@ -3012,8 +3004,6 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   person={personB}
                   label="B"
                   onUpdate={updatePersonB}
-                  alignSalaryPeriodHintSlot={hasSharedSalaryPeriodHint}
-                  alignEmployerPackagingSlot={hasSharedEmployerPackaging}
                   alignHecsSlot={hasSharedHecs}
                   alignSalaryChangesCount={maxSalaryChanges}
                 />

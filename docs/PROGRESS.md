@@ -120,6 +120,26 @@
 
 ## Session Log
 
+### Session 40 — 2026-05-03
+
+**What was done:**
+
+- **PersonForm card grid pattern** — Applied the new 50/50 `grid grid-cols-2` label-left/value-right pattern throughout the entire PersonForm section (People cards). Previously PersonForm used `flex + flex-1 + shrink-0 + specific pixel widths`. Now every divide-y row uses `grid grid-cols-2 items-center gap-3`, label has no `flex-1`, and inputs use `w-full` (or `flex-1` inside composite `$`/`%` wrappers). Sections covered: basic fields (Name, DOB, Retire age, Gross salary), HECS card, salary change sub-cards, employer section (employer type + PBI/QLD packaging rows), novated lease rows (all 9 fields + FBT method + post-tax contribution).
+
+- **HECS section redesigned** — Replaced `CurrencyInput` components in a `flex flex-wrap` label-above layout with a `divide-y` card using `grid grid-cols-2` rows matching the rest of PersonForm. Current balance and extra annual repayment now show as label-left / value-right rows inside a bordered card.
+
+- **Alignment fix** — Removed `alignSalaryPeriodHintSlot` and `alignEmployerPackagingSlot` props from PersonForm. Since cards are now independent side-by-side panels, phantom placeholder rows for the other person's conditional packaging fields were causing a visible gap on the Standard employer card. Removed both props and all placeholder row logic for these two slots.
+
+- **Light mode person card styling** — Added `.person-card` and `.person-card-header` CSS classes to PersonForm wrapper and header divs. Added corresponding light mode rules to `index.css`: person card border `sky-200 (#bae6fd)`, header background `sky-100 (#e0f2fe)` — matching the established `.item-card` sky-blue brand palette.
+
+- **Syntax fix** — Repaired stray `)` at line 558 in HouseholdProfile.jsx (one extra closing bracket in the `hasEmployerPackagingFields` expression introduced during employer section restructuring).
+
+- **Skill file updated** — `~/.claude/skills/wf-household.md` rewritten to codify the 50/50 grid rule as the canonical pattern for all divide-y rows. Key changes: new "Divide-Y Card Row Pattern" section with code examples for all variants (simple, `$`, `%`, composite); field width table scoped to holding cards only; old "never use `w-full` for currency fields" rule retired for card rows; shared-slot props table updated (removed stale `alignSalaryPeriodHintSlot` and `alignEmployerPackagingSlot`); design principles rewritten with Principle 1 as "50/50 split is the default".
+
+**Tests:** 568 passing (UI-only changes, no engine modifications).
+
+---
+
 ### Session 39 — 2026-04-29
 
 **What was done:**

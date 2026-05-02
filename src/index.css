@@ -148,6 +148,14 @@ html.light .item-card {
   background-color: #e0f2fe; /* sky-100 — blue tint matching brand/scenarios palette */
 }
 
+html.light .person-card {
+  border-color: #bae6fd; /* sky-200 */
+}
+html.light .person-card-header {
+  background-color: #e0f2fe; /* sky-100 */
+  border-bottom-color: #bae6fd; /* sky-200 */
+}
+
 html.light .card {
   background-color: #ffffff;
   border-color: #cbd5e1; /* slate-300 — crisper against deeper bg */
