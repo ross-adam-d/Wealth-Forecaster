@@ -72,6 +72,7 @@ html.light body {
 html.light .bg-gray-950 { background-color: #dde3eb; } /* deep page bg */
 html.light .bg-gray-900 { background-color: #ffffff; } /* white — cards, header */
 html.light .bg-gray-800 { background-color: #f1f5f9; } /* slate-100 — inputs, secondary surfaces */
+html.light .bg-gray-800\/10 { background-color: #e8edf3; } /* subsection card tint — same as 50 so it's visible over white cards */
 html.light .bg-gray-800\/50 { background-color: #e8edf3; } /* slightly tinted info tiles */
 html.light .bg-gray-800\/20 { background-color: rgba(226, 232, 240, 0.5); }
 html.light .bg-gray-800\/15 { background-color: rgba(226, 232, 240, 0.4); }

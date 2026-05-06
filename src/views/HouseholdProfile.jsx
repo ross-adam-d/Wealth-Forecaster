@@ -194,7 +194,7 @@ function PersonForm({
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {label}</h3>
       </div>
 
-      <div className="divide-y divide-gray-800/60">
+      <div className="divide-y divide-gray-800/60 bg-gray-800/10">
         <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Name</span>
           <input
@@ -289,7 +289,7 @@ function PersonForm({
           </button>
         </div>
         {(p.salaryChanges || []).map((change, ci) => (
-          <div key={change.id || ci} className="border border-gray-700 rounded-lg overflow-hidden mb-2">
+          <div key={change.id || ci} className="border border-gray-700 rounded-lg overflow-hidden mb-2 bg-gray-800/10">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/60">
               <input
                 className="compact-input flex-1 text-xs"
@@ -380,7 +380,7 @@ function PersonForm({
           </div>
         ))}
         {Array.from({ length: Math.max(0, alignSalaryChangesCount - (p.salaryChanges || []).length) }).map((_, i) => (
-          <div key={`sc-ph-${i}`} className="border border-gray-700 rounded-lg overflow-hidden mb-2 opacity-0 pointer-events-none" aria-hidden="true">
+          <div key={`sc-ph-${i}`} className="border border-gray-700 rounded-lg overflow-hidden mb-2 bg-gray-800/10 opacity-0 pointer-events-none" aria-hidden="true">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/60">
               <input type="text" readOnly tabIndex={-1} className="compact-input flex-1 text-xs" />
             </div>
@@ -427,7 +427,7 @@ function PersonForm({
           )}
         </div>
         {p.hecs && (
-          <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden">
+          <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
             <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
               <span className="text-xs text-gray-400">Current HECS balance</span>
               <div className="flex items-center gap-1">
@@ -460,7 +460,7 @@ function PersonForm({
           </div>
         )}
         {showHecsSlot && !p.hecs && (
-          <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden opacity-0 pointer-events-none" aria-hidden="true">
+          <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10 opacity-0 pointer-events-none" aria-hidden="true">
             <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
               <span className="text-xs">&nbsp;</span>
               <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
@@ -474,7 +474,7 @@ function PersonForm({
         )}
       </div>
 
-      <div className="border-t border-gray-800 divide-y divide-gray-800/60">
+      <div className="border-t border-gray-800 divide-y divide-gray-800/60 bg-gray-800/10">
         <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Employer type</span>
           <select
@@ -592,7 +592,7 @@ function PersonForm({
         </div>
 
         {hasLease && leaseOpen && (
-          <div className="mt-3 border border-gray-700 rounded-lg overflow-hidden">
+          <div className="mt-3 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
             <div className="divide-y divide-gray-700/40">
               <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Vehicle cost price</span>
@@ -762,101 +762,93 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmpl
     <div className="space-y-3">
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {personLabel}</h3>
 
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-        <CurrencyInput
-          label="Current balance"
-          value={s.currentBalance}
-          onChange={v => onUpdate({ currentBalance: v })}
-          className="max-w-40"
-        />
-        <div className="min-w-[23rem]">
-          <label className="compact-label">Employer scheme</label>
-          <div className="grid grid-cols-[13rem_9rem] gap-2 items-start">
-            <select
-              className="compact-input w-52"
-              value={employerScheme}
-              onChange={e => onUpdate({ employerScheme: e.target.value })}
-            >
-              <option value="sg">Standard SG (auto-stepped)</option>
+      <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Current balance</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={s.currentBalance ?? ''} onChange={e => onUpdate({ currentBalance: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Employer scheme</span>
+          <div className="flex items-center gap-2">
+            <select className="compact-input flex-1" value={employerScheme}
+              onChange={e => onUpdate({ employerScheme: e.target.value })}>
+              <option value="sg">Standard SG</option>
               <option value="match">Employer match</option>
               <option value="fixed_pct">Fixed employer %</option>
             </select>
             {showEmployerPctSlot && (
               hasEmployerPctInput ? (
-                <PctInput
-                  label=""
-                  value={employerScheme === 'match' ? s.employerMatchCapPct : s.employerFixedPct}
-                  onChange={v =>
-                    onUpdate(
-                      employerScheme === 'match'
-                        ? { employerMatchCapPct: v }
-                        : { employerFixedPct: v }
-                    )
-                  }
-                  hint={employerScheme === 'match' ? 'Match cap %' : 'Employer %'}
-                  className="w-36"
-                />
-              ) : (
-                <div className="w-36" aria-hidden="true">
-                  <label className="compact-label">&nbsp;</label>
-                  <input type="text" readOnly tabIndex={-1} className="compact-input w-full opacity-0 pointer-events-none" />
-                  <p className="text-xs mt-0.5 text-transparent">placeholder</p>
+                <div className="flex items-center gap-1 shrink-0">
+                  <input className="compact-input w-14 text-right text-sm" type="number" step="0.1"
+                    value={(() => {
+                      const v = employerScheme === 'match' ? s.employerMatchCapPct : s.employerFixedPct
+                      return v != null && v !== '' ? (v * 100).toFixed(1) : ''
+                    })()}
+                    onChange={e => {
+                      const v = numVal(e.target.value)
+                      onUpdate(employerScheme === 'match' ? { employerMatchCapPct: v === '' ? '' : v / 100 } : { employerFixedPct: v === '' ? '' : v / 100 })
+                    }}
+                    onWheel={e => e.target.blur()} placeholder="0" />
+                  <span className="text-xs text-gray-500 shrink-0">%</span>
                 </div>
+              ) : (
+                <input type="text" readOnly tabIndex={-1} className="compact-input w-20 opacity-0 pointer-events-none" />
               )
             )}
           </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <CurrencyInput
-            label="Salary sacrifice"
-            value={s.salarySacrificeAmount}
-            onChange={v => onUpdate({ salarySacrificeAmount: v })}
-            hint={`SG est. $${Math.round(sgEstimate).toLocaleString()} · Cap $${CONCESSIONAL_CAP.toLocaleString()}`}
-            className="max-w-40"
-          />
-          <p className={`text-xs mt-1 min-h-4 ${concessionalBreached ? 'text-amber-400' : 'text-transparent'}`}>
-            {concessionalBreached
-              ? `Cap exceeded — $${Math.round(totalConcessional).toLocaleString()} vs $${CONCESSIONAL_CAP.toLocaleString()}`
-              : 'placeholder'}
-          </p>
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="compact-label">Salary sacrifice</label>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs text-gray-500 shrink-0">$</span>
+                <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                  value={s.salarySacrificeAmount ?? ''} onChange={e => onUpdate({ salarySacrificeAmount: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()} placeholder="0" />
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">SG est. ${Math.round(sgEstimate).toLocaleString()} · Cap ${CONCESSIONAL_CAP.toLocaleString()}</p>
+              {concessionalBreached && (
+                <p className="text-xs text-amber-400 mt-0.5">Cap exceeded — ${Math.round(totalConcessional).toLocaleString()} vs ${CONCESSIONAL_CAP.toLocaleString()}</p>
+              )}
+            </div>
+            <div>
+              <label className="compact-label">Extra concessional</label>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs text-gray-500 shrink-0">$</span>
+                <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                  value={s.voluntaryConcessional ?? ''} onChange={e => onUpdate({ voluntaryConcessional: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()} placeholder="0" />
+              </div>
+            </div>
+            <div>
+              <label className="compact-label">Non-concessional</label>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs text-gray-500 shrink-0">$</span>
+                <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                  value={s.voluntaryNonConcessional ?? ''} onChange={e => onUpdate({ voluntaryNonConcessional: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()} placeholder="0" />
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">Cap ${NON_CONCESSIONAL_CAP.toLocaleString()}</p>
+              {nccBreached && <p className="text-xs text-amber-400 mt-0.5">Exceeds annual cap</p>}
+            </div>
+          </div>
         </div>
-        <CurrencyInput
-          label="Extra concessional"
-          value={s.voluntaryConcessional}
-          onChange={v => onUpdate({ voluntaryConcessional: v })}
-          className="max-w-40"
-        />
-        <div>
-          <CurrencyInput
-            label="Non-concessional"
-            value={s.voluntaryNonConcessional}
-            onChange={v => onUpdate({ voluntaryNonConcessional: v })}
-            hint={`Cap $${NON_CONCESSIONAL_CAP.toLocaleString()}`}
-            max={nccBreached ? NON_CONCESSIONAL_CAP : undefined}
-            className="max-w-40"
-          />
-          <p className={`text-xs mt-1 min-h-4 ${nccBreached ? 'text-amber-400' : 'text-transparent'}`}>
-            {nccBreached ? 'Exceeds annual cap' : 'placeholder'}
-          </p>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-800 pt-3 space-y-3">
-        <div className="flex items-center gap-2 h-8">
-          <input
-            type="checkbox"
-            id={`ttr-${personLabel}`}
-            className="shrink-0"
-            checked={!!s.isTTR}
-            onChange={e => onUpdate({ isTTR: e.target.checked })}
-          />
+        <div className="flex items-center h-10 gap-2 px-4">
+          <input type="checkbox" id={`ttr-${personLabel}`} className="shrink-0"
+            checked={!!s.isTTR} onChange={e => onUpdate({ isTTR: e.target.checked })} />
           <label htmlFor={`ttr-${personLabel}`} className="text-sm leading-5 text-gray-400">
             Transition to Retirement (TTR) income stream active
           </label>
         </div>
+      </div>
+
+      <div className="border-t border-gray-800 pt-3">
         <HoldingsSubForm
           holdings={s.holdings}
           fields={['pensionReturnRate']}
@@ -895,79 +887,69 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
       </button>
 
       {open && (
-        <div className="p-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={`primary-${index}`}
-              checked={!!p.isPrimaryResidence}
-              onChange={e => onUpdate({ isPrimaryResidence: e.target.checked })}
-            />
-            <label htmlFor={`primary-${index}`} className="text-sm text-gray-400">
+        <div className="divide-y divide-gray-700/30 bg-gray-800/10">
+          <div className="flex items-center h-10 gap-2 px-4">
+            <input type="checkbox" id={`primary-${index}`} className="shrink-0"
+              checked={!!p.isPrimaryResidence} onChange={e => onUpdate({ isPrimaryResidence: e.target.checked })} />
+            <label htmlFor={`primary-${index}`} className="text-sm leading-5 text-gray-400">
               Primary residence (CGT-exempt, excluded from assets test)
             </label>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-            <div className="w-full">
-              <label className="compact-label">State</label>
-              <select
-                className="compact-input w-full max-w-24"
-                value={p.state || ''}
-                onChange={e => onUpdate({ state: e.target.value || null })}
-              >
-                <option value="">—</option>
-                <option value="NSW">NSW</option>
-                <option value="VIC">VIC</option>
-                <option value="QLD">QLD</option>
-                <option value="SA">SA</option>
-                <option value="WA">WA</option>
-                <option value="TAS">TAS</option>
-                <option value="NT">NT</option>
-                <option value="ACT">ACT</option>
-              </select>
-            </div>
-            <CurrencyInput
-              label="Current value"
-              value={p.currentValue}
-              onChange={v => onUpdate({ currentValue: v })}
-              className="max-w-44"
-            />
-            <CurrencyInput
-              label="Purchase price"
-              value={p.purchasePrice}
-              onChange={v => onUpdate({ purchasePrice: v })}
-              className="max-w-44"
-            />
-            <PctInput
-              label="Growth rate"
-              value={p.growthRate ?? 0.04}
-              onChange={v => onUpdate({ growthRate: v })}
-              step={0.1}
-              hint="Annual capital growth"
-              className="max-w-40"
-            />
-            {p.isPrimaryResidence && (
-              <div className="w-full">
-                <label className="compact-label text-transparent">Toggle</label>
-                <label className="flex items-center gap-1.5 cursor-pointer min-h-8">
-                  <input
-                    type="checkbox"
-                    checked={!!p.isFirstHomeBuyer}
-                    onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })}
-                    className="accent-brand-500"
-                  />
-                  <span className="text-xs text-gray-400">First home buyer</span>
-                </label>
-              </div>
-            )}
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">State</span>
+            <select className="compact-input w-full" value={p.state || ''}
+              onChange={e => onUpdate({ state: e.target.value || null })}>
+              <option value="">—</option>
+              <option value="NSW">NSW</option>
+              <option value="VIC">VIC</option>
+              <option value="QLD">QLD</option>
+              <option value="SA">SA</option>
+              <option value="WA">WA</option>
+              <option value="TAS">TAS</option>
+              <option value="NT">NT</option>
+              <option value="ACT">ACT</option>
+            </select>
           </div>
-
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Current value</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500 shrink-0">$</span>
+              <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                value={p.currentValue ?? ''} onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()} placeholder="0" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Purchase price</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500 shrink-0">$</span>
+              <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                value={p.purchasePrice ?? ''} onChange={e => onUpdate({ purchasePrice: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()} placeholder="0" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Annual growth rate</span>
+            <div className="flex items-center gap-1">
+              <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
+                value={p.growthRate != null && p.growthRate !== '' ? (p.growthRate * 100).toFixed(1) : '4.0'}
+                onChange={e => { const v = numVal(e.target.value); onUpdate({ growthRate: v === '' ? '' : v / 100 }) }}
+                onWheel={e => e.target.blur()} placeholder="4.0" />
+              <span className="text-xs text-gray-500 shrink-0">%</span>
+            </div>
+          </div>
+          {p.isPrimaryResidence && (
+            <div className="flex items-center h-10 gap-2 px-4">
+              <input type="checkbox" className="accent-brand-500 shrink-0" checked={!!p.isFirstHomeBuyer}
+                onChange={e => onUpdate({ isFirstHomeBuyer: e.target.checked })} />
+              <label className="text-sm leading-5 text-gray-400">First home buyer</label>
+            </div>
+          )}
           {p.state && p.purchasePrice > 0 && (() => {
             const duty = calcStampDuty(p.purchasePrice, p.state, !!p.isFirstHomeBuyer, !!p.isPrimaryResidence)
             const landTaxAmt = !p.isPrimaryResidence ? calcLandTax(p.currentValue || p.purchasePrice, p.state) : 0
             return (
-              <div className="flex flex-wrap gap-4 text-xs">
+              <div className="px-4 py-2 flex flex-wrap gap-4 text-xs">
                 <span className="text-gray-400">
                   Stamp duty: <span className="text-white font-medium">${duty.toLocaleString()}</span>
                   {p.isFirstHomeBuyer && p.isPrimaryResidence && duty === 0 && <span className="text-green-400 ml-1">(FHB exempt)</span>}
@@ -980,68 +962,61 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               </div>
             )
           })()}
-
-          <div className="border-t border-gray-800 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
-            <div className="w-full">
-              <label className="compact-label">Purchase date</label>
-              <input
-                className="compact-input w-full max-w-40"
-                type="date"
-                value={p.purchaseDate || ''}
-                onChange={e => onUpdate({ purchaseDate: e.target.value })}
-              />
-            </div>
-            <div className="w-full">
-              <label className="compact-label">Purchase method</label>
-              <select
-                className="compact-input w-full max-w-44"
-                value={p.purchasedCash ? 'cash' : 'mortgage'}
-                onChange={e => {
-                  const isCash = e.target.value === 'cash'
-                  onUpdate({
-                    purchasedCash: isCash,
-                    ...(isCash ? { mortgageBalance: 0, loanTermYearsRemaining: 0, interestRate: 0, offsetBalance: 0 } : {}),
-                  })
-                }}
-              >
-                <option value="mortgage">Mortgage</option>
-                <option value="cash">Purchased with cash</option>
-              </select>
-            </div>
-            <MonthYearInput
-              label="Future purchase date"
-              value={p.futurePurchaseYear}
-              onChange={v => onUpdate({ futurePurchaseYear: v })}
-              placeholder="Year"
-            />
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Purchase date</span>
+            <input className="compact-input w-full" type="date" value={p.purchaseDate || ''}
+              onChange={e => onUpdate({ purchaseDate: e.target.value })} />
+          </div>
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Purchase method</span>
+            <select className="compact-input w-full" value={p.purchasedCash ? 'cash' : 'mortgage'}
+              onChange={e => {
+                const isCash = e.target.value === 'cash'
+                onUpdate({
+                  purchasedCash: isCash,
+                  ...(isCash ? { mortgageBalance: 0, loanTermYearsRemaining: 0, interestRate: 0, offsetBalance: 0 } : {}),
+                })
+              }}>
+              <option value="mortgage">Mortgage</option>
+              <option value="cash">Purchased with cash</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Future purchase date</span>
+            <MonthYearInput value={p.futurePurchaseYear} onChange={v => onUpdate({ futurePurchaseYear: v })} placeholder="Year" />
           </div>
 
           {!p.purchasedCash && (
-            <div className="border-t border-gray-800 pt-4 space-y-3">
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                <CurrencyInput
-                  label="Outstanding mortgage"
-                  value={p.mortgageBalance}
-                  onChange={v => {
-                    const patch = { mortgageBalance: v }
-                    if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
-                    onUpdate(patch)
-                  }}
-                  className="max-w-44"
-                />
-                <PctInput
-                  label="Interest rate"
-                  value={p.interestRate}
-                  onChange={v => onUpdate({ interestRate: v })}
-                  step={0.05}
-                  className="w-20"
-                />
-                <div>
-                  <label className="compact-label">Yrs remaining</label>
-                  <input
-                    className="compact-input w-16"
-                    type="number"
-                    step="1"
+            <div className="px-4 py-3 space-y-3">
+              <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Outstanding mortgage</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500 shrink-0">$</span>
+                    <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                      value={p.mortgageBalance ?? ''}
+                      onChange={e => {
+                        const v = numVal(e.target.value)
+                        const patch = { mortgageBalance: v }
+                        if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
+                        onUpdate(patch)
+                      }}
+                      onWheel={e => e.target.blur()} placeholder="0" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Interest rate</span>
+                  <div className="flex items-center gap-1">
+                    <input className="compact-input flex-1 text-right text-sm" type="number" step="0.05"
+                      value={p.interestRate != null && p.interestRate !== '' ? (p.interestRate * 100).toFixed(2) : ''}
+                      onChange={e => { const v = numVal(e.target.value); onUpdate({ interestRate: v === '' ? '' : v / 100 }) }}
+                      onWheel={e => e.target.blur()} placeholder="0" />
+                    <span className="text-xs text-gray-500 shrink-0">%</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Years remaining</span>
+                  <input className="compact-input w-full text-right" type="number" step="1"
                     value={p.loanTermYearsRemaining || ''}
                     onChange={e => {
                       const yrs = numVal(e.target.value)
@@ -1049,17 +1024,12 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                       if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
                       onUpdate(patch)
                     }}
-                    onWheel={e => e.target.blur()}
-                    placeholder="0"
-                  />
+                    onWheel={e => e.target.blur()} placeholder="0" />
                 </div>
-                <div>
-                  <label className="compact-label">Loan type</label>
-                  <select
-                    className="compact-input w-44"
-                    value={p.loanType || 'pi'}
-                    onChange={e => onUpdate({ loanType: e.target.value })}
-                  >
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Loan type</span>
+                  <select className="compact-input w-full"
+                    value={p.loanType || 'pi'} onChange={e => onUpdate({ loanType: e.target.value })}>
                     <option value="pi">Principal & Interest</option>
                     <option value="io">Interest Only</option>
                   </select>
@@ -1067,166 +1037,157 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               </div>
 
               {p.loanType === 'io' && (
-                <div>
-                  <label className="compact-label">IO period ends (year)</label>
-                  <input
-                    className="compact-input w-24"
-                    type="number"
-                    step="1"
-                    value={p.ioEndYear || ''}
-                    onChange={e => onUpdate({ ioEndYear: numVal(e.target.value) })}
-                    onWheel={e => e.target.blur()}
-                    placeholder="2028"
-                  />
-                  <p className="text-xs text-amber-400 mt-1">
-                    Repayments step up to P&I at IO expiry
-                  </p>
+                <div className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
+                  <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                    <span className="text-sm text-gray-400">IO period ends (year)</span>
+                    <input className="compact-input w-full text-right" type="number" step="1"
+                      value={p.ioEndYear || ''} onChange={e => onUpdate({ ioEndYear: numVal(e.target.value) })}
+                      onWheel={e => e.target.blur()} placeholder="2028" />
+                  </div>
+                  <p className="text-xs text-amber-400 px-4 pb-2">Repayments step up to P&I at IO expiry</p>
                 </div>
               )}
 
-              <label className="flex items-center gap-2 cursor-pointer mb-2">
-                <input
-                  type="checkbox"
-                  checked={p.hasOffset || false}
-                  onChange={e => onUpdate({ hasOffset: e.target.checked })}
-                  className="accent-brand-500"
-                />
+              <div className="flex items-center h-10 gap-2">
+                <input type="checkbox" className="accent-brand-500 shrink-0"
+                  checked={p.hasOffset || false} onChange={e => onUpdate({ hasOffset: e.target.checked })} />
                 <span className="text-sm text-gray-300">Mortgage offset account</span>
-              </label>
+              </div>
               {p.hasOffset && (
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-gray-500">
                   Your cash / savings balance (entered above) will offset this mortgage, reducing the interest charged each year.
                 </p>
               )}
 
               {p.mortgageBalance > 0 && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={p.payOffWhenAble || false}
-                    onChange={e => onUpdate({ payOffWhenAble: e.target.checked })}
-                    className="accent-brand-500"
-                  />
+                <div className="flex items-center h-10 gap-2">
+                  <input type="checkbox" className="accent-brand-500 shrink-0"
+                    checked={p.payOffWhenAble || false} onChange={e => onUpdate({ payOffWhenAble: e.target.checked })} />
                   <span className="text-sm text-gray-300">Pay off mortgage when liquid assets can cover it</span>
-                </label>
+                </div>
               )}
             </div>
           )}
 
           {!p.isPrimaryResidence && (
-            <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-end">
-              <CurrencyInput
-                label="Annual rental income"
-                value={p.annualRentalIncome}
-                onChange={v => onUpdate({ annualRentalIncome: v })}
-                className="max-w-44"
-              />
-              <CurrencyInput
-                label="Annual property expenses"
-                value={p.annualPropertyExpenses}
-                onChange={v => onUpdate({ annualPropertyExpenses: v })}
-                hint="Rates, insurance, management fees"
-                className="max-w-44"
-              />
+            <div className="px-4 py-3">
+              <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Annual rental income</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500 shrink-0">$</span>
+                    <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                      value={p.annualRentalIncome ?? ''} onChange={e => onUpdate({ annualRentalIncome: numVal(e.target.value) })}
+                      onWheel={e => e.target.blur()} placeholder="0" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Annual property expenses</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500 shrink-0">$</span>
+                    <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                      value={p.annualPropertyExpenses ?? ''} onChange={e => onUpdate({ annualPropertyExpenses: numVal(e.target.value) })}
+                      onWheel={e => e.target.blur()} placeholder="0" />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          <div className="border-t border-gray-800 pt-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="compact-label">CGT ownership — Person A</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="range" min={0} max={100} step={5}
-                  value={p.ownershipPctA ?? 100}
-                  onChange={e => onUpdate({ ownershipPctA: numVal(e.target.value) })}
-                  className="flex-1 accent-brand-500"
-                />
-                <span className="text-sm font-medium text-white w-12 text-right">
-                  {p.ownershipPctA ?? 100}% / {100 - (p.ownershipPctA ?? 100)}%
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 mt-1">How CGT is split between A and B on sale</p>
+          <div className="px-4 py-3">
+            <label className="compact-label">CGT ownership — Person A</label>
+            <div className="flex items-center gap-2 mt-1">
+              <input type="range" min={0} max={100} step={5}
+                value={p.ownershipPctA ?? 100}
+                onChange={e => onUpdate({ ownershipPctA: numVal(e.target.value) })}
+                className="flex-1 accent-brand-500" />
+              <span className="text-sm font-medium text-white w-12 text-right">
+                {p.ownershipPctA ?? 100}% / {100 - (p.ownershipPctA ?? 100)}%
+              </span>
             </div>
+            <p className="text-xs text-gray-600 mt-1">How CGT is split between A and B on sale</p>
           </div>
-
-          <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Sale event</span>
-              {!p.saleEvent ? (
-                <button
-                  className="btn-ghost text-xs py-1"
-                  onClick={() => onUpdate({ saleEvent: { year: new Date().getFullYear() + 10, destination: 'shares' } })}
-                >
-                  + Add sale
-                </button>
-              ) : (
-                <button
-                  className="btn-ghost text-xs py-1 text-red-400 hover:text-red-300"
-                  onClick={() => onUpdate({ saleEvent: null })}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-sm text-gray-400">Sale event</span>
+            {!p.saleEvent ? (
+              <button className="btn-ghost text-xs py-1"
+                onClick={() => onUpdate({ saleEvent: { year: new Date().getFullYear() + 10, destination: 'shares' } })}>
+                + Add sale
+              </button>
+            ) : (
+              <button className="btn-ghost text-xs py-1 text-red-400 hover:text-red-300"
+                onClick={() => onUpdate({ saleEvent: null })}>
+                Remove
+              </button>
+            )}
+          </div>
             {p.saleEvent && (
-              <div className="space-y-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
-                <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-                  <MonthYearInput
-                    label="Sale date"
-                    value={p.saleEvent.year}
-                    onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, year: v } })}
-                    placeholder="Year"
-                    nullable={false}
-                  />
+              <div className="px-4 pb-4">
+              <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Sale date</span>
                   <div>
-                    <label className="compact-label">Route proceeds to</label>
-                    <select
-                      className="compact-input w-44"
-                      value={p.saleEvent.destination || 'cash'}
-                      onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}
-                    >
-                      <option value="cash">Cash buffer</option>
-                      <option value="shares">Share portfolio</option>
-                      <option value="super">Super (downsizer)</option>
-                      {allProperties.filter((op, oi) => oi !== index - 1 && !op.purchasedCash && op.mortgageBalance > 0).length > 0 && (
-                        <optgroup label="Mortgage offset">
-                          {allProperties.map((op, oi) => {
-                            if (oi === index - 1 || op.purchasedCash || !op.mortgageBalance) return null
-                            const name = op.isPrimaryResidence ? 'Home' : (op.name || `Property ${oi + 1}`)
-                            return <option key={oi} value={`offset:${oi}`}>{name} offset</option>
-                          })}
-                        </optgroup>
-                      )}
-                      <option value="treasuryBonds">Treasury / Corporate Bonds</option>
-                      <option value="commodities">Commodities</option>
-                      <option value="bonds">Tax-Deferred Bonds</option>
-                      <option value="otherAssets">Other Assets</option>
-                    </select>
+                    <MonthYearInput
+                      value={p.saleEvent.year}
+                      onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, year: v } })}
+                      placeholder="Year"
+                      nullable={false}
+                    />
                   </div>
                 </div>
-                <PctInput
-                  label="Selling costs (agent, conveyancing, marketing)"
-                  value={p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT}
-                  onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, sellingCostsPct: v } })}
-                  min={0} max={15} step={0.1}
-                  hint={`Estimated ${((p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT) * (p.currentValue || 0)).toLocaleString('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })} at current value`}
-                />
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Route proceeds to</span>
+                  <select className="compact-input w-full"
+                    value={p.saleEvent.destination || 'cash'}
+                    onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, destination: e.target.value } })}>
+                    <option value="cash">Cash buffer</option>
+                    <option value="shares">Share portfolio</option>
+                    <option value="super">Super (downsizer)</option>
+                    {allProperties.filter((op, oi) => oi !== index - 1 && !op.purchasedCash && op.mortgageBalance > 0).length > 0 && (
+                      <optgroup label="Mortgage offset">
+                        {allProperties.map((op, oi) => {
+                          if (oi === index - 1 || op.purchasedCash || !op.mortgageBalance) return null
+                          const name = op.isPrimaryResidence ? 'Home' : (op.name || `Property ${oi + 1}`)
+                          return <option key={oi} value={`offset:${oi}`}>{name} offset</option>
+                        })}
+                      </optgroup>
+                    )}
+                    <option value="treasuryBonds">Treasury / Corporate Bonds</option>
+                    <option value="commodities">Commodities</option>
+                    <option value="bonds">Tax-Deferred Bonds</option>
+                    <option value="otherAssets">Other Assets</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Selling costs</span>
+                  <div className="flex items-center gap-1">
+                    <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
+                      value={(p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT) !== '' ? ((p.saleEvent.sellingCostsPct ?? DEFAULT_SELLING_COSTS_PCT) * 100).toFixed(1) : ''}
+                      onChange={e => { const v = numVal(e.target.value); onUpdate({ saleEvent: { ...p.saleEvent, sellingCostsPct: v === '' ? '' : v / 100 } }) }}
+                      onWheel={e => e.target.blur()} placeholder="0" />
+                    <span className="text-xs text-gray-500 shrink-0">%</span>
+                  </div>
+                </div>
                 {(() => {
                   const { fyEndYear } = currentAustralianFY()
                   const saleYearVal = extractYear(p.saleEvent.year)
                   if (!saleYearVal || saleYearVal > fyEndYear) return null
                   return (
-                    <CurrencyInput
-                      label="Actual sale price (current/past FY)"
-                      value={p.saleEvent.actualSalePrice}
-                      onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, actualSalePrice: v } })}
-                      hint="Used for CGT calculation — overrides projected value"
-                    />
+                    <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                      <span className="text-sm text-gray-400">Actual sale price</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500 shrink-0">$</span>
+                        <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                          value={p.saleEvent.actualSalePrice ?? ''}
+                          onChange={e => onUpdate({ saleEvent: { ...p.saleEvent, actualSalePrice: numVal(e.target.value) } })}
+                          onWheel={e => e.target.blur()} placeholder="0" />
+                      </div>
+                    </div>
                   )
                 })()}
               </div>
+              </div>
             )}
-          </div>
         </div>
       )}
     </div>
@@ -1240,98 +1201,87 @@ function SharesForm({ shares, onUpdate }) {
   const mode = s.contributionMode || 'surplus'
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-        <CurrencyInput
-          label="Current portfolio value"
-          value={s.currentValue}
-          onChange={v => onUpdate({ currentValue: v })}
-        />
-        <CurrencyInput
-          label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
-          value={s.annualContribution}
-          onChange={v => onUpdate({ annualContribution: v })}
-          className="max-w-40"
-        />
-      </div>
-      <div>
-        <label className="compact-label">Contribution mode</label>
-        <div className="flex gap-2 mt-1">
-          <button
-            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-              mode === 'fixed'
-                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => onUpdate({ contributionMode: 'fixed' })}
-          >
-            Fixed expense
-          </button>
-          <button
-            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-              mode === 'surplus'
-                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => onUpdate({ contributionMode: 'surplus' })}
-          >
-            From surplus
-          </button>
+      <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Current portfolio value</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={s.currentValue ?? ''} onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
         </div>
-        <p className="text-xs text-gray-600 mt-1.5">
-          {mode === 'fixed'
-            ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
-            : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
-        </p>
-      </div>
-      <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-start">
-        <PctInput
-          label="Annual increase"
-          value={s.annualIncreaseRate || 0}
-          onChange={v => onUpdate({ annualIncreaseRate: v })}
-          min={0}
-          max={50}
-          step={1}
-          hint="Contribution grows by this % each year"
-        />
-        <PctInput
-          label="Dividend yield"
-          value={s.dividendYield}
-          onChange={v => onUpdate({ dividendYield: v })}
-          hint="Annual cash dividends"
-        />
-        <PctInput
-          label="Franking credit %"
-          value={s.frankingPct}
-          onChange={v => onUpdate({ frankingPct: v })}
-          step={5}
-          hint="% fully franked"
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="preserve-capital"
-          checked={!!s.preserveCapital}
-          onChange={e => onUpdate({ preserveCapital: e.target.checked })}
-        />
-        <label htmlFor="preserve-capital" className="text-sm text-gray-400">
-          Preserve capital — no drawdown from share portfolio
-        </label>
-      </div>
-      {s.preserveCapital && (
-        <div>
-          <label className="compact-label">Preserve capital from age</label>
-          <input
-            className="compact-input w-14"
-            type="number"
-            step="1"
-            value={s.preserveCapitalFromAge || ''}
-            onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
-            onWheel={e => e.target.blur()}
-            placeholder="65"
-          />
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">{mode === 'surplus' ? 'Target contribution/yr' : 'Annual contribution'}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={s.annualContribution ?? ''} onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
         </div>
-      )}
+        <div className="px-4 py-3">
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${mode === 'fixed' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+              onClick={() => onUpdate({ contributionMode: 'fixed' })}
+            >Fixed expense</button>
+            <button
+              className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${mode === 'surplus' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+              onClick={() => onUpdate({ contributionMode: 'surplus' })}
+            >From surplus</button>
+          </div>
+          <p className="text-xs text-gray-600 mt-1.5">
+            {mode === 'fixed' ? 'Deducted from cashflow each year like an expense — guaranteed contribution.' : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Annual increase</span>
+          <div className="flex items-center gap-1">
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={s.annualIncreaseRate != null && s.annualIncreaseRate !== '' ? (s.annualIncreaseRate * 100).toFixed(0) : '0'}
+              onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
+              onWheel={e => e.target.blur()} placeholder="0" />
+            <span className="text-xs text-gray-500 shrink-0">%</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Dividend yield</span>
+          <div className="flex items-center gap-1">
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
+              value={s.dividendYield != null && s.dividendYield !== '' ? (s.dividendYield * 100).toFixed(1) : ''}
+              onChange={e => { const v = numVal(e.target.value); onUpdate({ dividendYield: v === '' ? '' : v / 100 }) }}
+              onWheel={e => e.target.blur()} placeholder="0" />
+            <span className="text-xs text-gray-500 shrink-0">%</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Franking credit %</span>
+          <div className="flex items-center gap-1">
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="5"
+              value={s.frankingPct != null && s.frankingPct !== '' ? (s.frankingPct * 100).toFixed(0) : ''}
+              onChange={e => { const v = numVal(e.target.value); onUpdate({ frankingPct: v === '' ? '' : v / 100 }) }}
+              onWheel={e => e.target.blur()} placeholder="0" />
+            <span className="text-xs text-gray-500 shrink-0">%</span>
+          </div>
+        </div>
+        <div className="flex items-center h-10 gap-2 px-4">
+          <input type="checkbox" id="preserve-capital" checked={!!s.preserveCapital}
+            onChange={e => onUpdate({ preserveCapital: e.target.checked })} />
+          <label htmlFor="preserve-capital" className="text-sm leading-5 text-gray-400">
+            Preserve capital — no drawdown from share portfolio
+          </label>
+        </div>
+        {s.preserveCapital && (
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Preserve from age</span>
+            <input className="compact-input w-full text-right" type="number" step="1"
+              value={s.preserveCapitalFromAge || ''}
+              onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="65" />
+          </div>
+        )}
+      </div>
       <div className="border-t border-gray-800 pt-4">
         <HoldingsSubForm
           holdings={s.holdings}
@@ -1772,42 +1722,35 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
   const mode = b.contributionMode || 'fixed'
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-        <CurrencyInput
-          label="Current portfolio value"
-          value={b.currentValue}
-          onChange={v => onUpdate({ currentValue: v })}
-        />
-        <CurrencyInput
-          label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
-          value={b.annualContribution}
-          onChange={v => onUpdate({ annualContribution: v })}
-          className="max-w-40"
-        />
-      </div>
-      <div>
-        <label className="compact-label">Contribution mode</label>
-        <div className="flex gap-2 mt-1">
-          <button
-            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-              mode === 'fixed'
-                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => onUpdate({ contributionMode: 'fixed' })}
-          >
-            Fixed expense
-          </button>
-          <button
-            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-              mode === 'surplus'
-                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => onUpdate({ contributionMode: 'surplus' })}
-          >
-            From surplus
-          </button>
+      <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Current portfolio value</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={b.currentValue ?? ''} onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">{mode === 'surplus' ? 'Target contribution/yr' : 'Annual contribution'}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={b.annualContribution ?? ''} onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
+        </div>
+        <div className="px-4 py-3">
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${mode === 'fixed' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+              onClick={() => onUpdate({ contributionMode: 'fixed' })}
+            >Fixed expense</button>
+            <button
+              className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${mode === 'surplus' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+              onClick={() => onUpdate({ contributionMode: 'surplus' })}
+            >From surplus</button>
         </div>
         <p className="text-xs text-gray-600 mt-1.5">
           {mode === 'fixed'
@@ -1815,48 +1758,43 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-      <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-start">
-        <PctInput
-          label="Annual increase"
-          value={b.annualIncreaseRate || 0}
-          onChange={v => onUpdate({ annualIncreaseRate: v })}
-          min={0}
-          max={50}
-          step={1}
-          hint="Grows by this % each year"
-        />
-        <PctInput
-          label="Coupon rate"
-          value={b.couponRate}
-          onChange={v => onUpdate({ couponRate: v })}
-          hint="Taxed as ordinary income"
-        />
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="tb-preserve-capital"
-          checked={!!b.preserveCapital}
-          onChange={e => onUpdate({ preserveCapital: e.target.checked })}
-        />
-        <label htmlFor="tb-preserve-capital" className="text-sm text-gray-400">
-          Preserve capital — no drawdown from bond portfolio
-        </label>
-      </div>
-      {b.preserveCapital && (
-        <div>
-          <label className="compact-label">Preserve capital from age</label>
-          <input
-            className="compact-input w-14"
-            type="number"
-            step="1"
-            value={b.preserveCapitalFromAge || ''}
-            onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
-            onWheel={e => e.target.blur()}
-            placeholder="65"
-          />
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Annual increase</span>
+          <div className="flex items-center gap-1">
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={b.annualIncreaseRate != null && b.annualIncreaseRate !== '' ? (b.annualIncreaseRate * 100).toFixed(0) : '0'}
+              onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
+              onWheel={e => e.target.blur()} placeholder="0" />
+            <span className="text-xs text-gray-500 shrink-0">%</span>
+          </div>
         </div>
-      )}
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Coupon rate</span>
+          <div className="flex items-center gap-1">
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
+              value={b.couponRate != null && b.couponRate !== '' ? (b.couponRate * 100).toFixed(1) : ''}
+              onChange={e => { const v = numVal(e.target.value); onUpdate({ couponRate: v === '' ? '' : v / 100 }) }}
+              onWheel={e => e.target.blur()} placeholder="0" />
+            <span className="text-xs text-gray-500 shrink-0">%</span>
+          </div>
+        </div>
+        <div className="flex items-center h-10 gap-2 px-4">
+          <input type="checkbox" id="tb-preserve-capital" checked={!!b.preserveCapital}
+            onChange={e => onUpdate({ preserveCapital: e.target.checked })} />
+          <label htmlFor="tb-preserve-capital" className="text-sm leading-5 text-gray-400">
+            Preserve capital — no drawdown from bond portfolio
+          </label>
+        </div>
+        {b.preserveCapital && (
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Preserve from age</span>
+            <input className="compact-input w-full text-right" type="number" step="1"
+              value={b.preserveCapitalFromAge || ''}
+              onChange={e => onUpdate({ preserveCapitalFromAge: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="65" />
+          </div>
+        )}
+      </div>
       <div className="border-t border-gray-800 pt-4">
         <HoldingsSubForm
           holdings={b.holdings}
@@ -1877,59 +1815,50 @@ function CommoditiesForm({ commodities, onUpdate }) {
   const mode = c.contributionMode || 'fixed'
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-        <CurrencyInput
-          label="Current portfolio value"
-          value={c.currentValue}
-          onChange={v => onUpdate({ currentValue: v })}
-        />
-        <CurrencyInput
-          label={mode === 'surplus' ? 'Target annual contribution' : 'Annual contribution'}
-          value={c.annualContribution}
-          onChange={v => onUpdate({ annualContribution: v })}
-          className="max-w-40"
-        />
-      </div>
-      <div>
-        <label className="compact-label">Contribution mode</label>
-        <div className="flex gap-2 mt-1">
-          <button
-            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-              mode === 'fixed'
-                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => onUpdate({ contributionMode: 'fixed' })}
-          >
-            Fixed expense
-          </button>
-          <button
-            className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${
-              mode === 'surplus'
-                ? 'bg-brand-600/20 border-brand-500 text-brand-500'
-                : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => onUpdate({ contributionMode: 'surplus' })}
-          >
-            From surplus
-          </button>
+      <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Current portfolio value</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={c.currentValue ?? ''} onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
         </div>
-        <p className="text-xs text-gray-600 mt-1.5">
-          {mode === 'fixed'
-            ? 'Deducted from cashflow each year like an expense — guaranteed contribution.'
-            : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
-        </p>
-      </div>
-      <div className="border-t border-gray-800 pt-4 flex flex-wrap gap-x-3 gap-y-2 items-start">
-        <PctInput
-          label="Annual increase"
-          value={c.annualIncreaseRate || 0}
-          onChange={v => onUpdate({ annualIncreaseRate: v })}
-          min={0}
-          max={50}
-          step={1}
-          hint="Grows by this % each year"
-        />
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">{mode === 'surplus' ? 'Target contribution/yr' : 'Annual contribution'}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-500 shrink-0">$</span>
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={c.annualContribution ?? ''} onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
+              onWheel={e => e.target.blur()} placeholder="0" />
+          </div>
+        </div>
+        <div className="px-4 py-3">
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${mode === 'fixed' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+              onClick={() => onUpdate({ contributionMode: 'fixed' })}
+            >Fixed expense</button>
+            <button
+              className={`flex-1 text-xs py-2 px-3 rounded-lg border transition-colors ${mode === 'surplus' ? 'bg-brand-600/20 border-brand-500 text-brand-500' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-300'}`}
+              onClick={() => onUpdate({ contributionMode: 'surplus' })}
+            >From surplus</button>
+          </div>
+          <p className="text-xs text-gray-600 mt-1.5">
+            {mode === 'fixed' ? 'Deducted from cashflow each year like an expense — guaranteed contribution.' : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <span className="text-sm text-gray-400">Annual increase</span>
+          <div className="flex items-center gap-1">
+            <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+              value={c.annualIncreaseRate != null && c.annualIncreaseRate !== '' ? (c.annualIncreaseRate * 100).toFixed(0) : '0'}
+              onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
+              onWheel={e => e.target.blur()} placeholder="0" />
+            <span className="text-xs text-gray-500 shrink-0">%</span>
+          </div>
+        </div>
       </div>
       <p className="text-xs text-gray-500">
         Pure capital growth — no income component. Includes forex, metals, oil, and other commodity investments.
@@ -2178,95 +2107,77 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
       {open && (
         <>
           {/* Own amount + settings */}
-          <div className="px-4 py-3 space-y-3 bg-gray-800/10" style={{ paddingLeft: `${16 + indentPx}px` }}>
-            <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-              <CurrencyInput
-                label={hasChildren ? 'Own amount (excl. children)' : 'Amount'}
-                value={item.amount}
-                onChange={v => onUpdate({ amount: v })}
-                className="max-w-40"
-              />
-              <div>
-                <label className="compact-label">Amount type</label>
-                <select
-                  className="compact-input w-40"
-                  value={item.amountType || 'annual'}
-                  onChange={e => {
-                    const newType = e.target.value
-                    const patch = { amountType: newType }
-                    if (newType === 'one_off') patch.activeTo = null
-                    if (newType === 'recurring' && !item.recurringEveryYears) patch.recurringEveryYears = 5
-                    if (newType !== 'recurring') patch.recurringEveryYears = null
-                    onUpdate(patch)
-                  }}
-                >
-                  <option value="annual">Annual</option>
-                  <option value="monthly">Monthly (×12)</option>
-                  <option value="one_off">One-off</option>
-                  <option value="recurring">Recurring (other)</option>
-                </select>
+          <div className="divide-y divide-gray-700/30 bg-gray-800/10" style={{ paddingLeft: `${indentPx}px` }}>
+            <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+              <span className="text-sm text-gray-400">{hasChildren ? 'Own amount (excl. children)' : 'Amount'}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500 shrink-0">$</span>
+                <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                  value={item.amount ?? ''} onChange={e => onUpdate({ amount: numVal(e.target.value) })}
+                  onWheel={e => e.target.blur()} placeholder="0" />
               </div>
             </div>
-
+            <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+              <span className="text-sm text-gray-400">Amount type</span>
+              <select className="compact-input w-full"
+                value={item.amountType || 'annual'}
+                onChange={e => {
+                  const newType = e.target.value
+                  const patch = { amountType: newType }
+                  if (newType === 'one_off') patch.activeTo = null
+                  if (newType === 'recurring' && !item.recurringEveryYears) patch.recurringEveryYears = 5
+                  if (newType !== 'recurring') patch.recurringEveryYears = null
+                  onUpdate(patch)
+                }}>
+                <option value="annual">Annual</option>
+                <option value="monthly">Monthly (×12)</option>
+                <option value="one_off">One-off</option>
+                <option value="recurring">Recurring (other)</option>
+              </select>
+            </div>
             {item.amountType === 'recurring' && (
-              <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
-                <div>
-                  <label className="compact-label">Every X years</label>
-                  <input
-                    className="compact-input w-20"
-                    type="number"
-                    step="1"
-                    value={item.recurringEveryYears || ''}
-                    onChange={e => onUpdate({ recurringEveryYears: numVal(e.target.value) || null })}
-                    onWheel={e => e.target.blur()}
-                    placeholder="10"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 self-end pb-2">
-                  Fires in {extractYear(item.activeFrom) || '?'}, then every {item.recurringEveryYears || '?'} years{item.activeTo ? ` until ${extractYear(item.activeTo)}` : ''}
-                </p>
+              <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <span className="text-sm text-gray-400">Every X years</span>
+                <input className="compact-input w-full text-right" type="number" step="1"
+                  value={item.recurringEveryYears || ''}
+                  onChange={e => onUpdate({ recurringEveryYears: numVal(e.target.value) || null })}
+                  onWheel={e => e.target.blur()} placeholder="10" />
               </div>
             )}
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id={`disc-${item.id}`}
-                checked={!!item.isDiscretionary}
-                onChange={e => onUpdate({ isDiscretionary: e.target.checked })}
-              />
-              <label htmlFor={`disc-${item.id}`} className="text-sm text-gray-400">
-                Discretionary
-              </label>
+            <div className="flex items-center h-10 gap-2 px-4">
+              <input type="checkbox" id={`disc-${item.id}`} checked={!!item.isDiscretionary}
+                onChange={e => onUpdate({ isDiscretionary: e.target.checked })} />
+              <label htmlFor={`disc-${item.id}`} className="text-sm leading-5 text-gray-400">Discretionary</label>
             </div>
-
-            <div className="border-t border-gray-800 pt-3">
-              {item.amountType === 'one_off' ? (
-                <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
+            {item.amountType === 'one_off' ? (
+              <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <span className="text-sm text-gray-400">Date</span>
+                <MonthYearInput
+                  value={item.activeFrom}
+                  onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
+                  placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">Start</span>
                   <MonthYearInput
-                    label="Date"
-                    value={item.activeFrom}
-                    onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
-                    placeholder={planStartYear ? String(planStartYear) : 'Year'}
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-                  <MonthYearInput
-                    label="Start"
                     value={item.activeFrom}
                     onChange={v => onUpdate({ activeFrom: v })}
                     placeholder={planStartYear ? String(planStartYear) : 'Year'}
                   />
+                </div>
+                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <span className="text-sm text-gray-400">End</span>
                   <MonthYearInput
-                    label="End"
                     value={item.activeTo}
                     onChange={v => onUpdate({ activeTo: v })}
                     placeholder="Ongoing"
                   />
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
 
           {/* Children */}
@@ -3073,38 +2984,44 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
       </Section>
 
       <Section title="Cash &amp; Savings">
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-x-3 gap-y-2 items-start">
-            <CurrencyInput
-              label="Cash / savings balance"
-              value={scenario.cashSavings ?? 0}
-              onChange={v => updateScenario({ cashSavings: v })}
-              hint="If linked to mortgage offset, tick that property's offset checkbox."
-            />
-            <CurrencyInput
-              label="Minimum cash buffer"
-              value={scenario.minCashBuffer ?? 0}
-              onChange={v => updateScenario({ minCashBuffer: v })}
-              hint="Floor — sim won't draw below this level."
-              className="max-w-40"
-            />
+        <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Cash / savings balance</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500 shrink-0">$</span>
+              <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                value={scenario.cashSavings ?? 0} onChange={e => updateScenario({ cashSavings: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()} placeholder="0" />
+            </div>
           </div>
-          <p className="text-xs text-gray-500">
-            Cash earns no return. Surplus accumulates here unless routed elsewhere via the Surplus Strategy.
-          </p>
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Minimum cash buffer</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500 shrink-0">$</span>
+              <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                value={scenario.minCashBuffer ?? 0} onChange={e => updateScenario({ minCashBuffer: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()} placeholder="0" />
+            </div>
+          </div>
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Cash earns no return. Surplus accumulates here unless routed elsewhere via the Surplus Strategy.
+        </p>
       </Section>
 
       <Section title="Share Portfolio">
         <SharesForm shares={scenario.shares} onUpdate={updateShares} />
-        <div className="mt-3 pt-3 border-t border-gray-800">
-          <CurrencyInput
-            label="Capital losses carried forward (prior FY)"
-            value={scenario.capitalLossesCarriedForward ?? 0}
-            onChange={v => updateScenario({ capitalLossesCarriedForward: v })}
-            hint="Offset this FY's net gains"
-            className="max-w-40"
-          />
+        <div className="mt-3 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
+          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <span className="text-sm text-gray-400">Capital losses carried fwd (prior FY)</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-gray-500 shrink-0">$</span>
+              <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
+                value={scenario.capitalLossesCarriedForward ?? 0}
+                onChange={e => updateScenario({ capitalLossesCarriedForward: numVal(e.target.value) })}
+                onWheel={e => e.target.blur()} placeholder="0" />
+            </div>
+          </div>
         </div>
       </Section>
 
@@ -3341,12 +3258,12 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           }
 
           return (
-            <div className="space-y-3">
+            <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
               {order.map((dest, i) => (
-                <div key={dest} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
+                <div key={dest} className="flex items-center gap-3 px-4 py-3">
+                  <span className="text-xs text-gray-600 w-5 shrink-0 text-right">{i + 1}.</span>
                   <select
-                    className="compact-input w-72 max-w-full text-sm py-1.5"
+                    className="compact-input w-72 max-w-full flex-1 text-sm"
                     value={dest}
                     onChange={e => {
                       const newOrder = [...order]
@@ -3369,7 +3286,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   </select>
                   {i > 0 && (
                     <button
-                      className="text-gray-600 hover:text-gray-300 text-xs"
+                      className="text-gray-600 hover:text-gray-300 text-xs shrink-0"
                       onClick={() => {
                         const newOrder = [...order]
                         ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]
@@ -3408,12 +3325,12 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
           }
 
           return (
-            <div className="space-y-3">
+            <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
               {order.map((dest, i) => (
-                <div key={dest} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600 w-5 text-right">{i + 1}.</span>
+                <div key={dest} className="flex items-center gap-3 px-4 py-3">
+                  <span className="text-xs text-gray-600 w-5 shrink-0 text-right">{i + 1}.</span>
                   <select
-                    className="compact-input w-72 max-w-full text-sm py-1.5"
+                    className="compact-input w-72 max-w-full flex-1 text-sm"
                     value={dest}
                     onChange={e => {
                       const newOrder = [...order]
@@ -3432,7 +3349,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                   </select>
                   {i > 0 && (
                     <button
-                      className="text-gray-600 hover:text-gray-300 text-xs"
+                      className="text-gray-600 hover:text-gray-300 text-xs shrink-0"
                       onClick={() => {
                         const newOrder = [...order]
                         ;[newOrder[i - 1], newOrder[i]] = [newOrder[i], newOrder[i - 1]]

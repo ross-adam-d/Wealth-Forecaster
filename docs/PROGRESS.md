@@ -120,6 +120,22 @@
 
 ## Session Log
 
+### Session 41 — 2026-05-06
+
+**What was done:**
+
+- **HouseholdProfile 50/50 grid pass — all remaining sections** — Applied `divide-y` card pattern with `grid grid-cols-2 items-center gap-3 px-4 py-3` label-left/value-right rows to: SharesForm, TreasuryBondsForm, CommoditiesForm, SuperForm, PropertyForm, ExpenseNode expanded form, Cash & Savings section, Capital losses row, Surplus Strategy, Drawdown Strategy. All `CurrencyInput`/`PctInput` wrappers in divide-y rows replaced with raw `<input>` elements per skill rule. Strategy dropdowns kept as `flex` with `w-72 max-w-full` select. Super contributions row preserved as `grid-cols-3`.
+
+- **`bg-gray-800/10` tint applied universally** — All section cards (SharesForm, TreasuryBondsForm, CommoditiesForm, SuperForm, PropertyForm, salary change cards, HECS card, employer/packaging section, Cash & Savings, ExpenseNode, PersonForm body) now use `bg-gray-800/10` for consistent slightly-darker subsection background.
+
+- **Light mode `bg-gray-800/10` override** — Added explicit CSS rule to `index.css`: `html.light .bg-gray-800\/10 { background-color: #e8edf3; }`. Without this, the 10% dark tint over white person-cards was nearly invisible. Override matches the `bg-gray-800/50` value so all subsection cards render with the same visible blue-gray tint in light mode.
+
+- **Login.jsx auth redirect env var** — `VITE_AUTH_REDIRECT_URL` env var added; `redirectTo` in OAuth now reads from this var with `window.location.origin` fallback. `.env.example` updated.
+
+**Tests:** 568 passing (UI/CSS-only changes, no engine modifications).
+
+---
+
 ### Session 40 — 2026-05-03
 
 **What was done:**

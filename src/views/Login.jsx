@@ -1,10 +1,12 @@
 import { supabase } from '../utils/supabase.js'
 
 export default function Login() {
+  const authRedirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || window.location.origin
+
   const signIn = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: authRedirectUrl },
     })
   }
 
