@@ -803,7 +803,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmpl
           </div>
         </div>
         <div className="px-4 py-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="compact-label">Salary sacrifice</label>
               <div className="flex items-center gap-1 mt-1">
@@ -1682,7 +1682,7 @@ function HoldingsSubForm({ holdings, fields, createDefault, label, onUpdate }) {
 
       {expanded && (
         <div className="mt-2">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
             {(holdings || []).map((h, i) => (
               <HoldingCard
                 key={h.id}
@@ -3039,7 +3039,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
             Tax-deferred bonds offer tax-free withdrawals after 10 years — useful for high-income earners.
           </p>
         )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-start">
           {scenario.investmentBonds.map((b, i) => (
             <BondCard
               key={b.id}
@@ -3092,7 +3092,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-3">
           Consulting, part-time work, gifts, pensions, trust distributions, or any non-salary income.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-start">
           {(scenario.otherIncome || []).map((src, i) => (
             <OtherIncomeCard
               key={src.id}
@@ -3142,7 +3142,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-3">
           Private equity, business interests, collectibles, or any asset not covered above.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-start">
           {(scenario.otherAssets || []).map((asset, i) => (
             <OtherAssetCard
               key={asset.id}
@@ -3178,7 +3178,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-sm text-gray-500 mb-3">
           Personal loans, car leases, credit cards — any non-mortgage liabilities. Repayments are deducted from cashflow.
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-start">
           {(scenario.debts || []).map((debt, i) => (
             <DebtCard
               key={debt.id}
