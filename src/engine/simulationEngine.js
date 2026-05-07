@@ -713,7 +713,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       (leaseResidualA || 0) + (leaseResidualB || 0)
 
     // Fixed contributions should not force asset drawdowns — cap at available cashflow
-    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer + totalLeasePostTaxCost + totalPurchaseCashOutflow
+    const essentialOutflows = totalExpenses + totalMortgageRepayments + totalDebtRepayments + totalDiv293Tax + totalDownsizer + totalLeasePostTaxCost
     const availableForContributions = Math.max(0, totalIncomePreBond - essentialOutflows)
     const cappedFixedContributions = Math.min(totalFixedContributions, availableForContributions)
 
@@ -1086,6 +1086,38 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Apply sale proceeds — cash buffer
     if (saleProceedsCashContribution > 0) {
       cashBuffer += saleProceedsCashContribution
+    }
+
+    // Property purchase outflows are balance-sheet transactions — funded directly from
+    // cashBuffer (symmetric to how sale proceeds bypass the surplus/deficit calc).
+    // Applied after sale proceeds so a same-year sale+purchase nets correctly.
+    if (totalPurchaseCashOutflow > 0) {
+      cashBuffer -= totalPurchaseCashOutflow
+      if (cashBuffer < 0) {
+        // cashBuffer insufficient — draw shortfall from liquid assets in drawdown order
+        const effectiveDrawdown = drawdownOrderInput || DEFAULT_DRAWDOWN_ORDER
+        let shortfall = -cashBuffer
+        cashBuffer = 0
+        for (const source of effectiveDrawdown) {
+          if (shortfall <= 0) break
+          if (source === DRAWDOWN_SOURCES.SHARES && !currentShares.preserveCapital) {
+            const available = Math.max(0, sharesResult.closingValue + sharesAdjustment)
+            const draw = Math.min(shortfall, available)
+            sharesAdjustment -= draw
+            shortfall -= draw
+          } else if (source === DRAWDOWN_SOURCES.TREASURY_BONDS && !currentTreasuryBonds.preserveCapital) {
+            const available = Math.max(0, tbResult.closingValue + tbAdjustment)
+            const draw = Math.min(shortfall, available)
+            tbAdjustment -= draw
+            shortfall -= draw
+          } else if (source === DRAWDOWN_SOURCES.COMMODITIES) {
+            const available = Math.max(0, commResult.closingValue + commAdjustment)
+            const draw = Math.min(shortfall, available)
+            commAdjustment -= draw
+            shortfall -= draw
+          }
+        }
+      }
     }
 
     // Offset proceeds already routed to cash above (offset IS cash)
