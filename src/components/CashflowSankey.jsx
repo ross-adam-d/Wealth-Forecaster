@@ -177,6 +177,11 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     if (payoffAmt    > 100) rawLeft.push({ id: 'payoff',       label: 'Liquid assets → mortgage payoff',value: payoffAmt,    color: C.payoffAssets })
 
     const propPurch  = tx(s.totalPurchaseCashOutflow || 0, yr)
+    // Sale proceeds that flowed into cashBuffer (not directed to investments) can fund the purchase.
+    // Only the uncovered remainder needs a "savings drawn" left-side node.
+    const saleCashPortion = tx(s.saleProceedsCashContribution || 0, yr)
+    const propPurchFromSavings = Math.max(0, propPurch - saleCashPortion)
+    if (propPurchFromSavings > 100) rawLeft.push({ id: 'propPurchSav', label: 'Savings → property purchase', value: propPurchFromSavings, color: C.propPurch })
 
     // ── RIGHT: all uses of money ─────────────────────────────────────────────
     const hecsTotal = tx((s.hecsRepaymentA || 0) + (s.hecsRepaymentB || 0), yr)
