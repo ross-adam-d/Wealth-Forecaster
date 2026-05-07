@@ -12,7 +12,7 @@ import { useMemo } from 'react'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const SVG_W   = 940
-const SVG_H   = 320
+const SVG_H   = 360
 const NODE_W  = 16
 const MIN_GAP = 6
 
@@ -83,20 +83,26 @@ function Ribbon({ x0, y0, h0, x1, y1, h1, color }) {
   return <path d={d} fill={color} fillOpacity={isLight ? 0.6 : 0.28} stroke="none" />
 }
 
+/** Height a label occupies: 2-line (label + value) = 22px, 1-line = 12px. */
+function labelH(n) { return n.h >= 18 ? 22 : 12 }
+
 /**
- * Push label centres apart so no two labels within a column are closer than
- * LINE_H pixels. Two passes: push down, then pull back up.
+ * Push label centres apart so no two labels overlap.
+ * Uses the actual label height of each node rather than a fixed gap.
+ * Two passes: push down, then pull back up.
  */
-function spreadLabels(nodes, lineH = 14) {
+function spreadLabels(nodes) {
   const out = nodes.map(n => ({ ...n, labelY: n.y + n.h / 2 }))
   for (let i = 1; i < out.length; i++) {
-    if (out[i].labelY < out[i - 1].labelY + lineH) {
-      out[i].labelY = out[i - 1].labelY + lineH
+    const minGap = (labelH(out[i - 1]) + labelH(out[i])) / 2 + 2
+    if (out[i].labelY < out[i - 1].labelY + minGap) {
+      out[i].labelY = out[i - 1].labelY + minGap
     }
   }
   for (let i = out.length - 2; i >= 0; i--) {
-    if (out[i].labelY > out[i + 1].labelY - lineH) {
-      out[i].labelY = out[i + 1].labelY - lineH
+    const minGap = (labelH(out[i]) + labelH(out[i + 1])) / 2 + 2
+    if (out[i].labelY > out[i + 1].labelY - minGap) {
+      out[i].labelY = out[i + 1].labelY - minGap
     }
   }
   return out
