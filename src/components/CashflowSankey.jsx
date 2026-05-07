@@ -83,38 +83,66 @@ function Ribbon({ x0, y0, h0, x1, y1, h1, color }) {
   return <path d={d} fill={color} fillOpacity={isLight ? 0.6 : 0.28} stroke="none" />
 }
 
+/**
+ * Push label centres apart so no two labels within a column are closer than
+ * LINE_H pixels. Two passes: push down, then pull back up.
+ */
+function spreadLabels(nodes, lineH = 14) {
+  const out = nodes.map(n => ({ ...n, labelY: n.y + n.h / 2 }))
+  for (let i = 1; i < out.length; i++) {
+    if (out[i].labelY < out[i - 1].labelY + lineH) {
+      out[i].labelY = out[i - 1].labelY + lineH
+    }
+  }
+  for (let i = out.length - 2; i >= 0; i--) {
+    if (out[i].labelY > out[i + 1].labelY - lineH) {
+      out[i].labelY = out[i + 1].labelY - lineH
+    }
+  }
+  return out
+}
+
 function NodeLabel({ n, side }) {
   const isLeft = side === 'left'
-  const lx  = isLeft ? LEFT_X - 8 : RIGHT_X + NODE_W + 8
+  const lx     = isLeft ? LEFT_X - 8 : RIGHT_X + NODE_W + 8
   const anchor = isLeft ? 'end' : 'start'
-  const nx  = isLeft ? LEFT_X : RIGHT_X
+  const nx     = isLeft ? LEFT_X : RIGHT_X
   const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
-  // Use neutral readable colors instead of node color — node rect already shows category color
-  const labelFill  = isLight ? '#374151' : '#d1d5db'   // gray-700 / gray-300
-  const valueFill  = isLight ? '#6b7280' : '#9ca3af'   // gray-500 / gray-400
+  const labelFill = isLight ? '#374151' : '#d1d5db'
+  const valueFill = isLight ? '#6b7280' : '#9ca3af'
+  const tickFill  = isLight ? '#9ca3af' : '#4b5563'
+
+  const nodeCenter = n.y + n.h / 2
+  const labelY     = n.labelY ?? nodeCenter
+  const displaced  = Math.abs(labelY - nodeCenter) > 3
+
+  // Tick x: just inside the label column edge (gap between node rect and text)
+  const tickX = isLeft ? LEFT_X - 3 : RIGHT_X + NODE_W + 3
 
   return (
     <g>
       <rect x={nx} y={n.y} width={NODE_W} height={n.h} fill={n.color} rx={2} />
+      {displaced && (
+        <line x1={tickX} y1={nodeCenter} x2={tickX} y2={labelY}
+          stroke={tickFill} strokeWidth={0.75} />
+      )}
       <text
-        x={lx} y={n.h >= 18 ? n.y + n.h / 2 - 5 : n.y + n.h / 2}
+        x={lx} y={n.h >= 18 ? labelY - 5 : labelY}
         textAnchor={anchor} dominantBaseline="middle"
         fill={labelFill} fontSize={10} fontFamily="system-ui, sans-serif"
       >
         {n.label}
       </text>
       {n.h >= 18 && (
-        <text
-          x={lx} y={n.y + n.h / 2 + 9}
+        <text x={lx} y={labelY + 9}
           textAnchor={anchor} dominantBaseline="middle"
           fill={valueFill} fontSize={9} fontFamily="system-ui, sans-serif"
         >
           {fmt$(n.value)}
         </text>
       )}
-      {n.h < 18 && n.h >= 8 && (
-        <text
-          x={lx} y={n.y + n.h / 2}
+      {n.h < 18 && n.h >= 6 && (
+        <text x={lx} y={labelY}
           textAnchor={anchor} dominantBaseline="middle"
           fill={valueFill} fontSize={9} fontFamily="system-ui, sans-serif"
         >
@@ -280,8 +308,8 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
       </text>
 
       {links.map((lnk, i) => <Ribbon key={i} {...lnk} />)}
-      {leftNodes.map(n  => <NodeLabel key={n.id} n={n} side="left"  />)}
-      {rightNodes.map(n => <NodeLabel key={n.id} n={n} side="right" />)}
+      {spreadLabels(leftNodes).map(n  => <NodeLabel key={n.id} n={n} side="left"  />)}
+      {spreadLabels(rightNodes).map(n => <NodeLabel key={n.id} n={n} side="right" />)}
     </svg>
   )
 }
