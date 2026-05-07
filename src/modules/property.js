@@ -138,7 +138,8 @@ export function processPropertyYear(property, year, cashForOffset = 0) {
   const loanTermYearsRemaining = _loanTerm || 0
 
   // Future purchase — property not yet acquired
-  const futurePurchaseYear = extractYear(property.futurePurchaseYear) || null
+  // futurePurchaseYear takes precedence; fall back to year extracted from purchaseDate
+  const futurePurchaseYear = extractYear(property.futurePurchaseYear) || extractYear(property.purchaseDate) || null
   if (futurePurchaseYear && year < futurePurchaseYear) {
     return {
       openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
@@ -260,7 +261,7 @@ export function processPropertyYear(property, year, cashForOffset = 0) {
     capitalGain = netSalePrice - property.purchasePrice
 
     if (!isPrimaryResidence && capitalGain > 0) {
-      const purchaseYear = property.purchaseDate ? new Date(property.purchaseDate).getFullYear() : year - 1
+      const purchaseYear = extractYear(property.purchaseDate) || (year - 1)
       const heldYears = year - purchaseYear
       const discountedGain = heldYears > 1 ? capitalGain * CGT_DISCOUNT : capitalGain
       cgtAmount = discountedGain  // added to assessable income in tax engine

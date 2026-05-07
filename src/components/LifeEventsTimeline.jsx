@@ -83,10 +83,15 @@ function extractEvents(scenario, snapshots) {
   if (unlockB && unlockB.year !== unlockA?.year) push(unlockB.year, `${personBName} super unlocks`, EVENT_COLORS.super)
 
   // Property purchases (future)
+  const thisYear = new Date().getFullYear()
   ;(scenario.properties || []).forEach((prop, i) => {
-    if (prop.futurePurchaseYear) {
-      const name = prop.isPrimaryResidence ? 'Home' : (prop.name || `Property ${i + 1}`)
-      push(prop.futurePurchaseYear, `Buy ${name}`, EVENT_COLORS.property)
+    const buyDate = prop.futurePurchaseYear || prop.purchaseDate
+    if (buyDate) {
+      const buyYear = typeof buyDate === 'number' ? buyDate : parseInt(String(buyDate).split('-')[0], 10)
+      if (buyYear >= thisYear) {
+        const name = prop.isPrimaryResidence ? 'Home' : (prop.name || `Property ${i + 1}`)
+        push(buyDate, `Buy ${name}`, EVENT_COLORS.property)
+      }
     }
   })
 

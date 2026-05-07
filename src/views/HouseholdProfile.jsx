@@ -964,8 +964,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           })()}
           <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Purchase date</span>
-            <input className="compact-input w-full" type="date" value={p.purchaseDate || ''}
-              onChange={e => onUpdate({ purchaseDate: e.target.value })} />
+            <div className="flex justify-end">
+              <MonthYearInput value={p.purchaseDate} onChange={v => onUpdate({ purchaseDate: v, futurePurchaseYear: null })} placeholder="Mon YYYY" minYear={1970} maxYear={2100} yearClassName="text-right" />
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Purchase method</span>
@@ -980,12 +981,6 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               <option value="mortgage">Mortgage</option>
               <option value="cash">Purchased with cash</option>
             </select>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
-            <span className="text-sm text-gray-400">Future purchase date</span>
-            <div className="flex justify-end">
-              <MonthYearInput value={p.futurePurchaseYear} onChange={v => onUpdate({ futurePurchaseYear: v })} placeholder="Year" yearClassName="text-right" />
-            </div>
           </div>
 
           {!p.purchasedCash && (
