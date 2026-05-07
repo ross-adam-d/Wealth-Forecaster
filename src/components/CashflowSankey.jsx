@@ -176,11 +176,11 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     if (propSale     > 100) rawLeft.push({ id: 'propSale',     label: 'Property sale proceeds',         value: propSale,     color: C.propSale    })
     if (payoffAmt    > 100) rawLeft.push({ id: 'payoff',       label: 'Liquid assets → mortgage payoff',value: payoffAmt,    color: C.payoffAssets })
 
-    const propPurch  = tx(s.totalPurchaseCashOutflow || 0, yr)
-    // Sale proceeds that flowed into cashBuffer (not directed to investments) can fund the purchase.
-    // Only the uncovered remainder needs a "savings drawn" left-side node.
-    const saleCashPortion = tx(s.saleProceedsCashContribution || 0, yr)
-    const propPurchFromSavings = Math.max(0, propPurch - saleCashPortion)
+    const propPurch       = tx(s.totalPurchaseCashOutflow || 0, yr)
+    // Sale proceeds that flowed into cashBuffer fund the purchase; show only the uncovered gap on the left.
+    const rawSaleCash     = s.saleProceedsCashContribution || 0
+    const rawPropPurch    = s.totalPurchaseCashOutflow || 0
+    const propPurchFromSavings = tx(Math.max(0, rawPropPurch - rawSaleCash), yr)
     if (propPurchFromSavings > 100) rawLeft.push({ id: 'propPurchSav', label: 'Savings → property purchase', value: propPurchFromSavings, color: C.propPurch })
 
     // ── RIGHT: all uses of money ─────────────────────────────────────────────
@@ -196,10 +196,13 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     // Post-retirement other income directed to investments (routeTo != 'cashflow')
     // This reduces netCashflow — without this node the right side under-counts and looks broken
     const routedContribs = tx(s.totalRoutedContributions || 0, yr)
-    // Sale proceeds directed to investments (not flowing through surplus waterfall)
-    const dirProceeds = tx(s.totalDirectedSaleProceeds || 0, yr)
-    // Remaining surplus routed to savings/investments via waterfall
-    const netCF     = tx(s.netCashflow || 0, yr)
+    // Sale proceeds directed to actual investments — exclude the cash-to-buffer portion since
+    // that money flows through cashBuffer to fund the property purchase, not to investment accounts.
+    const dirProceeds = tx(Math.max(0, (s.totalDirectedSaleProceeds || 0) - rawSaleCash), yr)
+    // Cash proceeds not consumed by a same-year property purchase flow to savings — add back to surplus.
+    const saleCashToSavings = tx(Math.max(0, rawSaleCash - rawPropPurch), yr)
+    // Remaining surplus routed to savings/investments via waterfall (adjusted for cash proceeds)
+    const netCF     = tx((s.netCashflow || 0), yr) + saleCashToSavings
     const surplus   = netCF > 0 ? netCF : 0
     const deficit   = netCF < 0 ? Math.abs(netCF) : 0
 
