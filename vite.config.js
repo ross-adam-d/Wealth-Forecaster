@@ -26,6 +26,9 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // Cache the app shell and all static assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Network-first for API routes so live prices always try the network
