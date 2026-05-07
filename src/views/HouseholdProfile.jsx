@@ -812,9 +812,9 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmpl
                   value={s.salarySacrificeAmount ?? ''} onChange={e => onUpdate({ salarySacrificeAmount: numVal(e.target.value) })}
                   onWheel={e => e.target.blur()} placeholder="0" />
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">SG est. ${Math.round(sgEstimate).toLocaleString()} · Cap ${CONCESSIONAL_CAP.toLocaleString()}</p>
+              <p className="text-xs text-gray-500 mt-0.5 text-right">SG est. ${Math.round(sgEstimate).toLocaleString()} · Cap ${CONCESSIONAL_CAP.toLocaleString()}</p>
               {concessionalBreached && (
-                <p className="text-xs text-amber-400 mt-0.5">Cap exceeded — ${Math.round(totalConcessional).toLocaleString()} vs ${CONCESSIONAL_CAP.toLocaleString()}</p>
+                <p className="text-xs text-amber-400 mt-0.5 text-right">Cap exceeded — ${Math.round(totalConcessional).toLocaleString()} vs ${CONCESSIONAL_CAP.toLocaleString()}</p>
               )}
             </div>
             <div>
@@ -834,8 +834,8 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmpl
                   value={s.voluntaryNonConcessional ?? ''} onChange={e => onUpdate({ voluntaryNonConcessional: numVal(e.target.value) })}
                   onWheel={e => e.target.blur()} placeholder="0" />
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">Cap ${NON_CONCESSIONAL_CAP.toLocaleString()}</p>
-              {nccBreached && <p className="text-xs text-amber-400 mt-0.5">Exceeds annual cap</p>}
+              <p className="text-xs text-gray-500 mt-0.5 text-right">Cap ${NON_CONCESSIONAL_CAP.toLocaleString()}</p>
+              {nccBreached && <p className="text-xs text-amber-400 mt-0.5 text-right">Exceeds annual cap</p>}
             </div>
           </div>
         </div>
@@ -983,7 +983,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Future purchase date</span>
-            <MonthYearInput value={p.futurePurchaseYear} onChange={v => onUpdate({ futurePurchaseYear: v })} placeholder="Year" />
+            <div className="flex justify-end">
+              <MonthYearInput value={p.futurePurchaseYear} onChange={v => onUpdate({ futurePurchaseYear: v })} placeholder="Year" yearClassName="text-right" />
+            </div>
           </div>
 
           {!p.purchasedCash && (
@@ -1126,12 +1128,13 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
                 <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Sale date</span>
-                  <div>
+                  <div className="flex justify-end">
                     <MonthYearInput
                       value={p.saleEvent.year}
                       onChange={v => onUpdate({ saleEvent: { ...p.saleEvent, year: v } })}
                       placeholder="Year"
                       nullable={false}
+                      yearClassName="text-right"
                     />
                   </div>
                 </div>
@@ -1372,7 +1375,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
           <div className="flex items-center gap-2 px-3 py-2">
             <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-32 text-right text-sm"
+              className="compact-input w-28 text-right text-sm"
               value={holding.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="e.g. VAS ETF"
@@ -1387,7 +1390,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
                 <input
-                  className="compact-input w-32 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   value={holding.ticker || ''}
                   onChange={e => onUpdate({ ticker: e.target.value.toUpperCase() })}
                   placeholder="CBA.AX"
@@ -1409,7 +1412,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
             <div className="flex items-center gap-2 px-3 py-2">
               <span className="text-gray-400 flex-1">Units</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number"
                 step="1"
                 value={holding.units ?? ''}
@@ -1427,7 +1430,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-gray-500">$</span>
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number"
                   step="0.01"
                   value={holding.purchasePrice ?? ''}
@@ -1475,7 +1478,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-gray-500">$</span>
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number"
                   step="1"
                   value={holding.currentValue ?? ''}
@@ -1494,7 +1497,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
             </span>
             <div className="flex items-center gap-1 shrink-0">
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number"
                 step="0.5"
                 value={holding.returnRate != null && holding.returnRate !== '' ? (holding.returnRate * 100).toFixed(1) : ''}
@@ -1513,7 +1516,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                 <span className="text-gray-400 flex-1">Dividend yield</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <input
-                    className="compact-input w-20 text-right text-sm"
+                    className="compact-input w-28 text-right text-sm"
                     type="number"
                     step="0.1"
                     value={holding.dividendYield != null && holding.dividendYield !== '' ? (holding.dividendYield * 100).toFixed(1) : ''}
@@ -1528,7 +1531,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                 <span className="text-gray-400 flex-1">Franking</span>
                 <div className="flex items-center gap-1 shrink-0">
                   <input
-                    className="compact-input w-20 text-right text-sm"
+                    className="compact-input w-28 text-right text-sm"
                     type="number"
                     step="5"
                     value={holding.frankingPct != null && holding.frankingPct !== '' ? (holding.frankingPct * 100).toFixed(0) : ''}
@@ -1548,7 +1551,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
               <span className="text-gray-400 flex-1">Coupon rate</span>
               <div className="flex items-center gap-1 shrink-0">
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number"
                   step="0.1"
                   value={holding.couponRate != null && holding.couponRate !== '' ? (holding.couponRate * 100).toFixed(1) : ''}
@@ -1567,7 +1570,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
               <span className="text-gray-400 flex-1">Pension return</span>
               <div className="flex items-center gap-1 shrink-0">
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number"
                   step="0.5"
                   value={holding.pensionReturnRate != null && holding.pensionReturnRate !== '' ? (holding.pensionReturnRate * 100).toFixed(1) : ''}
@@ -1616,7 +1619,7 @@ function HoldingCard({ holding, fields, onUpdate, onRemove }) {
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-gray-500">$</span>
                   <input
-                    className="compact-input w-20 text-right text-sm"
+                    className="compact-input w-28 text-right text-sm"
                     type="number"
                     step="0.01"
                     value={holding.salePrice ?? ''}
@@ -1921,7 +1924,7 @@ function BondCard({ bond, onUpdate, onRemove }) {
           <div className="flex items-center gap-2 px-3 py-2">
             <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-32 text-right text-sm"
+              className="compact-input w-28 text-right text-sm"
               value={b.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="e.g. Education fund"
@@ -1932,7 +1935,7 @@ function BondCard({ bond, onUpdate, onRemove }) {
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={b.currentBalance ?? ''}
                 onChange={e => onUpdate({ currentBalance: numVal(e.target.value) })}
@@ -1946,7 +1949,7 @@ function BondCard({ bond, onUpdate, onRemove }) {
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={b.annualContribution ?? ''}
                 onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
@@ -1972,7 +1975,7 @@ function BondCard({ bond, onUpdate, onRemove }) {
             <span className="text-gray-400 flex-1">Annual increase</span>
             <div className="flex items-center gap-1 shrink-0">
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={b.annualIncreaseRate != null && b.annualIncreaseRate !== '' ? (b.annualIncreaseRate * 100).toFixed(0) : ''}
                 onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
@@ -1985,7 +1988,7 @@ function BondCard({ bond, onUpdate, onRemove }) {
           <div className="flex items-center gap-2 px-3 py-2">
             <span className="text-gray-400 flex-1">Inception date</span>
             <input
-              className="compact-input w-32 text-right text-sm"
+              className="compact-input w-28 text-right text-sm"
               type="date"
               value={b.inceptionDate || ''}
               onChange={e => onUpdate({ inceptionDate: e.target.value })}
@@ -2152,29 +2155,38 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
             {item.amountType === 'one_off' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                 <span className="text-sm text-gray-400">Date</span>
-                <MonthYearInput
-                  value={item.activeFrom}
-                  onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
-                  placeholder={planStartYear ? String(planStartYear) : 'Year'}
-                />
+                <div className="flex justify-end">
+                  <MonthYearInput
+                    value={item.activeFrom}
+                    onChange={v => onUpdate({ activeFrom: v, activeTo: null })}
+                    placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                    yearClassName="text-right"
+                  />
+                </div>
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Start</span>
-                  <MonthYearInput
-                    value={item.activeFrom}
-                    onChange={v => onUpdate({ activeFrom: v })}
-                    placeholder={planStartYear ? String(planStartYear) : 'Year'}
-                  />
+                  <div className="flex justify-end">
+                    <MonthYearInput
+                      value={item.activeFrom}
+                      onChange={v => onUpdate({ activeFrom: v })}
+                      placeholder={planStartYear ? String(planStartYear) : 'Year'}
+                      yearClassName="text-right"
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">End</span>
-                  <MonthYearInput
-                    value={item.activeTo}
-                    onChange={v => onUpdate({ activeTo: v })}
-                    placeholder="Ongoing"
-                  />
+                  <div className="flex justify-end">
+                    <MonthYearInput
+                      value={item.activeTo}
+                      onChange={v => onUpdate({ activeTo: v })}
+                      placeholder="Ongoing"
+                      yearClassName="text-right"
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -2245,7 +2257,7 @@ function OtherIncomeCard({ item, personAName, personBName, onUpdate, onRemove })
           <div className="flex items-center gap-2 px-3 py-2">
             <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-32 text-right text-sm"
+              className="compact-input w-28 text-right text-sm"
               value={item.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="Income source"
@@ -2256,7 +2268,7 @@ function OtherIncomeCard({ item, personAName, personBName, onUpdate, onRemove })
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={item.amount ?? ''}
                 onChange={e => onUpdate({ amount: numVal(e.target.value) })}
@@ -2349,7 +2361,7 @@ function OtherIncomeCard({ item, personAName, personBName, onUpdate, onRemove })
               <span className="text-gray-400 flex-1">Rate</span>
               <div className="flex items-center gap-1 shrink-0">
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number" step="0.1"
                   value={item.adjustmentRate != null && item.adjustmentRate !== '' ? (item.adjustmentRate * 100).toFixed(1) : ''}
                   onChange={e => { const v = numVal(e.target.value); onUpdate({ adjustmentRate: v === '' ? '' : v / 100 }) }}
@@ -2366,7 +2378,7 @@ function OtherIncomeCard({ item, personAName, personBName, onUpdate, onRemove })
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-gray-500">$</span>
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number" step="1"
                   value={item.adjustmentRate ?? ''}
                   onChange={e => onUpdate({ adjustmentRate: numVal(e.target.value) })}
@@ -2460,7 +2472,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
           <div className="flex items-center gap-2 px-3 py-2">
             <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-32 text-right text-sm"
+              className="compact-input w-28 text-right text-sm"
               value={item.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder={DEBT_TYPE_LABELS[item.type]}
@@ -2471,7 +2483,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={item.currentBalance ?? ''}
                 onChange={e => onUpdate({ currentBalance: numVal(e.target.value) })}
@@ -2484,7 +2496,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
             <span className="text-gray-400 flex-1">Interest rate</span>
             <div className="flex items-center gap-1 shrink-0">
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="0.1"
                 value={item.interestRate != null && item.interestRate !== '' ? (item.interestRate * 100).toFixed(1) : ''}
                 onChange={e => { const v = numVal(e.target.value); onUpdate({ interestRate: v === '' ? '' : v / 100 }) }}
@@ -2499,7 +2511,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
               <div className="flex items-center gap-2 px-3 py-2">
                 <span className="text-gray-400 flex-1">Term (years)</span>
                 <input
-                  className="compact-input w-16 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number" step="1"
                   value={item.termYears || ''}
                   onChange={e => onUpdate({ termYears: numVal(e.target.value) || null })}
@@ -2510,7 +2522,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
               <div className="flex items-center gap-2 px-3 py-2">
                 <span className="text-gray-400 flex-1">Start year</span>
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number" step="1"
                   value={item.startYear || ''}
                   onChange={e => onUpdate({ startYear: numVal(e.target.value) || null })}
@@ -2526,7 +2538,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
               <div className="flex items-center gap-1 shrink-0">
                 <span className="text-gray-500">$</span>
                 <input
-                  className="compact-input w-20 text-right text-sm"
+                  className="compact-input w-28 text-right text-sm"
                   type="number" step="1"
                   value={item.residualValue ?? ''}
                   onChange={e => onUpdate({ residualValue: numVal(e.target.value) })}
@@ -2543,7 +2555,7 @@ function DebtCard({ item, onUpdate, onRemove }) {
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={item.monthlyRepayment ?? ''}
                 onChange={e => onUpdate({ monthlyRepayment: numVal(e.target.value) })}
@@ -2618,7 +2630,7 @@ function OtherAssetCard({ asset, onUpdate, onRemove }) {
           <div className="flex items-center gap-2 px-3 py-2">
             <span className="text-gray-400 flex-1">Name</span>
             <input
-              className="compact-input w-32 text-right text-sm"
+              className="compact-input w-28 text-right text-sm"
               value={asset.name || ''}
               onChange={e => onUpdate({ name: e.target.value })}
               placeholder="Asset name"
@@ -2629,7 +2641,7 @@ function OtherAssetCard({ asset, onUpdate, onRemove }) {
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={asset.currentValue ?? ''}
                 onChange={e => onUpdate({ currentValue: numVal(e.target.value) })}
@@ -2643,7 +2655,7 @@ function OtherAssetCard({ asset, onUpdate, onRemove }) {
             <div className="flex items-center gap-1 shrink-0">
               <span className="text-gray-500">$</span>
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={asset.annualContribution ?? ''}
                 onChange={e => onUpdate({ annualContribution: numVal(e.target.value) })}
@@ -2656,7 +2668,7 @@ function OtherAssetCard({ asset, onUpdate, onRemove }) {
             <span className="text-gray-400 flex-1">Return rate</span>
             <div className="flex items-center gap-1 shrink-0">
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="0.5"
                 value={asset.returnRate != null && asset.returnRate !== '' ? (asset.returnRate * 100).toFixed(1) : ''}
                 onChange={e => { const v = numVal(e.target.value); onUpdate({ returnRate: v === '' ? '' : v / 100 }) }}
@@ -2683,7 +2695,7 @@ function OtherAssetCard({ asset, onUpdate, onRemove }) {
             <span className="text-gray-400 flex-1">Annual increase</span>
             <div className="flex items-center gap-1 shrink-0">
               <input
-                className="compact-input w-20 text-right text-sm"
+                className="compact-input w-28 text-right text-sm"
                 type="number" step="1"
                 value={asset.annualIncreaseRate != null && asset.annualIncreaseRate !== '' ? (asset.annualIncreaseRate * 100).toFixed(0) : ''}
                 onChange={e => { const v = numVal(e.target.value); onUpdate({ annualIncreaseRate: v === '' ? '' : v / 100 }) }}
