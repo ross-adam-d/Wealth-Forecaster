@@ -44,6 +44,7 @@ const C = {
   routed:       '#818cf8',  // indigo-400
   dirProceeds:  '#2dd4bf',  // teal-400
   payoffDebt:   '#f97316',  // orange-500
+  propPurch:    '#34d399',  // emerald-400
   surplus:      '#4ade80',  // green-400
   deficit:      '#f87171',  // red-400
 }
@@ -175,6 +176,8 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     if (propSale     > 100) rawLeft.push({ id: 'propSale',     label: 'Property sale proceeds',         value: propSale,     color: C.propSale    })
     if (payoffAmt    > 100) rawLeft.push({ id: 'payoff',       label: 'Liquid assets → mortgage payoff',value: payoffAmt,    color: C.payoffAssets })
 
+    const propPurch  = tx(s.totalPurchaseCashOutflow || 0, yr)
+
     // ── RIGHT: all uses of money ─────────────────────────────────────────────
     const hecsTotal = tx((s.hecsRepaymentA || 0) + (s.hecsRepaymentB || 0), yr)
     const totalTax  = tx((s.taxA?.totalTaxPayable || 0) + (s.taxB?.totalTaxPayable || 0) + (s.totalDiv293Tax || 0), yr) + hecsTotal
@@ -201,6 +204,7 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     if (mortgageR     > 100) rawRight.push({ id: 'mortgage',   label: 'Mortgage repayments',             value: mortgageR,     color: C.mortgage    })
     if (debtR         > 100) rawRight.push({ id: 'debt',       label: 'Debt repayments',                 value: debtR,         color: C.mortgage    })
     if (leaseNet      > 100) rawRight.push({ id: 'lease',      label: 'Novated lease (net)',             value: leaseNet,      color: C.lease       })
+    if (propPurch     > 100) rawRight.push({ id: 'propPurch',  label: 'Cash property purchase',          value: propPurch,     color: C.propPurch   })
     if (fixedContribs  > 100) rawRight.push({ id: 'contribs',  label: 'Investment contributions',        value: fixedContribs, color: C.contribs    })
     if (routedContribs > 100) rawRight.push({ id: 'routed',    label: 'Income → investments (routed)',   value: routedContribs,color: C.routed      })
     if (dirProceeds   > 100) rawRight.push({ id: 'dirProc',    label: 'Sale proceeds → investments',     value: dirProceeds,   color: C.dirProceeds })

@@ -246,6 +246,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'mortgage',       label: 'Mortgage' },
     { key: 'debtRepayments', label: 'Debt repay' },
     { key: 'novatedLease',   label: 'Novated lease' },
+    { key: 'cashPropPurchase', label: 'Cash prop purchase' },
   ], [])
 
   const ASSET_COLS = useMemo(() => [
@@ -309,6 +310,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       mortgage:        Math.max(0, mortgage),
       debtRepayments:  s.totalDebtRepayments ?? 0,
       novatedLease:    s.totalLeasePostTaxCost ?? 0,
+      cashPropPurchase: s.totalPurchaseCashOutflow ?? 0,
       // Asset balances
       superABal:       s.superABalance ?? 0,
       superBBal:       s.superBBalance ?? 0,
