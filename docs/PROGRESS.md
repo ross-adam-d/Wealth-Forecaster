@@ -91,7 +91,12 @@
 3. [x] **Income time periods** ✅ Done Session 17.
 4. [x] **Property selling costs** ✅ Done Session 17.
 5. [~] **HouseholdProfile layout pass 3** — Session 35: design principles document created (`docs/household_design_principles.md`); full iterative width/layout pass applied across all sections. Further refinement deferred to user review of production deployment.
-6. [ ] **Light mode contrast — graphs** — chart gridlines, axis labels, and area/bar colours are washed out in light mode. Needs dedicated pass with `gridColor`/`tickColor` variables and lighter stroke values for Recharts components.
+6. [ ] **Sankey label collision — UNRESOLVED (Session 42)** — Small nodes cluster at top of columns and their text labels overlap. Three approaches attempted without success:
+   - **Attempt 1** — `spreadLabels()` with fixed `lineH=14`: two-pass push-down/pull-up algorithm. Did not resolve — 14px gap is too small for 2-line labels which span ~22px.
+   - **Attempt 2** — Increased `lineH` to per-node `labelH()` (22px for 2-line, 12px for 1-line); increased `SVG_H` from 320→360. Still not resolving in production.
+   - **PWA caching complication** — hard refresh doesn't bypass service worker; user needed to unregister SW via DevTools. PWA config updated (`skipWaiting`, `clientsClaim`, `cleanupOutdatedCaches`) to reduce future cache-staleness issues.
+   - **Root cause hypothesis**: small nodes (h<4px) are packed tightly; even after spreading label Y positions, the browser may still render overlapping text if the container clips via `overflow-x-auto` → implicit `overflow-y: auto`. Next attempt should either: (a) increase `SVG_H` substantially (≥500) and add `overflow: visible` explicitly to the wrapping div, or (b) suppress labels on nodes below a height threshold and render them in a legend below the chart instead.
+7. [ ] **Light mode contrast — graphs** — chart gridlines, axis labels, and area/bar colours are washed out in light mode. Needs dedicated pass with `gridColor`/`tickColor` variables and lighter stroke values for Recharts components.
 7. [x] **Super unlock → liquid assets bug** ✅ Done
 8. [x] **Liquidity table collapsible** ✅ Done
 9. [x] **Life events timeline: alternating labels** ✅ Done
@@ -119,6 +124,32 @@
 ---
 
 ## Session Log
+
+### Session 42 — 2026-05-07
+
+**What was done:**
+
+- **HouseholdProfile mobile layout fix** — All 75 `grid grid-cols-2 items-center` label/value rows converted to `grid grid-cols-1 sm:grid-cols-2`. On mobile, label stacks above full-width input. 3-column Super contributions row: `grid-cols-3` → `grid grid-cols-1 sm:grid-cols-3`. Holding card grids: minimum `grid-cols-1` on mobile so expanded cards have full width.
+
+- **HouseholdProfile input width standardisation** — All expanded holding card inputs normalised to `compact-input w-28 text-right text-sm`. Hint text in Super section right-aligned. MonthYearInput date fields wrapped in `flex justify-end` for right-aligned date values.
+
+- **Property purchase date unified** — Removed separate "Future purchase date" (MonthYearInput storing `futurePurchaseYear`) and "Purchase date" (native `input[type="date"]`) in PropertyForm. Replaced with a single `MonthYearInput` for `purchaseDate` (1970–2100). Engine derives future-purchase logic from `purchaseDate` year: if year > current sim year, treats as future purchase. Backward-compatible: `futurePurchaseYear` still checked first. `LifeEventsTimeline` updated to show "Buy" event when `purchaseDate` year ≥ current year.
+
+- **Engine fix — cash property purchase deducted from cashBuffer** — Previously `totalPurchaseCashOutflow` was in `essentialOutflows` (income statement), so surplus was reduced but cashBuffer was never actually debited. Fix: removed from `essentialOutflows`; added explicit `cashBuffer -= totalPurchaseCashOutflow` after sale proceeds credit, with shortfall fallback through drawdown waterfall (shares → TB → commodities).
+
+- **Sankey: cash property purchase shown** — `totalPurchaseCashOutflow` added as right-side "Cash property purchase" node (emerald). "Savings → property purchase" left-side matched node added for the portion not funded by same-year sale proceeds. `saleProceedsCashContribution` excluded from `dirProceeds` ("Sale proceeds → investments") to avoid double-counting proceeds that flowed through cashBuffer to fund the purchase; those proceeds are added back to `netCF` as surplus.
+
+- **Projection cashflow detail** — `cashPropPurchase` field added to detail rows and `EXPENSE_COLS` (auto-hides when zero).
+
+- **Sankey label collision avoidance — PARTIALLY RESOLVED** — `spreadLabels()` helper added: two-pass push-down/pull-up algorithm with per-node `labelH()` (22px for 2-line, 12px for 1-line). Thin tick-line connector drawn when label is displaced. `SVG_H` increased from 320→360. Visual improvement attempted but labels still overlap for small tightly-packed nodes (e.g. Debt repayments, Novated lease, Surplus when all are small). **Carry forward to Session 43.**
+
+- **PWA update config** — `skipWaiting: true`, `clientsClaim: true`, `cleanupOutdatedCaches: true` added to Workbox config. Reduces future cache-staleness; one-time SW unregister via DevTools required for this session's update.
+
+**Tests:** 568 passing.
+
+**Commits:** 8 commits this session (mobile grid, purchase date, engine fix, Sankey purchase nodes, Sankey balance fix, Sankey spread, PWA config, docs).
+
+---
 
 ### Session 41 — 2026-05-06
 
