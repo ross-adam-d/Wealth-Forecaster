@@ -195,7 +195,7 @@ function PersonForm({
       </div>
 
       <div className="divide-y divide-gray-800/60 bg-gray-800/10">
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Name</span>
           <input
             className="compact-input w-full text-right"
@@ -204,7 +204,7 @@ function PersonForm({
             placeholder="e.g. Alex"
           />
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Date of birth</span>
           <input
             className="compact-input w-full"
@@ -214,7 +214,7 @@ function PersonForm({
           />
         </div>
         <div className="px-4 py-3">
-          <div className="grid grid-cols-2 items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3">
             <span className="text-sm text-gray-400">Retire age</span>
             <input
               className="compact-input w-full text-right"
@@ -229,7 +229,7 @@ function PersonForm({
           {!p.retirementAge && <p className="text-xs text-amber-400 text-right mt-0.5">Required</p>}
         </div>
         <div className="px-4 py-3">
-          <div className="grid grid-cols-2 items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3">
             <span className="text-sm text-gray-400">Gross salary</span>
             <div className="flex gap-1">
               <div className="relative flex-1">
@@ -310,7 +310,7 @@ function PersonForm({
               >Remove</button>
             </div>
             <div className="divide-y divide-gray-700/40">
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">From year</span>
                 <input
                   className="compact-input w-full text-right text-sm"
@@ -325,7 +325,7 @@ function PersonForm({
                   placeholder="Year"
                 />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">To year</span>
                 <input
                   className="compact-input w-full text-right text-sm"
@@ -340,7 +340,7 @@ function PersonForm({
                   placeholder="Ongoing"
                 />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Salary</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -358,7 +358,7 @@ function PersonForm({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Period</span>
                 <select
                   className="compact-input w-full text-sm"
@@ -385,22 +385,22 @@ function PersonForm({
               <input type="text" readOnly tabIndex={-1} className="compact-input flex-1 text-xs" />
             </div>
             <div className="divide-y divide-gray-700/40">
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs">&nbsp;</span>
                 <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-right text-sm" />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs">&nbsp;</span>
                 <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-right text-sm" />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs">&nbsp;</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 shrink-0">$</span>
                   <input type="text" readOnly tabIndex={-1} className="compact-input flex-1 text-right text-sm" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs">&nbsp;</span>
                 <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
               </div>
@@ -428,7 +428,7 @@ function PersonForm({
         </div>
         {p.hecs && (
           <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
-            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-3 py-2">
               <span className="text-xs text-gray-400">Current HECS balance</span>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -442,7 +442,7 @@ function PersonForm({
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-3 py-2">
               <span className="text-xs text-gray-400">Extra annual repayment</span>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -461,11 +461,11 @@ function PersonForm({
         )}
         {showHecsSlot && !p.hecs && (
           <div className="divide-y divide-gray-700/40 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10 opacity-0 pointer-events-none" aria-hidden="true">
-            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-3 py-2">
               <span className="text-xs">&nbsp;</span>
               <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
             </div>
-            <div className="grid grid-cols-2 items-center gap-3 px-3 py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-3 py-2">
               <span className="text-xs">&nbsp;</span>
               <input type="text" readOnly tabIndex={-1} className="compact-input w-full text-sm" />
             </div>
@@ -475,7 +475,7 @@ function PersonForm({
       </div>
 
       <div className="border-t border-gray-800 divide-y divide-gray-800/60 bg-gray-800/10">
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Employer type</span>
           <select
             className="compact-input w-full"
@@ -493,7 +493,7 @@ function PersonForm({
           {employerType === 'pbi_nfp' ? (
               <>
                 <div className="px-4 py-3">
-                  <div className="grid grid-cols-2 items-center gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3">
                     <span className="text-sm text-gray-400">PBI general packaging <span className="text-xs text-gray-600 ml-1">max ${PBI_GENERAL_CAP.toLocaleString()}</span></span>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -510,7 +510,7 @@ function PersonForm({
                   {(p.packaging?.pbiGeneral || 0) > PBI_GENERAL_CAP && <p className="text-xs text-amber-400 text-right mt-0.5">Exceeds cap of ${PBI_GENERAL_CAP.toLocaleString()}</p>}
                 </div>
                 <div className="px-4 py-3">
-                  <div className="grid grid-cols-2 items-center gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3">
                     <span className="text-sm text-gray-400">Meal entertainment <span className="text-xs text-gray-600 ml-1">max ${PBI_MEAL_ENTERTAINMENT_CAP.toLocaleString()}</span></span>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -530,7 +530,7 @@ function PersonForm({
             ) : (
               <>
                 <div className="px-4 py-3">
-                  <div className="grid grid-cols-2 items-center gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3">
                     <span className="text-sm text-gray-400">QLD Health general cap <span className="text-xs text-gray-600 ml-1">max ${QLD_HEALTH_GENERAL_CAP.toLocaleString()}</span></span>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -547,7 +547,7 @@ function PersonForm({
                   {(p.packaging?.qldHealthGeneral || 0) > QLD_HEALTH_GENERAL_CAP && <p className="text-xs text-amber-400 text-right mt-0.5">Exceeds cap of ${QLD_HEALTH_GENERAL_CAP.toLocaleString()}</p>}
                 </div>
                 <div className="px-4 py-3">
-                  <div className="grid grid-cols-2 items-center gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3">
                     <span className="text-sm text-gray-400">Meal entertainment <span className="text-xs text-gray-600 ml-1">max ${QLD_HEALTH_MEAL_ENTERTAINMENT_CAP.toLocaleString()}</span></span>
                     <div className="flex items-center gap-1">
                       <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -594,7 +594,7 @@ function PersonForm({
         {hasLease && leaseOpen && (
           <div className="mt-3 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
             <div className="divide-y divide-gray-700/40">
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Vehicle cost price</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -604,7 +604,7 @@ function PersonForm({
                     onWheel={e => e.target.blur()} placeholder="0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Residual / balloon</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -614,7 +614,7 @@ function PersonForm({
                     onWheel={e => e.target.blur()} placeholder="0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Annual running costs</span>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -624,7 +624,7 @@ function PersonForm({
                     onWheel={e => e.target.blur()} placeholder="0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Interest rate</span>
                 <div className="flex items-center gap-1">
                   <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
@@ -634,34 +634,34 @@ function PersonForm({
                   <span className="text-xs text-gray-500 shrink-0">%</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Term (years)</span>
                 <input className="compact-input w-full text-right text-sm" type="number" step="1"
                   value={p.packaging.novatedLease.termYears || ''}
                   onChange={e => updateLease({ termYears: numVal(e.target.value) || null })}
                   onWheel={e => e.target.blur()} placeholder="5" />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Total km / year</span>
                 <input className="compact-input w-full text-right text-sm" type="number" step="1"
                   value={p.packaging.novatedLease.annualKmTotal || ''}
                   onChange={e => updateLease({ annualKmTotal: numVal(e.target.value) })}
                   onWheel={e => e.target.blur()} placeholder="0" />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Business km / year</span>
                 <input className="compact-input w-full text-right text-sm" type="number" step="1"
                   value={p.packaging.novatedLease.annualKmBusiness || ''}
                   onChange={e => updateLease({ annualKmBusiness: numVal(e.target.value) })}
                   onWheel={e => e.target.blur()} placeholder="0" />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Lease start</span>
                 <input className="compact-input w-full" type="month"
                   value={p.packaging.novatedLease.activeYears?.from || ''}
                   onChange={e => updateLease({ activeYears: { ...p.packaging.novatedLease.activeYears, from: e.target.value || null } })} />
               </div>
-              <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                 <span className="text-xs text-gray-400">Lease end</span>
                 <input className="compact-input w-full" type="month"
                   value={p.packaging.novatedLease.activeYears?.to || ''}
@@ -700,7 +700,7 @@ function PersonForm({
 
             {!p.packaging.novatedLease.offsetWithECM && (
               <div className="border-t border-gray-700/60 divide-y divide-gray-700/40">
-                <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                   <span className="text-xs text-gray-400">FBT method</span>
                   <select className="compact-input w-full text-sm"
                     value={p.packaging.novatedLease.method}
@@ -709,7 +709,7 @@ function PersonForm({
                     <option value="ecm">Operating cost / ECM</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 items-center gap-2 px-3 py-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-2 px-3 py-2">
                   <span className="text-xs text-gray-400">Employee post-tax contribution</span>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -763,7 +763,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmpl
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Person {personLabel}</h3>
 
       <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Current balance</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -772,7 +772,7 @@ function SuperForm({ superProfile, personLabel, grossSalary, onUpdate, alignEmpl
               onWheel={e => e.target.blur()} placeholder="0" />
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Employer scheme</span>
           <div className="flex items-center gap-2">
             <select className="compact-input flex-1" value={employerScheme}
@@ -895,7 +895,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               Primary residence (CGT-exempt, excluded from assets test)
             </label>
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">State</span>
             <select className="compact-input w-full" value={p.state || ''}
               onChange={e => onUpdate({ state: e.target.value || null })}>
@@ -910,7 +910,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               <option value="ACT">ACT</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Current value</span>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -919,7 +919,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 onWheel={e => e.target.blur()} placeholder="0" />
             </div>
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Purchase price</span>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -928,7 +928,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 onWheel={e => e.target.blur()} placeholder="0" />
             </div>
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Annual growth rate</span>
             <div className="flex items-center gap-1">
               <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
@@ -962,12 +962,12 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               </div>
             )
           })()}
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Purchase date</span>
             <input className="compact-input w-full" type="date" value={p.purchaseDate || ''}
               onChange={e => onUpdate({ purchaseDate: e.target.value })} />
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Purchase method</span>
             <select className="compact-input w-full" value={p.purchasedCash ? 'cash' : 'mortgage'}
               onChange={e => {
@@ -981,7 +981,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
               <option value="cash">Purchased with cash</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Future purchase date</span>
             <MonthYearInput value={p.futurePurchaseYear} onChange={v => onUpdate({ futurePurchaseYear: v })} placeholder="Year" />
           </div>
@@ -989,7 +989,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           {!p.purchasedCash && (
             <div className="px-4 py-3 space-y-3">
               <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Outstanding mortgage</span>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1004,7 +1004,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                       onWheel={e => e.target.blur()} placeholder="0" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Interest rate</span>
                   <div className="flex items-center gap-1">
                     <input className="compact-input flex-1 text-right text-sm" type="number" step="0.05"
@@ -1014,7 +1014,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     <span className="text-xs text-gray-500 shrink-0">%</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Years remaining</span>
                   <input className="compact-input w-full text-right" type="number" step="1"
                     value={p.loanTermYearsRemaining || ''}
@@ -1026,7 +1026,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     }}
                     onWheel={e => e.target.blur()} placeholder="0" />
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Loan type</span>
                   <select className="compact-input w-full"
                     value={p.loanType || 'pi'} onChange={e => onUpdate({ loanType: e.target.value })}>
@@ -1038,7 +1038,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
 
               {p.loanType === 'io' && (
                 <div className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
-                  <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                     <span className="text-sm text-gray-400">IO period ends (year)</span>
                     <input className="compact-input w-full text-right" type="number" step="1"
                       value={p.ioEndYear || ''} onChange={e => onUpdate({ ioEndYear: numVal(e.target.value) })}
@@ -1072,7 +1072,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           {!p.isPrimaryResidence && (
             <div className="px-4 py-3">
               <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Annual rental income</span>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1081,7 +1081,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                       onWheel={e => e.target.blur()} placeholder="0" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Annual property expenses</span>
                   <div className="flex items-center gap-1">
                     <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1124,7 +1124,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
             {p.saleEvent && (
               <div className="px-4 pb-4">
               <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Sale date</span>
                   <div>
                     <MonthYearInput
@@ -1135,7 +1135,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Route proceeds to</span>
                   <select className="compact-input w-full"
                     value={p.saleEvent.destination || 'cash'}
@@ -1158,7 +1158,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     <option value="otherAssets">Other Assets</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Selling costs</span>
                   <div className="flex items-center gap-1">
                     <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
@@ -1173,7 +1173,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   const saleYearVal = extractYear(p.saleEvent.year)
                   if (!saleYearVal || saleYearVal > fyEndYear) return null
                   return (
-                    <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                       <span className="text-sm text-gray-400">Actual sale price</span>
                       <div className="flex items-center gap-1">
                         <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1202,7 +1202,7 @@ function SharesForm({ shares, onUpdate }) {
   return (
     <div className="space-y-4">
       <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Current portfolio value</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1211,7 +1211,7 @@ function SharesForm({ shares, onUpdate }) {
               onWheel={e => e.target.blur()} placeholder="0" />
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">{mode === 'surplus' ? 'Target contribution/yr' : 'Annual contribution'}</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1235,7 +1235,7 @@ function SharesForm({ shares, onUpdate }) {
             {mode === 'fixed' ? 'Deducted from cashflow each year like an expense — guaranteed contribution.' : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
           </p>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Annual increase</span>
           <div className="flex items-center gap-1">
             <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
@@ -1245,7 +1245,7 @@ function SharesForm({ shares, onUpdate }) {
             <span className="text-xs text-gray-500 shrink-0">%</span>
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Dividend yield</span>
           <div className="flex items-center gap-1">
             <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
@@ -1255,7 +1255,7 @@ function SharesForm({ shares, onUpdate }) {
             <span className="text-xs text-gray-500 shrink-0">%</span>
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Franking credit %</span>
           <div className="flex items-center gap-1">
             <input className="compact-input flex-1 text-right text-sm" type="number" step="5"
@@ -1273,7 +1273,7 @@ function SharesForm({ shares, onUpdate }) {
           </label>
         </div>
         {s.preserveCapital && (
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Preserve from age</span>
             <input className="compact-input w-full text-right" type="number" step="1"
               value={s.preserveCapitalFromAge || ''}
@@ -1723,7 +1723,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
   return (
     <div className="space-y-4">
       <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Current portfolio value</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1732,7 +1732,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
               onWheel={e => e.target.blur()} placeholder="0" />
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">{mode === 'surplus' ? 'Target contribution/yr' : 'Annual contribution'}</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1758,7 +1758,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
         </p>
       </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Annual increase</span>
           <div className="flex items-center gap-1">
             <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
@@ -1768,7 +1768,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
             <span className="text-xs text-gray-500 shrink-0">%</span>
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Coupon rate</span>
           <div className="flex items-center gap-1">
             <input className="compact-input flex-1 text-right text-sm" type="number" step="0.1"
@@ -1786,7 +1786,7 @@ function TreasuryBondsForm({ bonds, onUpdate }) {
           </label>
         </div>
         {b.preserveCapital && (
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Preserve from age</span>
             <input className="compact-input w-full text-right" type="number" step="1"
               value={b.preserveCapitalFromAge || ''}
@@ -1816,7 +1816,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
   return (
     <div className="space-y-4">
       <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Current portfolio value</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1825,7 +1825,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
               onWheel={e => e.target.blur()} placeholder="0" />
           </div>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">{mode === 'surplus' ? 'Target contribution/yr' : 'Annual contribution'}</span>
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -1849,7 +1849,7 @@ function CommoditiesForm({ commodities, onUpdate }) {
             {mode === 'fixed' ? 'Deducted from cashflow each year like an expense — guaranteed contribution.' : 'Funded from surplus only — set priority in Surplus Strategy below. No surplus = no contribution.'}
           </p>
         </div>
-        <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
           <span className="text-sm text-gray-400">Annual increase</span>
           <div className="flex items-center gap-1">
             <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
@@ -2108,7 +2108,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
         <>
           {/* Own amount + settings */}
           <div className="divide-y divide-gray-700/30 bg-gray-800/10" style={{ paddingLeft: `${indentPx}px` }}>
-            <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
               <span className="text-sm text-gray-400">{hasChildren ? 'Own amount (excl. children)' : 'Amount'}</span>
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -2117,7 +2117,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                   onWheel={e => e.target.blur()} placeholder="0" />
               </div>
             </div>
-            <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
               <span className="text-sm text-gray-400">Amount type</span>
               <select className="compact-input w-full"
                 value={item.amountType || 'annual'}
@@ -2136,7 +2136,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
               </select>
             </div>
             {item.amountType === 'recurring' && (
-              <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                 <span className="text-sm text-gray-400">Every X years</span>
                 <input className="compact-input w-full text-right" type="number" step="1"
                   value={item.recurringEveryYears || ''}
@@ -2150,7 +2150,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
               <label htmlFor={`disc-${item.id}`} className="text-sm leading-5 text-gray-400">Discretionary</label>
             </div>
             {item.amountType === 'one_off' ? (
-              <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                 <span className="text-sm text-gray-400">Date</span>
                 <MonthYearInput
                   value={item.activeFrom}
@@ -2160,7 +2160,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">Start</span>
                   <MonthYearInput
                     value={item.activeFrom}
@@ -2168,7 +2168,7 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
                     placeholder={planStartYear ? String(planStartYear) : 'Year'}
                   />
                 </div>
-                <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
                   <span className="text-sm text-gray-400">End</span>
                   <MonthYearInput
                     value={item.activeTo}
@@ -2985,7 +2985,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
 
       <Section title="Cash &amp; Savings">
         <div className="border border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-700/30 bg-gray-800/10">
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Cash / savings balance</span>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -2994,7 +2994,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
                 onWheel={e => e.target.blur()} placeholder="0" />
             </div>
           </div>
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Minimum cash buffer</span>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-500 shrink-0">$</span>
@@ -3012,7 +3012,7 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
       <Section title="Share Portfolio">
         <SharesForm shares={scenario.shares} onUpdate={updateShares} />
         <div className="mt-3 border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">
-          <div className="grid grid-cols-2 items-center gap-3 px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">
             <span className="text-sm text-gray-400">Capital losses carried fwd (prior FY)</span>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-500 shrink-0">$</span>
