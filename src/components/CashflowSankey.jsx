@@ -12,7 +12,7 @@ import { useMemo } from 'react'
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const SVG_W   = 940
-const SVG_H   = 360
+const SVG_H   = 420
 const NODE_W  = 16
 const MIN_GAP = 6
 
@@ -83,28 +83,40 @@ function Ribbon({ x0, y0, h0, x1, y1, h1, color }) {
   return <path d={d} fill={color} fillOpacity={isLight ? 0.6 : 0.28} stroke="none" />
 }
 
-/** Height a label occupies: 2-line (label + value) = 22px, 1-line = 12px. */
-function labelH(n) { return n.h >= 18 ? 22 : 12 }
+/** Height a label occupies: 2-line (label + value) = 26px, 1-line = 14px. */
+function labelH(n) { return n.h >= 18 ? 26 : 14 }
 
 /**
  * Push label centres apart so no two labels overlap.
- * Uses the actual label height of each node rather than a fixed gap.
- * Two passes: push down, then pull back up.
+ * Multiple forward + backward passes ensure convergence even with tight clusters.
+ * Clamps the last label within SVG bounds before the backward pull-up.
  */
 function spreadLabels(nodes) {
+  if (!nodes.length) return nodes
+  const MARGIN = 3
   const out = nodes.map(n => ({ ...n, labelY: n.y + n.h / 2 }))
-  for (let i = 1; i < out.length; i++) {
-    const minGap = (labelH(out[i - 1]) + labelH(out[i])) / 2 + 2
-    if (out[i].labelY < out[i - 1].labelY + minGap) {
-      out[i].labelY = out[i - 1].labelY + minGap
+
+  for (let p = 0; p < 6; p++) {
+    for (let i = 1; i < out.length; i++) {
+      const minGap = (labelH(out[i - 1]) + labelH(out[i])) / 2 + MARGIN
+      if (out[i].labelY < out[i - 1].labelY + minGap)
+        out[i].labelY = out[i - 1].labelY + minGap
     }
   }
-  for (let i = out.length - 2; i >= 0; i--) {
-    const minGap = (labelH(out[i]) + labelH(out[i + 1])) / 2 + 2
-    if (out[i].labelY > out[i + 1].labelY - minGap) {
-      out[i].labelY = out[i + 1].labelY - minGap
+
+  // Clamp last label inside SVG before pulling up
+  const last = out[out.length - 1]
+  const maxLabelY = SVG_H - labelH(last) / 2 - MARGIN
+  if (last.labelY > maxLabelY) last.labelY = maxLabelY
+
+  for (let p = 0; p < 6; p++) {
+    for (let i = out.length - 2; i >= 0; i--) {
+      const minGap = (labelH(out[i]) + labelH(out[i + 1])) / 2 + MARGIN
+      if (out[i].labelY > out[i + 1].labelY - minGap)
+        out[i].labelY = out[i + 1].labelY - minGap
     }
   }
+
   return out
 }
 
@@ -266,7 +278,9 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     const leftNodes  = layoutCol(sized(rawLeft))
     const rightNodes = layoutCol(sized(rawRight))
 
-    // Ribbons: each left node proportionally fans to every right node
+    // Ribbons: each left node proportionally fans to every right node.
+    // h0 fills the left node exactly; h1 fills the right node exactly (tapered when totals differ).
+    const ratio = totalLeft > 0 ? totalRight / totalLeft : 1
     const portR = {}
     const portL = {}
     leftNodes.forEach(n  => { portR[n.id] = n.y })
@@ -275,14 +289,14 @@ export default function CashflowSankey({ snapshot, scenario, transform }) {
     const links = []
     leftNodes.forEach(li => {
       rightNodes.forEach(ri => {
-        const flow = li.value * (ri.value / totalRight)
-        if (flow < 50) return
-        const h  = Math.max(1, flow * scale)
+        const h0 = li.value * (ri.value / totalRight) * scale
+        if (h0 < 1.5) return  // skip sub-pixel links
+        const h1 = Math.max(0.5, h0 * ratio)
         const y0 = portR[li.id]
         const y1 = portL[ri.id]
-        portR[li.id] = (portR[li.id] || 0) + h
-        portL[ri.id] = (portL[ri.id] || 0) + h
-        links.push({ x0: LEFT_X + NODE_W, y0, h0: h, x1: RIGHT_X, y1, h1: h, color: li.color })
+        portR[li.id] += h0
+        portL[ri.id] += h1
+        links.push({ x0: LEFT_X + NODE_W, y0, h0, x1: RIGHT_X, y1, h1, color: li.color })
       })
     })
 
