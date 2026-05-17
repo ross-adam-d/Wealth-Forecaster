@@ -113,9 +113,13 @@ export function calcAnnualInterest(loanBalance, offsetBalance, annualRate) {
  * @param {object} property - property profile from data model
  * @param {number} year     - simulation year
  * @param {number} cashForOffset - cash buffer available to offset this mortgage (0 if no offset)
+ * @param {object} opts     - options including draft legislation flags
+ * @param {boolean} opts.cgtReform - apply draft CGT reform (no 50% discount, CPI-indexed cost base)
+ * @param {number}  opts.inflationRate - inflation rate for CPI cost-base indexation
  * @returns {object}
  */
-export function processPropertyYear(property, year, cashForOffset = 0) {
+export function processPropertyYear(property, year, cashForOffset = 0, opts = {}) {
+  const { cgtReform = false, inflationRate = 0.025 } = opts
   const {
     isPrimaryResidence,
     currentValue,
@@ -257,14 +261,23 @@ export function processPropertyYear(property, year, cashForOffset = 0) {
     sellingCosts = Math.round(salePrice * costsPct)
     const netSalePrice = salePrice - sellingCosts
 
-    // CGT: selling costs reduce the capital gain
-    capitalGain = netSalePrice - property.purchasePrice
+    const purchaseYear = extractYear(property.purchaseDate) || (year - 1)
+    const heldYears = Math.max(0, year - purchaseYear)
 
-    if (!isPrimaryResidence && capitalGain > 0) {
-      const purchaseYear = extractYear(property.purchaseDate) || (year - 1)
-      const heldYears = year - purchaseYear
-      const discountedGain = heldYears > 1 ? capitalGain * CGT_DISCOUNT : capitalGain
-      cgtAmount = discountedGain  // added to assessable income in tax engine
+    // Draft CGT reform: applies to assets acquired after 1 July 2027 (purchaseYear >= 2028)
+    // Uses CPI-indexed cost base, no 50% discount.
+    const useNewCGT = cgtReform && purchaseYear >= 2028
+
+    if (useNewCGT) {
+      const indexedCostBase = property.purchasePrice * Math.pow(1 + inflationRate, heldYears)
+      capitalGain = Math.max(0, netSalePrice - indexedCostBase)
+      if (!isPrimaryResidence) cgtAmount = capitalGain  // no discount; taxed at marginal rate
+    } else {
+      capitalGain = netSalePrice - property.purchasePrice
+      if (!isPrimaryResidence && capitalGain > 0) {
+        const discountedGain = heldYears > 1 ? capitalGain * CGT_DISCOUNT : capitalGain
+        cgtAmount = discountedGain
+      }
     }
 
     saleProceeds = netSalePrice - mortgageBalance

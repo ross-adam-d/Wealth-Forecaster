@@ -8,7 +8,7 @@
 
 import { resolvePackagingReductions, calcPersonTax, calcFrankingCredit } from './taxEngine.js'
 import { calcECM, calcStatutory } from '../modules/fbt.js'
-import { processContributions, growSuperBalance, hasReachedPreservationAge, calcDownsizerContribution } from '../modules/super.js'
+import { processContributions, growSuperBalance, hasReachedPreservationAge, calcDownsizerContribution, calcDiv296 } from '../modules/super.js'
 import { processPropertyYear } from '../modules/property.js'
 import { processSharesYear } from '../modules/shares.js'
 import { processTreasuryBondsYear } from '../modules/treasuryBonds.js'
@@ -227,6 +227,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     drawdownOrder: drawdownOrderInput,
     cashSavings: cashSavingsInput = 0,
     minCashBuffer: minCashBuffer = 0,
+    draftLegislation = {},
   } = scenario
 
   const currentYear = new Date().getFullYear()
@@ -339,19 +340,23 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const superContribB_pre = processContributions(superB_forContrib, salaryB, year)
 
     const taxA = calcPersonTax({
+      year,
       grossSalary: salaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
       packagingReduction: packReductionA,
       novatedLeaseReduction: leaseReductionA,
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
+      draftLegislation,
     })
 
     const taxB = calcPersonTax({
+      year,
       grossSalary: salaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
+      draftLegislation,
     })
 
     // ── Step 3 & 4: Super contributions + cap checks ──────────────────────
@@ -383,8 +388,26 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       if (i !== offsetTargetIndex) return 0
       return Math.min(Math.max(0, cashBuffer), p.mortgageBalance)
     })
-    const propertyResults = currentProperties.map((p, i) => processPropertyYear(p, year, cashForOffsetPerProperty[i]))
-    const totalNetRentalIncomeLoss = propertyResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
+    const propOpts = {
+      cgtReform: draftLegislation?.cgtReform2027 || false,
+      inflationRate: yearAssumptions.inflationRate,
+    }
+    const propertyResults = currentProperties.map((p, i) => processPropertyYear(p, year, cashForOffsetPerProperty[i], propOpts))
+
+    // Negative gearing quarantine (draft legislation): losses from properties acquired after
+    // Budget night (12 May 2026) cannot offset salary/other income — only future rental income.
+    // Properties with futurePurchaseYear >= 2027 (acquired in FY2027 = July 2026+) are affected.
+    // Grandfathered: properties already owned (no futurePurchaseYear, or futurePurchaseYear < 2027).
+    const quarantineNegGearing = draftLegislation?.negativeGearingQuarantine || false
+    const adjustedRentalResults = propertyResults.map((r, i) => {
+      if (!quarantineNegGearing) return r
+      const purchYr = currentProperties[i].futurePurchaseYear
+      const isNewAcquisition = purchYr && Number(purchYr) >= 2027
+      if (!isNewAcquisition || r.netRentalIncomeLoss >= 0) return r
+      // Loss quarantined: doesn't reduce other income this year
+      return { ...r, netRentalIncomeLoss: 0 }
+    })
+    const totalNetRentalIncomeLoss = adjustedRentalResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
     const totalMortgageRepayments = propertyResults.reduce((sum, r) => sum + r.annualRepayment, 0)
     const propertySaleProceeds = propertyResults.reduce((sum, r) => sum + (r.saleProceeds || 0), 0)
     const totalLandTax = propertyResults.reduce((sum, r) => sum + (r.landTax || 0), 0)
@@ -518,6 +541,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // Treasury bond coupon income split 50/50 between persons (taxed as ordinary income, no franking)
     const tbCouponHalf = tbResult.couponIncome * 0.5
     const taxAFinal = calcPersonTax({
+      year,
       grossSalary: salaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
       packagingReduction: packReductionA,
@@ -531,10 +555,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       hecsBalance: hecsBalanceA,
       hecsExtraAnnual: personA.hecs?.extraAnnual || 0,
       hecsThresholdGrowthFactor: hecsThresholdGrowth,
+      draftLegislation,
     })
 
     const hasTBCoupon = tbResult.couponIncome > 0
     const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon || hecsBalanceB > 0) ? calcPersonTax({
+      year,
       grossSalary: salaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
@@ -545,6 +571,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       hecsBalance: hecsBalanceB,
       hecsExtraAnnual: personB.hecs?.extraAnnual || 0,
       hecsThresholdGrowthFactor: hecsThresholdGrowth,
+      draftLegislation,
     }) : taxB
 
     // Reduce HECS balances by repayments computed in final tax pass
@@ -1181,9 +1208,19 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     // CGT already calculated in property results above
 
     // ── Step 12: Update balances ──────────────────────────────────────────
+    // Division 296 — additional super tax on balances > $3M (legislated, from sim year 2027)
+    const inflationFactor = yearsElapsed > 0 ? Math.pow(1 + yearAssumptions.inflationRate, yearsElapsed) : 1
+    const superAEarnings = Math.max(0, superA_result.grownBalance - superA_result.openingBalance - superA_result.contributions)
+    const superBEarnings = Math.max(0, superB_result.grownBalance - superB_result.openingBalance - superB_result.contributions)
+    const closingBalA = Math.max(0, superA_result.closingBalance - superAExtra + downsizerA.amount)
+    const closingBalB = Math.max(0, superB_result.closingBalance - superBExtra + downsizerB.amount)
+    const div296A = calcDiv296(closingBalA, superAEarnings, year, inflationFactor)
+    const div296B = calcDiv296(closingBalB, superBEarnings, year, inflationFactor)
+    const totalDiv296Tax = div296A + div296B
+
     // Downsizer contributions added directly to super (tax-free, outside caps)
-    superA = { ...superA, currentBalance: Math.max(0, superA_result.closingBalance - superAExtra + downsizerA.amount) }
-    superB = { ...superB, currentBalance: Math.max(0, superB_result.closingBalance - superBExtra + downsizerB.amount) }
+    superA = { ...superA, currentBalance: Math.max(0, closingBalA - div296A) }
+    superB = { ...superB, currentBalance: Math.max(0, closingBalB - div296B) }
     // Apply shares growth + resolved contributions + deficit drawdowns
     // Split new total back into parent (unallocated) + holdings portions proportionally.
     const newSharesValue = Math.max(0, sharesResult.closingValue + sharesNetAdjustment)
@@ -1308,6 +1345,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       div293TaxA,
       div293TaxB,
       totalDiv293Tax,
+      div296A,
+      div296B,
+      totalDiv296Tax,
       superContribTaxA,
       superContribTaxB,
       // Super

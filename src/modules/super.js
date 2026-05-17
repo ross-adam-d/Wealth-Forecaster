@@ -4,18 +4,76 @@
  */
 
 import {
-  CONCESSIONAL_CAP,
-  NON_CONCESSIONAL_CAP,
+  CONCESSIONAL_CAP_SCHEDULE,
+  NON_CONCESSIONAL_CAP_SCHEDULE,
   SUPER_CONTRIBUTIONS_TAX_RATE,
   MIN_DRAWDOWN_RATES,
   PRESERVATION_AGE,
   SG_RATE_SCHEDULE,
   DIV293_THRESHOLD,
   DIV293_RATE,
+  DIV296_LOWER_THRESHOLD,
+  DIV296_UPPER_THRESHOLD,
+  DIV296_LOWER_RATE,
+  DIV296_UPPER_RATE,
+  DIV296_FROM_FY,
   DOWNSIZER_CONTRIBUTION_CAP,
   DOWNSIZER_MIN_AGE,
 } from '../constants/index.js'
 import { resolveRatePeriodRate } from '../engine/ratePeriodEngine.js'
+
+/**
+ * Get the concessional contribution cap for a given simulation year.
+ */
+export function getConcessionalCap(year) {
+  const sorted = [...CONCESSIONAL_CAP_SCHEDULE].sort((a, b) => b.fromFY - a.fromFY)
+  for (const entry of sorted) {
+    if (year >= entry.fromFY) return entry.cap
+  }
+  return CONCESSIONAL_CAP_SCHEDULE[0].cap
+}
+
+/**
+ * Get the non-concessional contribution cap for a given simulation year.
+ */
+export function getNonConcessionalCap(year) {
+  const sorted = [...NON_CONCESSIONAL_CAP_SCHEDULE].sort((a, b) => b.fromFY - a.fromFY)
+  for (const entry of sorted) {
+    if (year >= entry.fromFY) return entry.cap
+  }
+  return NON_CONCESSIONAL_CAP_SCHEDULE[0].cap
+}
+
+/**
+ * Calculate Division 296 additional super tax on large balances.
+ * Legislated — applies from sim year 2027 (FY2027 = 1 July 2026 onwards).
+ * Tax = additional 15% on the proportion of earnings attributable to balance above $3M.
+ * Thresholds are CPI-indexed (scaled by inflationFactor).
+ *
+ * @param {number} closingBalance - super balance at year-end
+ * @param {number} earnings - gross super earnings for the year (growth component)
+ * @param {number} year - simulation year
+ * @param {number} inflationFactor - cumulative CPI since base year (to index $3M/$10M thresholds)
+ * @returns {number} additional tax to deduct from super
+ */
+export function calcDiv296(closingBalance, earnings, year, inflationFactor = 1) {
+  if (year < DIV296_FROM_FY || closingBalance <= 0 || earnings <= 0) return 0
+  const threshold3M  = DIV296_LOWER_THRESHOLD * inflationFactor
+  const threshold10M = DIV296_UPPER_THRESHOLD * inflationFactor
+  if (closingBalance <= threshold3M) return 0
+
+  // Proportion of earnings above $3M–$10M band
+  const balance3Mto10M = Math.min(closingBalance, threshold10M)
+  const prop3M = Math.max(0, balance3Mto10M - threshold3M) / closingBalance
+  let tax = earnings * prop3M * DIV296_LOWER_RATE
+
+  // Proportion above $10M (rare but modelled)
+  if (closingBalance > threshold10M) {
+    const prop10M = (closingBalance - threshold10M) / closingBalance
+    tax += earnings * prop10M * DIV296_UPPER_RATE
+  }
+  return Math.max(0, tax)
+}
 
 /**
  * Get the SG rate for a given financial year.
@@ -122,11 +180,14 @@ export function processContributions(superProfile, grossSalary, year) {
 
   const employerContrib = calcEmployerContribution(superProfile, grossSalary, year)
 
+  const concessionalCap    = getConcessionalCap(year)
+  const nonConcessionalCap = getNonConcessionalCap(year)
+
   const totalConcessional = employerContrib + salarySacrificeAmount + voluntaryConcessional
-  const concessionalBreached = totalConcessional > CONCESSIONAL_CAP
+  const concessionalBreached = totalConcessional > concessionalCap
 
   const totalNonConcessional = voluntaryNonConcessional
-  const nonConcessionalBreached = totalNonConcessional > NON_CONCESSIONAL_CAP
+  const nonConcessionalBreached = totalNonConcessional > nonConcessionalCap
 
   // Net amount entering the fund after contributions tax
   const concessionalNetToFund = totalConcessional * (1 - SUPER_CONTRIBUTIONS_TAX_RATE)
@@ -139,10 +200,10 @@ export function processContributions(superProfile, grossSalary, year) {
 
   const warnings = []
   if (concessionalBreached) {
-    warnings.push(`Concessional cap exceeded by $${Math.round(totalConcessional - CONCESSIONAL_CAP).toLocaleString()}. Excess taxed at marginal rate.`)
+    warnings.push(`Concessional cap exceeded by $${Math.round(totalConcessional - concessionalCap).toLocaleString()}. Excess taxed at marginal rate.`)
   }
   if (nonConcessionalBreached) {
-    warnings.push(`Non-concessional cap exceeded by $${Math.round(totalNonConcessional - NON_CONCESSIONAL_CAP).toLocaleString()}.`)
+    warnings.push(`Non-concessional cap exceeded by $${Math.round(totalNonConcessional - nonConcessionalCap).toLocaleString()}.`)
   }
   if (div293.isSubject) {
     warnings.push(`Division 293: additional $${Math.round(div293.div293Tax).toLocaleString()} tax on super contributions (income + contributions > $${(DIV293_THRESHOLD / 1000)}k).`)

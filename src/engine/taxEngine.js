@@ -5,7 +5,7 @@
  */
 
 import {
-  TAX_BRACKETS,
+  TAX_BRACKET_SCHEDULE,
   MEDICARE_LEVY_RATE,
   MEDICARE_LEVY_LOWER_THRESHOLD,
   CORPORATE_TAX_RATE,
@@ -13,17 +13,32 @@ import {
   PBI_MEAL_ENTERTAINMENT_CAP,
   QLD_HEALTH_GENERAL_CAP,
   QLD_HEALTH_MEAL_ENTERTAINMENT_CAP,
-  HECS_REPAYMENT_BANDS,
+  HECS_MARGINAL_THRESHOLD,
+  HECS_MARGINAL_RATE,
 } from '../constants/index.js'
+
+/**
+ * Return the income tax brackets applicable for a given simulation year.
+ * Uses the schedule with fromFY convention (year=2027 = FY2027 = 1 July 2026+).
+ */
+export function getTaxBracketsForYear(year = 2026) {
+  const sorted = [...TAX_BRACKET_SCHEDULE].sort((a, b) => b.fromFY - a.fromFY)
+  for (const entry of sorted) {
+    if (year >= entry.fromFY) return entry.brackets
+  }
+  return TAX_BRACKET_SCHEDULE[0].brackets
+}
 
 /**
  * Calculate gross income tax (before offsets) on taxable income.
  * @param {number} taxableIncome
+ * @param {number} year - simulation year (determines bracket schedule)
  * @returns {number} gross tax
  */
-export function calcIncomeTax(taxableIncome) {
+export function calcIncomeTax(taxableIncome, year = 2026) {
   if (taxableIncome <= 0) return 0
-  for (const bracket of TAX_BRACKETS) {
+  const brackets = getTaxBracketsForYear(year)
+  for (const bracket of brackets) {
     if (taxableIncome <= bracket.upper) {
       return bracket.base + (taxableIncome - bracket.lower) * bracket.rate
     }
@@ -96,21 +111,24 @@ export function resolvePackagingReductions(person, grossSalary) {
  * Full per-person tax calculation for a year.
  *
  * @param {object} params
+ * @param {number} params.year                   - simulation year (determines bracket schedule)
  * @param {number} params.grossSalary
- * @param {number} params.salarySacrifice       - pre-tax super sacrifice (reduces assessable income)
- * @param {number} params.packagingReduction     - PBI/QLD Health reduction (reduces assessable income)
- * @param {number} params.novatedLeaseReduction  - pre-tax lease packaging (reduces assessable income)
- * @param {number} params.rentalIncomeLoss       - negative = gearing deduction; positive = rental income
- * @param {number} params.dividendIncome         - cash dividends
- * @param {number} params.frankingCredit         - franking credit gross-up
- * @param {number} params.capitalGain            - post-50%-discount CGT amount (sale year only)
- * @param {boolean} params.inPensionPhase        - franking credits refundable in pension phase
- * @param {number}  params.hecsBalance           - current HECS/HELP balance (post CPI-indexation)
- * @param {number}  params.hecsExtraAnnual       - optional extra voluntary repayment per year
+ * @param {number} params.salarySacrifice        - pre-tax super sacrifice (reduces assessable income)
+ * @param {number} params.packagingReduction      - PBI/QLD Health reduction (reduces assessable income)
+ * @param {number} params.novatedLeaseReduction   - pre-tax lease packaging (reduces assessable income)
+ * @param {number} params.rentalIncomeLoss        - negative = gearing deduction; positive = rental income
+ * @param {number} params.dividendIncome          - cash dividends
+ * @param {number} params.frankingCredit          - franking credit gross-up
+ * @param {number} params.capitalGain             - post-discount CGT amount (sale year only)
+ * @param {boolean} params.inPensionPhase         - franking credits refundable in pension phase
+ * @param {number}  params.hecsBalance            - current HECS/HELP balance (post CPI-indexation)
+ * @param {number}  params.hecsExtraAnnual        - optional extra voluntary repayment per year
  * @param {number}  params.hecsThresholdGrowthFactor - cumulative growth factor to scale repayment thresholds
+ * @param {object}  params.draftLegislation       - draft legislation toggles from scenario
  * @returns {object} detailed tax breakdown
  */
 export function calcPersonTax({
+  year = 2026,
   grossSalary = 0,
   salarySacrifice = 0,
   packagingReduction = 0,
@@ -124,13 +142,18 @@ export function calcPersonTax({
   hecsBalance = 0,
   hecsExtraAnnual = 0,
   hecsThresholdGrowthFactor = 1,
+  draftLegislation = {},
 } = {}) {
+  // Draft: $1,000 instant work deduction (from 1 July 2026 = sim year 2027)
+  const workDeduction = (draftLegislation?.workDeduction1000 && year >= 2027 && grossSalary > 0) ? 1_000 : 0
+
   // Step 1: assessable income
   const assessableIncome =
     grossSalary
     - salarySacrifice
     - packagingReduction
     - novatedLeaseReduction
+    - workDeduction
     + rentalIncomeLoss      // negative for losses (negative gearing), positive for profit
     + dividendIncome
     + frankingCredit        // gross-up added before tax
@@ -139,8 +162,8 @@ export function calcPersonTax({
 
   const taxableIncome = Math.max(0, assessableIncome)
 
-  // Step 2: gross income tax
-  const grossTax = calcIncomeTax(taxableIncome)
+  // Step 2: gross income tax (year-aware brackets)
+  const grossTax = calcIncomeTax(taxableIncome, year)
 
   // Step 3: franking credit offset
   // Refundable in pension phase — if offset > tax liability, person receives refund
@@ -153,7 +176,10 @@ export function calcPersonTax({
     frankingOffset = Math.min(frankingOffset, grossTax)
   }
 
-  const netTax = Math.max(0, grossTax - frankingOffset)
+  // Draft: $250 Working Australians Tax Offset (from 1 July 2027 = sim year 2028)
+  const watoOffset = (draftLegislation?.wato250 && year >= 2028 && grossSalary > 0) ? 250 : 0
+
+  const netTax = Math.max(0, grossTax - frankingOffset - watoOffset)
 
   // Step 4: Medicare levy
   const medicareLevy = calcMedicareLevy(taxableIncome)
@@ -183,36 +209,31 @@ export function calcPersonTax({
 
 /**
  * Calculate compulsory HECS/HELP repayment for a year.
- * Repayment = taxableIncome × rate from the band the income falls in.
- * Capped at remaining balance.
+ * New marginal system (FY2025-26+): repayment = 15% of income ABOVE $67,000 threshold.
+ * Threshold grows with wages (thresholdGrowthFactor). Capped at remaining balance.
  *
  * @param {number} taxableIncome
  * @param {number} hecsBalance - current HECS balance (post CPI-indexation for the year)
- * @param {number} thresholdGrowthFactor - cumulative growth to scale nominal thresholds (1 in year 0)
+ * @param {number} thresholdGrowthFactor - cumulative growth to scale nominal threshold (1 in year 0)
  * @returns {number}
  */
 export function calcHecsRepayment(taxableIncome, hecsBalance, thresholdGrowthFactor = 1) {
   if (!hecsBalance || hecsBalance <= 0 || taxableIncome <= 0) return 0
-  let rate = 0
-  for (const band of HECS_REPAYMENT_BANDS) {
-    const scaledLower = band.lower * thresholdGrowthFactor
-    const scaledUpper = band.upper === Infinity ? Infinity : band.upper * thresholdGrowthFactor
-    if (taxableIncome >= scaledLower && taxableIncome < scaledUpper) {
-      rate = band.rate
-      break
-    }
-  }
-  if (rate === 0) return 0
-  return Math.min(hecsBalance, taxableIncome * rate)
+  const threshold = HECS_MARGINAL_THRESHOLD * thresholdGrowthFactor
+  if (taxableIncome <= threshold) return 0
+  const repayment = (taxableIncome - threshold) * HECS_MARGINAL_RATE
+  return Math.min(hecsBalance, repayment)
 }
 
 /**
  * Marginal tax rate for a given income level (useful for FBT gross-up calcs).
  * @param {number} income
- * @returns {number} marginal rate e.g. 0.325
+ * @param {number} year - simulation year (determines bracket schedule)
+ * @returns {number} marginal rate e.g. 0.30
  */
-export function getMarginalRate(income) {
-  for (const bracket of [...TAX_BRACKETS].reverse()) {
+export function getMarginalRate(income, year = 2026) {
+  const brackets = getTaxBracketsForYear(year)
+  for (const bracket of [...brackets].reverse()) {
     if (income > bracket.lower) return bracket.rate
   }
   return 0

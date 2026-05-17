@@ -367,5 +367,11 @@ export function createDefaultScenario(name = 'Base Plan') {
     drawdownOrder: ['cash', 'shares', 'treasuryBonds', 'commodities', 'bonds', 'otherAssets', 'super'],
     actualsHistory: [],   // [{ date: 'YYYY-MM-DD', netWorth, liquidAssets, totalDebt }] — auto-appended on save
     capitalLossesCarriedForward: 0,
+    draftLegislation: {
+      cgtReform2027: false,              // No 50% discount → CPI cost base + no discount (from 1 Jul 2027, new acquisitions)
+      negativeGearingQuarantine: false,  // Rental losses quarantined for properties acquired post-12 May 2026
+      workDeduction1000: false,          // $1,000 automatic work expense deduction (from 1 Jul 2026)
+      wato250: false,                    // $250 Working Australians Tax Offset (from 1 Jul 2027)
+    },
   }
 }

@@ -110,8 +110,8 @@ describe('processContributions', () => {
     expect(result.warnings.length).toBeGreaterThan(0)
   })
 
-  it('warns when non-concessional cap ($110,000) is breached', () => {
-    const profile = { ...baseProfile, voluntaryNonConcessional: 120_000 }
+  it('warns when non-concessional cap ($120,000) is breached', () => {
+    const profile = { ...baseProfile, voluntaryNonConcessional: 130_000 }
     const result = processContributions(profile, 100_000, 2026)
     expect(result.nonConcessionalBreached).toBe(true)
     expect(result.warnings.length).toBeGreaterThan(0)

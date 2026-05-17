@@ -9,12 +9,12 @@ import {
 } from '../engine/taxEngine.js'
 
 // ── calcIncomeTax ──────────────────────────────────────────────────────────
-// ATO FY2025 brackets:
-//   $0 – $18,200:     nil
-//   $18,201 – $45,000:  19c per $1 over $18,200
-//   $45,001 – $120,000: $5,092 + 32.5c per $1 over $45,000
-//   $120,001 – $180,000: $29,467 + 37c per $1 over $120,000
-//   $180,001+:          $51,667 + 45c per $1 over $180,000
+// ATO FY2026 brackets (Stage 3, effective 1 July 2024):
+//   $0 – $18,200:      nil
+//   $18,201 – $45,000:  16c per $1 over $18,200
+//   $45,001 – $135,000: $4,288 + 30c per $1 over $45,000
+//   $135,001 – $190,000: $31,288 + 37c per $1 over $135,000
+//   $190,001+:           $51,638 + 45c per $1 over $190,000
 
 describe('calcIncomeTax', () => {
   it('returns 0 for zero income', () => {
@@ -25,34 +25,34 @@ describe('calcIncomeTax', () => {
     expect(calcIncomeTax(18_200)).toBe(0)
   })
 
-  it('applies 19% bracket correctly at $20,000', () => {
-    // (20,000 - 18,201) * 0.19 = 1,799 * 0.19 = 341.81
-    expect(calcIncomeTax(20_000)).toBeCloseTo(341.81, 1)
+  it('applies 16% bracket correctly at $20,000', () => {
+    // (20,000 - 18,201) * 0.16 = 1,799 * 0.16 = 287.84
+    expect(calcIncomeTax(20_000)).toBeCloseTo(287.84, 1)
   })
 
-  it('applies 19% bracket at $45,000 boundary', () => {
-    // (45,000 - 18,201) * 0.19 = 26,799 * 0.19 = 5,091.81
-    expect(calcIncomeTax(45_000)).toBeCloseTo(5_091.81, 1)
+  it('applies 16% bracket at $45,000 boundary', () => {
+    // (45,000 - 18,201) * 0.16 = 26,799 * 0.16 = 4,287.84
+    expect(calcIncomeTax(45_000)).toBeCloseTo(4_287.84, 1)
   })
 
-  it('applies 32.5% bracket at $80,000', () => {
-    // 5,092 + (80,000 - 45,001) * 0.325 = 5,092 + 11,374.675 = 16,466.68
-    expect(calcIncomeTax(80_000)).toBeCloseTo(16_466.68, 0)
+  it('applies 30% bracket at $80,000', () => {
+    // 4,288 + (80,000 - 45,001) * 0.30 = 4,288 + 10,499.70 = 14,787.70
+    expect(calcIncomeTax(80_000)).toBeCloseTo(14_787.70, 0)
   })
 
-  it('applies 32.5% bracket at $120,000 boundary', () => {
-    // 5,092 + (120,000 - 45,001) * 0.325 = 5,092 + 24,374.68 = 29,466.68
-    expect(calcIncomeTax(120_000)).toBeCloseTo(29_466.68, 0)
+  it('applies 30% bracket at $120,000', () => {
+    // 4,288 + (120,000 - 45,001) * 0.30 = 4,288 + 22,499.70 = 26,787.70
+    expect(calcIncomeTax(120_000)).toBeCloseTo(26_787.70, 0)
   })
 
   it('applies 37% bracket at $150,000', () => {
-    // 29,467 + (150,000 - 120,001) * 0.37 = 29,467 + 11,099.63 = 40,566.63
-    expect(calcIncomeTax(150_000)).toBeCloseTo(40_566.63, 0)
+    // 31,288 + (150,000 - 135,001) * 0.37 = 31,288 + 5,549.63 = 36,837.63
+    expect(calcIncomeTax(150_000)).toBeCloseTo(36_837.63, 0)
   })
 
   it('applies 45% bracket at $200,000', () => {
-    // 51,667 + (200,000 - 180,001) * 0.45 = 51,667 + 8,999.55 = 60,666.55
-    expect(calcIncomeTax(200_000)).toBeCloseTo(60_666.55, 0)
+    // 51,638 + (200,000 - 190,001) * 0.45 = 51,638 + 4,499.55 = 56,137.55
+    expect(calcIncomeTax(200_000)).toBeCloseTo(56_137.55, 0)
   })
 
   it('returns 0 for negative income', () => {
@@ -107,22 +107,22 @@ describe('calcFrankingCredit', () => {
 
 describe('calcPersonTax', () => {
   it('calculates correct net take-home for $80,000 salary', () => {
-    // grossTax ≈ 16,467, medicare ≈ 1,600, total ≈ 18,067
+    // grossTax = 4,288 + (80,000 - 45,001) * 0.30 = 14,787.70, medicare = 1,600
     const result = calcPersonTax({ grossSalary: 80_000 })
-    expect(result.grossTax).toBeCloseTo(16_466.68, 0)
+    expect(result.grossTax).toBeCloseTo(14_787.70, 0)
     expect(result.medicareLevy).toBeCloseTo(1_600, 0)
-    expect(result.totalTaxPayable).toBeCloseTo(18_066.68, 0)
-    expect(result.netTakeHome).toBeCloseTo(61_933.32, 0)
+    expect(result.totalTaxPayable).toBeCloseTo(16_387.70, 0)
+    expect(result.netTakeHome).toBeCloseTo(63_612.30, 0)
   })
 
   it('salary sacrifice reduces assessable income', () => {
     // $120k salary, $10k sacrifice → taxable = $110k
     const result = calcPersonTax({ grossSalary: 120_000, salarySacrifice: 10_000 })
     expect(result.taxableIncome).toBe(110_000)
-    // 5,092 + (110,000 - 45,001) * 0.325 = 5,092 + 21,124.68 = 26,216.68
-    expect(result.grossTax).toBeCloseTo(26_216.68, 0)
+    // 4,288 + (110,000 - 45,001) * 0.30 = 4,288 + 19,499.70 = 23,787.70
+    expect(result.grossTax).toBeCloseTo(23_787.70, 0)
     // Net take-home = 120,000 - 10,000 - tax - medicare
-    expect(result.netTakeHome).toBeCloseTo(120_000 - 10_000 - 26_216.68 - 2_200, 0)
+    expect(result.netTakeHome).toBeCloseTo(120_000 - 10_000 - 23_787.70 - 2_200, 0)
   })
 
   it('negative gearing reduces taxable income', () => {
@@ -244,12 +244,12 @@ describe('getMarginalRate', () => {
     expect(getMarginalRate(10_000)).toBe(0)
   })
 
-  it('returns 19% in second bracket', () => {
-    expect(getMarginalRate(30_000)).toBe(0.19)
+  it('returns 16% in second bracket', () => {
+    expect(getMarginalRate(30_000)).toBe(0.16)
   })
 
-  it('returns 32.5% in third bracket', () => {
-    expect(getMarginalRate(80_000)).toBe(0.325)
+  it('returns 30% in third bracket', () => {
+    expect(getMarginalRate(80_000)).toBe(0.30)
   })
 
   it('returns 45% at top bracket', () => {

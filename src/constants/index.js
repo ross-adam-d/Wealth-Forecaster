@@ -26,12 +26,31 @@ export const PRESERVATION_AGE = 60          // For those born after 1 July 1964 
 // SG rate schedule — key off financial year start
 export const SG_RATE_SCHEDULE = [
   { fromFY: 2025, rate: 0.115 },            // 11.5% FY2025
-  { fromFY: 2026, rate: 0.12 },             // 12.0% from 1 July 2025
+  { fromFY: 2026, rate: 0.12 },             // 12.0% from 1 July 2025 (permanent)
 ]
 
-export const CONCESSIONAL_CAP = 30_000      // FY2025
-export const NON_CONCESSIONAL_CAP = 110_000 // FY2025
-export const NON_CONCESSIONAL_BRING_FORWARD_CAP = 330_000 // 3-year bring-forward
+// Concessional cap schedule — indexed by FY (sim year convention: year=2027 = FY2027 = July 2026 onwards)
+export const CONCESSIONAL_CAP_SCHEDULE = [
+  { fromFY: 2026, cap: 30_000 },            // FY2025-26
+  { fromFY: 2027, cap: 32_500 },            // FY2026-27 — indexation (Budget 2026-27)
+]
+// Non-concessional cap schedule
+export const NON_CONCESSIONAL_CAP_SCHEDULE = [
+  { fromFY: 2026, cap: 120_000 },           // FY2025-26
+  { fromFY: 2027, cap: 130_000 },           // FY2026-27 — indexation (Budget 2026-27)
+]
+
+// Convenience aliases for the current-year caps (used in Assumptions display)
+export const CONCESSIONAL_CAP = 30_000
+export const NON_CONCESSIONAL_CAP = 120_000
+export const NON_CONCESSIONAL_BRING_FORWARD_CAP = 360_000 // 3-year: 3 × $120k (FY2025-26)
+
+// Division 296 — additional super tax on large balances (legislated, from 1 July 2026 = sim year 2027)
+export const DIV296_LOWER_THRESHOLD = 3_000_000   // $3M lower threshold (CPI-indexed)
+export const DIV296_UPPER_THRESHOLD = 10_000_000  // $10M upper threshold (CPI-indexed)
+export const DIV296_LOWER_RATE = 0.15             // Additional 15% on earnings from $3M–$10M
+export const DIV296_UPPER_RATE = 0.25             // Additional 25% on earnings above $10M
+export const DIV296_FROM_FY = 2027                // First sim year it applies (FY2027 = July 2026+)
 
 // Minimum drawdown rates by age bracket (Account-Based Pension)
 export const MIN_DRAWDOWN_RATES = [
@@ -49,44 +68,49 @@ export const DOWNSIZER_MIN_AGE = 55               // Minimum age for downsizer c
 export const DIV293_THRESHOLD = 250_000           // Division 293 income threshold
 export const DIV293_RATE = 0.15                    // Additional 15% on low-tax contributions
 
-// --- Tax rates (FY2025 — individuals) ---
-// Brackets: [lower, upper, base, marginalRate]
-export const TAX_BRACKETS = [
-  { lower: 0,       upper: 18_200,  base: 0,       rate: 0 },
-  { lower: 18_201,  upper: 45_000,  base: 0,       rate: 0.19 },
-  { lower: 45_001,  upper: 120_000, base: 5_092,   rate: 0.325 },
-  { lower: 120_001, upper: 180_000, base: 29_467,  rate: 0.37 },
-  { lower: 180_001, upper: Infinity, base: 51_667, rate: 0.45 },
+// --- Income tax bracket schedule (individuals) ---
+// fromFY uses sim-year convention: year=2027 = FY2027 = 1 July 2026 onwards.
+// Stage 3 (16% rate) legislated from 1 July 2024 (sim year 2025).
+// 15% rate legislated from 1 July 2026 (sim year 2027) — Budget 2026-27.
+// 14% rate legislated from 1 July 2027 (sim year 2028) — already legislated.
+export const TAX_BRACKET_SCHEDULE = [
+  { fromFY: 2025, brackets: [
+    { lower: 0,       upper: 18_200,  base: 0,      rate: 0 },
+    { lower: 18_201,  upper: 45_000,  base: 0,      rate: 0.16 },   // Stage 3
+    { lower: 45_001,  upper: 135_000, base: 4_288,  rate: 0.30 },
+    { lower: 135_001, upper: 190_000, base: 31_288, rate: 0.37 },
+    { lower: 190_001, upper: Infinity,base: 51_638, rate: 0.45 },
+  ]},
+  { fromFY: 2027, brackets: [
+    { lower: 0,       upper: 18_200,  base: 0,      rate: 0 },
+    { lower: 18_201,  upper: 45_000,  base: 0,      rate: 0.15 },   // Budget 2026-27
+    { lower: 45_001,  upper: 135_000, base: 4_020,  rate: 0.30 },
+    { lower: 135_001, upper: 190_000, base: 31_020, rate: 0.37 },
+    { lower: 190_001, upper: Infinity,base: 51_370, rate: 0.45 },
+  ]},
+  { fromFY: 2028, brackets: [
+    { lower: 0,       upper: 18_200,  base: 0,      rate: 0 },
+    { lower: 18_201,  upper: 45_000,  base: 0,      rate: 0.14 },   // Legislated from 1 July 2027
+    { lower: 45_001,  upper: 135_000, base: 3_752,  rate: 0.30 },
+    { lower: 135_001, upper: 190_000, base: 30_752, rate: 0.37 },
+    { lower: 190_001, upper: Infinity,base: 51_102, rate: 0.45 },
+  ]},
 ]
+// Backward-compat alias: current-year (FY2026 = 16% rate)
+export const TAX_BRACKETS = TAX_BRACKET_SCHEDULE[0].brackets
 
 export const MEDICARE_LEVY_RATE = 0.02       // 2%
 export const MEDICARE_LEVY_LOWER_THRESHOLD = 26_000  // approx FY2025 shade-in threshold
 
-// --- HECS/HELP compulsory repayment schedule (FY2024-25 ATO thresholds) ---
-// Repayment is a % of total taxable income (not just the excess).
-// Thresholds are indexed annually by CPI — scaled in simulation by inflationRate each year.
-// Balance is also CPI-indexed annually (June 1).
-export const HECS_REPAYMENT_BANDS = [
-  { lower: 0,        upper: 54_435,   rate: 0 },
-  { lower: 54_435,   upper: 62_850,   rate: 0.010 },
-  { lower: 62_851,   upper: 66_620,   rate: 0.020 },
-  { lower: 66_621,   upper: 70_618,   rate: 0.025 },
-  { lower: 70_619,   upper: 74_855,   rate: 0.030 },
-  { lower: 74_856,   upper: 79_346,   rate: 0.035 },
-  { lower: 79_347,   upper: 84_107,   rate: 0.040 },
-  { lower: 84_108,   upper: 88_756,   rate: 0.045 },
-  { lower: 88_757,   upper: 93_541,   rate: 0.050 },
-  { lower: 93_542,   upper: 98_539,   rate: 0.055 },
-  { lower: 98_540,   upper: 103_766,  rate: 0.060 },
-  { lower: 103_767,  upper: 109_308,  rate: 0.065 },
-  { lower: 109_309,  upper: 115_004,  rate: 0.070 },
-  { lower: 115_005,  upper: 121_208,  rate: 0.075 },
-  { lower: 121_209,  upper: 128_471,  rate: 0.080 },
-  { lower: 128_472,  upper: 135_840,  rate: 0.085 },
-  { lower: 135_841,  upper: 143_757,  rate: 0.090 },
-  { lower: 143_758,  upper: 151_200,  rate: 0.095 },
-  { lower: 151_201,  upper: Infinity, rate: 0.100 },
-]
+// --- HECS/HELP repayment (new marginal system — FY2025-26 onwards) ---
+// Changed from: % of total income when income > threshold
+// Changed to:   % of income ABOVE the threshold (marginal repayment)
+// Threshold of $67,000 is indexed annually (scale by thresholdGrowthFactor in engine).
+// 20% debt reduction applied by ATO on 1 June 2025 — users enter post-cut balance.
+export const HECS_MARGINAL_THRESHOLD = 67_000     // No repayment below this (FY2025-26)
+export const HECS_MARGINAL_RATE = 0.15            // 15c per $1 above threshold
+// Keep old bands exported for test/legacy compatibility
+export const HECS_REPAYMENT_BANDS = []
 
 // --- Capital gains ---
 export const CGT_DISCOUNT = 0.50             // 50% for assets held > 12 months

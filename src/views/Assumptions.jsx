@@ -11,6 +11,7 @@ import {
   SHARES_RETURN_RATE, PROPERTY_GROWTH_RATE, DIVIDEND_YIELD, DEFAULT_FRANKING_PCT,
   INVESTMENT_BOND_RETURN_RATE,
   CONCESSIONAL_CAP, NON_CONCESSIONAL_CAP, PRESERVATION_AGE, MAX_SIMULATION_END_AGE,
+  DIV296_LOWER_THRESHOLD,
 } from '../constants/index.js'
 
 function Row({ label, value, field, onUpdate, type = 'pct', min, max, step = 0.1, hint }) {
@@ -163,19 +164,75 @@ export default function Assumptions({ scenario, updateScenario }) {
         <div className="grid grid-cols-2 gap-2 text-sm">
           {[
             ['Preservation age', `${PRESERVATION_AGE} (fixed by law)`],
-            ['Concessional cap', `$${CONCESSIONAL_CAP.toLocaleString()} (FY2025)`],
-            ['Non-concessional cap', `$${NON_CONCESSIONAL_CAP.toLocaleString()} (FY2025)`],
+            ['Income tax (FY2026)', '0% / 16% / 30% / 37% / 45%'],
+            ['Income tax (FY2027)', '0% / 15% / 30% / 37% / 45% — legislated'],
+            ['Income tax (FY2028+)', '0% / 14% / 30% / 37% / 45% — legislated'],
+            ['Concessional cap (FY2026)', `$${CONCESSIONAL_CAP.toLocaleString()}`],
+            ['Concessional cap (FY2027+)', '$32,500 — indexed'],
+            ['Non-concessional cap (FY2026)', `$${NON_CONCESSIONAL_CAP.toLocaleString()}`],
+            ['Non-concessional cap (FY2027+)', '$130,000 — indexed'],
+            ['Division 296 super tax', `Balance > $${(DIV296_LOWER_THRESHOLD / 1_000_000).toFixed(0)}M: +15% on earnings (from July 2026)`],
+            ['HECS repayment', 'Marginal 15% on income above $67,000 (new FY2026 system)'],
+            ['SG rate', '12% (from 1 July 2025, permanent)'],
             ['FBT rate', '47%'],
-            ['FBT gross-up (type 1)', '2.0802'],
             ['Investment bond internal tax', '30%'],
-            ['SG rate', '11.5% → 12% from 1 July 2025'],
           ].map(([label, value]) => (
-            <div key={label} className="flex justify-between py-1.5 border-b border-gray-800/50">
+            <div key={label} className="flex justify-between gap-4 py-1.5 border-b border-gray-800/50">
               <span className="text-gray-500">{label}</span>
-              <span className="text-gray-300 font-mono text-xs">{value}</span>
+              <span className="text-gray-300 font-mono text-xs text-right">{value}</span>
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Draft legislation toggles */}
+      <div className="card space-y-4">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-300">Draft Legislation</h2>
+          <p className="text-xs text-gray-500 mt-1">
+            Announced but not yet passed into law. Enable to model their potential impact on your projections.
+          </p>
+        </div>
+        {[
+          {
+            key: 'cgtReform2027',
+            label: 'CGT Reform — no 50% discount (from 1 Jul 2027)',
+            description: 'Properties & shares acquired after 1 July 2027: CPI-indexed cost base replaces the 50% discount. Grandfathered assets retain the discount.',
+          },
+          {
+            key: 'negativeGearingQuarantine',
+            label: 'Negative Gearing Quarantine (properties from 12 May 2026)',
+            description: 'Rental losses on properties with future purchase year ≥ 2027 are quarantined — they cannot offset salary or other income. Existing properties are fully grandfathered.',
+          },
+          {
+            key: 'workDeduction1000',
+            label: '$1,000 Work Expense Deduction (from 1 Jul 2026)',
+            description: 'Automatic $1,000 deduction for work-related expenses for employed people — no receipts required. Replaces the $300 no-receipt threshold.',
+          },
+          {
+            key: 'wato250',
+            label: '$250 Working Australians Tax Offset (from 1 Jul 2027)',
+            description: '$250 annual tax offset for all salary/wage earners. Reduces tax payable directly.',
+          },
+        ].map(({ key, label, description }) => {
+          const dl = scenario.draftLegislation || {}
+          return (
+            <label key={key} className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 shrink-0 accent-brand-500"
+                checked={dl[key] ?? false}
+                onChange={e => updateScenario({
+                  draftLegislation: { ...dl, [key]: e.target.checked },
+                })}
+              />
+              <div>
+                <div className="text-sm text-gray-300">{label}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{description}</div>
+              </div>
+            </label>
+          )
+        })}
       </div>
     </div>
   )
