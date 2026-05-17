@@ -125,6 +125,33 @@
 
 ## Session Log
 
+### Session 43 — 2026-05-17
+
+**What was done:**
+
+- **Cashflow Sankey: tapered ribbon endings + label collision** — `SVG_H` increased to 420; `labelH()` returns 26 (2-line) / 14 (1-line); `spreadLabels()` runs 6 forward + 6 backward passes, clamps last label within bounds. Ribbons now use `h1 = h0 * (totalRight/totalLeft)` so each right-side ribbon height fills its right-side bar proportionally, eliminating unclean endings.
+
+- **Australian Budget 2026-27 — legislated changes (auto-applied by sim year)**:
+  - Income tax brackets updated to Stage 3 rates: 16%/30%/37%/45% (FY2025), 15% (FY2027), 14% (FY2028). Tax engine now uses `TAX_BRACKET_SCHEDULE` with `getTaxBracketsForYear(year)`. Old `TAX_BRACKETS` alias retained.
+  - Super concessional cap: $30k FY2026, $32.5k FY2027+. Non-concessional cap: $120k FY2026 (was wrongly set to $110k), $130k FY2027+. Bring-forward cap corrected to $360k.
+  - Division 296 additional super tax: +15% on earnings for balances $3M–$10M, +25% above $10M (from FY2027). CPI-indexed thresholds. `calcDiv296()` in `super.js`; applied in simulation engine after `growSuperBalance`. Stored as `div296A`/`div296B`/`totalDiv296Tax` in year snapshot.
+  - HECS repayment: new marginal system — 15% of income above $67k threshold (replaces old percentage-of-total-income bands). `calcHecsRepayment` rewritten.
+  - SG rate: 12% from 1 July 2025 (already in SG_RATE_SCHEDULE, confirmed correct).
+
+- **Budget 2026-27 — draft legislation toggles (Assumptions page)**:
+  - CGT reform: CPI-indexed cost base replaces 50% discount for assets acquired after 1 July 2027 (`purchaseYear >= 2028`). Toggle: `cgtReform2027`.
+  - Negative gearing quarantine: rental losses zeroed for new properties with `futurePurchaseYear >= 2027` (cannot offset salary). Toggle: `negativeGearingQuarantine`. Applied in simulation engine via `adjustedRentalResults` array.
+  - $1,000 automatic work expense deduction (from FY2027). Toggle: `workDeduction1000`. Applied in `calcPersonTax` as taxable income reduction.
+  - $250 Working Australians Tax Offset (from FY2028). Toggle: `wato250`. Applied in `calcPersonTax` as tax offset after gross tax.
+  - All 4 toggles added to `draftLegislation` in `createDefaultScenario()`.
+  - Assumptions view updated: Legislative Values read-only grid shows correct current rates; new Draft Legislation card with 4 checkboxes.
+
+- **Tests**: Tax engine tests updated to Stage 3 bracket values (16%/30%); super non-concessional cap test updated to $120k cap; 11 golden metric snapshots regenerated. All 568 passing.
+
+**Tests:** 568 passing. Deployed to Vercel.
+
+---
+
 ### Session 42 — 2026-05-07
 
 **What was done:**
