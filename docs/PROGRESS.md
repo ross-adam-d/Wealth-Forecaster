@@ -125,6 +125,39 @@
 
 ## Session Log
 
+### Session 45 — 2026-05-22
+
+**What was done:**
+
+- **CGT reform calc — full rewrite (wf-landing `/capital-gains`)** — replaced the static before/after comparison with a "what-if" time-series calculator:
+  - **Correct hybrid rules** — existing assets (purchased pre-2027) sold after 1 Jul 2027 now use the legislatively correct hybrid:
+    - Pre-2027 gain: 50% CGT discount at marginal rate
+    - Post-2027 gain: CPI-indexed from the Jul-2027 value, no discount, 30% minimum tax
+  - **30% minimum tax** — post-2027 gains taxed at `max(marginalRate, 30%)`. Income support recipients toggle shown when marginalRate < 30%, exempts from the floor.
+  - **What-if SVG chart** — pure SVG (no chart lib), shows net after-tax proceeds and tax by sale year 2024–2042. Green fill = net gain, red fill = tax, amber shading = post-reform zone, vertical dashed line at 2027. Dots on the net proceeds line are clickable to select a year.
+  - **Current estimated value field** — optional input anchors projections from today's value rather than back-calculating from purchase price. Jul-2027 estimate also uses this anchor. Chart subtitle confirms which anchor is active.
+  - **Future growth rate** — label clarified (was "Annual growth rate") with hint "Applied from today's value onwards".
+  - **Year-by-year results table** — below chart: Year | Sale value | Gross gain | Tax | Net proceeds | Rules. Clicking a row selects it and updates the detail panel. Double border marks the CGT rule transition point. Method badges (Current / Hybrid / CPI) colour-coded.
+  - **Year detail panel** — selected year breakdown shows full math: for hybrid, shows pre-2027 and post-2027 sections separately with Jul-2027 anchor value, discount applied, CPI-indexed base, effective rate.
+
+- **WF engine CGT fix (`src/modules/property.js`)** — corrected the draft legislation toggle:
+  - Previous: `purchaseYear >= 2028` gate (new rules for new assets only — existing assets were always old rules regardless of sale year).
+  - Fixed: hybrid calc for existing assets sold after 1 Jul 2027. Uses `property.growthRate` to project the Jul-2027 value, splits pre/post gain correctly.
+  - 30% minimum tax noted as caveat (accurate for 30%+ bracket; slightly under for lower-income scenarios — marginal rate resolved later by tax engine).
+  - `CGT_REFORM_START_YEAR = 2027` and `CGT_MIN_TAX_RATE = 0.30` added to `src/constants/index.js`.
+  - Assumptions toggle description updated to describe hybrid rules and 30% min caveat.
+
+**Tests:** 568/568 passing (no regressions).
+
+**Commits:** `40c47a3` (WF engine CGT hybrid fix). wf-landing deployed separately.
+
+**To do (next session — negative gearing calc):**
+- Add mortgage type toggle (P&I vs IO) to `/negative-gearing`
+- Side-by-side layout: current rules vs quarantine for same property
+- Rental income and interest rate sliders for quick sensitivity analysis
+
+---
+
 ### Session 44 — 2026-05-21
 
 **What was done:**
