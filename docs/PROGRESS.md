@@ -125,6 +125,28 @@
 
 ## Session Log
 
+### Session 44 — 2026-05-21
+
+**What was done:**
+
+- **wf-landing — new Next.js 16 landing page + budget calculator hub** — separate project at `C:\Users\Ross Family\.local\bin\wf-landing`, deployed at https://wf-landing.vercel.app.
+  - Landing page: hero (Wealth Forecaster prominent), 4-up feature grid, budget calculator card grid, "Beyond the calculators" CTA section.
+  - 4 free SEO-optimised calculators — each a static server component page (with `metadata` for OG/keywords) + `"use client"` interactive calc component:
+    - `/tax-cuts` — legislated 16%→15%→14% bracket savings; 3yr/10yr totals; proposed $1k work deduction + $250 WATO shown separately as draft.
+    - `/hecs` — old ATO band system vs new 15% marginal above $67k; shows who wins/loses; optional payoff estimate from balance.
+    - `/negative-gearing` — annual cashflow under current rules vs proposed quarantine for new properties purchased after 1 July 2027.
+    - `/capital-gains` — 50% discount method vs CPI-indexed cost base for assets acquired after 1 July 2027; recommends which is better.
+  - All tax logic (`lib/tax.js`) mirrors `src/constants/index.js` bracket schedule exactly — keep in sync on engine changes.
+  - Design: light mode (gray-50 bg, white cards, sky-600 brand); wf-household skill grid pattern applied (`field-row` CSS class = `grid grid-cols-2 items-center`); compact inputs with `$` snug-left / number `text-right`; `%` suffix tight-right.
+  - Per-page FAQ sections for SEO rich snippets. `CTABanner` on every calculator page links back to full Wealth Forecaster app.
+  - Stack: Next.js 16.2.6, Tailwind v4 (`@import "tailwindcss"`), App Router, plain JS.
+
+**Tests:** n/a (landing page project — no engine changes to WF).
+
+**Commits:** 3 commits in wf-landing repo (initial build, light mode + field alignment, dark bg fix on calculator page wrappers).
+
+---
+
 ### Session 43 — 2026-05-17
 
 **What was done:**
