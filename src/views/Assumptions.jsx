@@ -196,8 +196,8 @@ export default function Assumptions({ scenario, updateScenario }) {
         {[
           {
             key: 'cgtReform2027',
-            label: 'CGT Reform — no 50% discount (from 1 Jul 2027)',
-            description: 'Properties & shares acquired after 1 July 2027: CPI-indexed cost base replaces the 50% discount. Grandfathered assets retain the discount.',
+            label: 'CGT Reform — hybrid rules from 1 Jul 2027',
+            description: 'New assets (acquired after 1 Jul 2027): CPI-indexed cost base, no 50% discount. Existing assets sold post-2027: 50% discount on pre-2027 gain, CPI indexation on post-2027 gain (hybrid). Note: the 30% minimum tax on post-reform gains is accurate for the 30%+ bracket; may be slightly understated for lower-income scenarios.',
           },
           {
             key: 'negativeGearingQuarantine',

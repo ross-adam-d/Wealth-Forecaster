@@ -114,6 +114,8 @@ export const HECS_REPAYMENT_BANDS = []
 
 // --- Capital gains ---
 export const CGT_DISCOUNT = 0.50             // 50% for assets held > 12 months
+export const CGT_REFORM_START_YEAR = 2027    // Draft: new rules from 1 Jul 2027
+export const CGT_MIN_TAX_RATE = 0.30         // Draft: minimum tax rate on post-reform gains
 export const CORPORATE_TAX_RATE = 0.30      // Used for franking credit gross-up
 
 // --- Investment bonds ---

@@ -264,15 +264,41 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
     const purchaseYear = extractYear(property.purchaseDate) || (year - 1)
     const heldYears = Math.max(0, year - purchaseYear)
 
-    // Draft CGT reform: applies to assets acquired after 1 July 2027 (purchaseYear >= 2028)
-    // Uses CPI-indexed cost base, no 50% discount.
-    const useNewCGT = cgtReform && purchaseYear >= 2028
+    // CGT reform (draft, from 1 Jul 2027):
+    // New assets (purchaseYear >= 2027): CPI-indexed cost base, no 50% discount.
+    // Existing assets sold post-2027 (hybrid): 50% discount on pre-2027 gain,
+    //   CPI indexation on post-2027 gain (using Jul-2027 value as the new base).
+    // Note: the 30% minimum tax on post-reform gains is not precisely modelled here
+    //   because the marginal rate is resolved later by the tax engine. Users in the
+    //   30%+ bracket are calculated correctly; lower-income users may be slightly under.
+    const REFORM_START = 2027
+    const useNewCGT    = cgtReform && purchaseYear >= REFORM_START
+    const useHybridCGT = cgtReform && purchaseYear < REFORM_START && year >= REFORM_START
 
     if (useNewCGT) {
+      // Pure new rules: CPI-indexed cost base, no 50% discount
       const indexedCostBase = property.purchasePrice * Math.pow(1 + inflationRate, heldYears)
       capitalGain = Math.max(0, netSalePrice - indexedCostBase)
-      if (!isPrimaryResidence) cgtAmount = capitalGain  // no discount; taxed at marginal rate
+      if (!isPrimaryResidence) cgtAmount = capitalGain
+    } else if (useHybridCGT) {
+      // Hybrid: use property growth rate to project the Jul-2027 value
+      const yearsToReform   = REFORM_START - purchaseYear
+      const yearsPostReform = year - REFORM_START
+      const propGrowthRate  = growthRate ?? inflationRate
+      const july2027Value   = property.purchasePrice * Math.pow(1 + propGrowthRate, yearsToReform)
+
+      // Pre-2027 portion: 50% discount, flows through tax brackets at marginal rate
+      const preGrossGain  = Math.max(0, july2027Value - property.purchasePrice)
+      const preDiscounted = heldYears > 1 ? preGrossGain * CGT_DISCOUNT : preGrossGain
+
+      // Post-2027 portion: CPI-indexed from Jul-2027 value, no discount
+      const indexedJuly2027Value = july2027Value * Math.pow(1 + inflationRate, yearsPostReform)
+      const postCpiGain          = Math.max(0, netSalePrice - indexedJuly2027Value)
+
+      capitalGain = preDiscounted + postCpiGain
+      if (!isPrimaryResidence) cgtAmount = capitalGain
     } else {
+      // Standard rules: 50% discount for assets held > 1 year
       capitalGain = netSalePrice - property.purchasePrice
       if (!isPrimaryResidence && capitalGain > 0) {
         const discountedGain = heldYears > 1 ? capitalGain * CGT_DISCOUNT : capitalGain
