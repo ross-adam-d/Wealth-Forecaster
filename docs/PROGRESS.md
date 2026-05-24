@@ -125,6 +125,48 @@
 
 ## Session Log
 
+### Session 46 — 2026-05-25
+
+**What was done:**
+
+- **Phase 3 — Stripe subscription backend (wf-landing)**
+  - Supabase `profiles` table created (SQL run in Supabase SQL editor): `id` (FK auth.users), `trial_start_at`, `stripe_customer_id`, `subscription_status`, `subscription_ends_at`, `grace_until`. RLS enabled; service role bypasses for writes.
+  - `GET /api/prices` — returns `{ monthly, annual }` Stripe price IDs (public; CORS: app.wealthspan.au)
+  - `POST /api/create-checkout` — receives `{ priceId, userId, email }`, creates/reuses Stripe customer, upserts profile row, returns Checkout session URL
+  - `POST /api/webhooks/stripe` — signature-verified handler for `customer.subscription.created/updated/deleted` + `invoice.payment_failed`; updates profile `subscription_status` + `subscription_ends_at`
+  - `POST /api/billing-portal` — returns Stripe Customer Portal session URL for active subscribers
+  - `GET /api/profile?userId=xxx` — returns `{ access: grace|active|trial|expired, trialDaysLeft?, subscriptionEndsAt? }`; auto-creates profile row with trial clock on first visit
+  - All clients use lazy singleton pattern (`getStripe()`, `getSupabaseAdmin()`) to avoid build-time crash when env vars absent
+  - 8 env vars set in wf-landing Vercel project (Stripe keys + Supabase keys)
+
+- **Settings page (`src/views/Settings.jsx`)**
+  - Fetches profile status + price IDs from wealthspan.au API on mount
+  - Shows subscription status badge (grace / trial / active / expired) with descriptive copy
+  - Subscribe buttons (Monthly $12/mo · Annually $99/yr) when not active — redirects to Stripe Checkout
+  - "Manage Billing" button for active subscribers — opens Stripe Customer Portal
+  - Post-checkout success message on `?subscribed=true` return URL
+  - Account section: email display, Sign out
+  - Route: `/settings`, added to nav in `Layout.jsx`
+
+**Access logic:**
+```
+grace_until > now              → 'grace'   (existing users free until 2026-07-01)
+subscription_status = 'active' → 'active'
+trial_start_at + 7d > now      → 'trial' + trialDaysLeft
+otherwise                      → 'expired'
+```
+
+**Tests:** 568/568 passing (no regressions).
+
+**Commits:** `de47b34` (Settings page + nav + route), wf-landing deployed separately.
+
+**To do (next session — Phase 4):**
+- Trial banner in WF app: non-blocking amber banner showing days left, dismissible
+- Paywall overlay: shown when `access === 'expired'`, blocks app, shows subscribe buttons
+- Read `?subscribed=true` param on app root to refresh profile after checkout
+
+---
+
 ### Session 45 — 2026-05-22
 
 **What was done:**
