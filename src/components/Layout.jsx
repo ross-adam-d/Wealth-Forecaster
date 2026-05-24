@@ -32,6 +32,7 @@ const NAV = [
   { to: '/goal',       label: 'Goal' },
   { to: '/household',  label: 'Household' },
   { to: '/assumptions',label: 'Assumptions' },
+  { to: '/settings',   label: 'Settings' },
 ]
 
 export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots, isLight, toggleTheme }) {

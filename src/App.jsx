@@ -14,6 +14,7 @@ import Assumptions from './views/Assumptions.jsx'
 import Compare from './views/Compare.jsx'
 import RetirementGoal from './views/RetirementGoal.jsx'
 import Actuals from './views/Actuals.jsx'
+import Settings from './views/Settings.jsx'
 import Login from './views/Login.jsx'
 
 export default function App() {
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/goal" element={<RetirementGoal {...sharedProps} />} />
         <Route path="/household" element={<HouseholdProfile {...sharedProps} />} />
         <Route path="/assumptions" element={<Assumptions {...sharedProps} />} />
+        <Route path="/settings" element={<Settings user={user} />} />
       </Routes>
     </Layout>
   )
