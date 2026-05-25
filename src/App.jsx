@@ -5,7 +5,9 @@ import { useScenario } from './hooks/useScenario.js'
 import { useSimulation } from './hooks/useSimulation.js'
 import { useTheme } from './hooks/useTheme.js'
 import { useLivePrices } from './hooks/useLivePrices.js'
+import { useProfile } from './hooks/useProfile.js'
 import Layout from './components/Layout.jsx'
+import PaywallOverlay from './components/PaywallOverlay.jsx'
 import GapDashboard from './views/GapDashboard.jsx'
 import Projection from './views/Projection.jsx'
 import ImpactAnalyser from './views/ImpactAnalyser.jsx'
@@ -49,6 +51,8 @@ export default function App() {
   const { isLight, toggleTheme } = useTheme()
   useLivePrices(scenarios, updateScenario, activeId)
 
+  const { profile, prices, loading: profileLoading, checkoutLoading, subscribe } = useProfile(user)
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
@@ -79,20 +83,39 @@ export default function App() {
     toggleTheme,
   }
 
+  const showPaywall = !profileLoading && profile?.access === 'expired'
+
   return (
-    <Layout {...sharedProps} snapshots={snapshots}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/actuals" replace />} />
-        <Route path="/actuals" element={<Actuals {...sharedProps} />} />
-        <Route path="/gap" element={<GapDashboard {...sharedProps} />} />
-        <Route path="/projection" element={<Projection {...sharedProps} />} />
-        <Route path="/impact" element={<ImpactAnalyser {...sharedProps} />} />
-        <Route path="/compare" element={<Compare {...sharedProps} />} />
-        <Route path="/goal" element={<RetirementGoal {...sharedProps} />} />
-        <Route path="/household" element={<HouseholdProfile {...sharedProps} />} />
-        <Route path="/assumptions" element={<Assumptions {...sharedProps} />} />
-        <Route path="/settings" element={<Settings user={user} />} />
-      </Routes>
-    </Layout>
+    <>
+      {showPaywall && (
+        <PaywallOverlay
+          prices={prices}
+          onSubscribe={subscribe}
+          checkoutLoading={checkoutLoading}
+          onSignOut={() => supabase.auth.signOut()}
+        />
+      )}
+      <Layout
+        {...sharedProps}
+        snapshots={snapshots}
+        trialProfile={profile}
+        trialPrices={prices}
+        onSubscribe={subscribe}
+        trialCheckoutLoading={checkoutLoading}
+      >
+        <Routes>
+          <Route path="/" element={<Navigate to="/actuals" replace />} />
+          <Route path="/actuals" element={<Actuals {...sharedProps} />} />
+          <Route path="/gap" element={<GapDashboard {...sharedProps} />} />
+          <Route path="/projection" element={<Projection {...sharedProps} />} />
+          <Route path="/impact" element={<ImpactAnalyser {...sharedProps} />} />
+          <Route path="/compare" element={<Compare {...sharedProps} />} />
+          <Route path="/goal" element={<RetirementGoal {...sharedProps} />} />
+          <Route path="/household" element={<HouseholdProfile {...sharedProps} />} />
+          <Route path="/assumptions" element={<Assumptions {...sharedProps} />} />
+          <Route path="/settings" element={<Settings user={user} />} />
+        </Routes>
+      </Layout>
+    </>
   )
 }

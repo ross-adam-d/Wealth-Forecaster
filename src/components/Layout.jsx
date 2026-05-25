@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../utils/supabase.js'
 import ScenarioCards from './ScenarioCards.jsx'
 import { Tutorial, useTutorial } from './Tutorial.jsx'
+import TrialBanner from './TrialBanner.jsx'
 
 const WELCOME_STEPS = [
   {
@@ -35,7 +36,7 @@ const NAV = [
   { to: '/settings',   label: 'Settings' },
 ]
 
-export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots, isLight, toggleTheme }) {
+export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots, isLight, toggleTheme, trialProfile, trialPrices, onSubscribe, trialCheckoutLoading }) {
   const mainRef = useRef(null)
   const { pathname } = useLocation()
   useEffect(() => {
@@ -172,6 +173,16 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
           </button>
         </div>
       </header>
+
+      {/* Trial banner */}
+      {trialProfile?.access === 'trial' && (
+        <TrialBanner
+          trialDaysLeft={trialProfile.trialDaysLeft}
+          prices={trialPrices}
+          onSubscribe={onSubscribe}
+          checkoutLoading={trialCheckoutLoading}
+        />
+      )}
 
       {/* Mobile nav dropdown */}
       {mobileMenuOpen && (
