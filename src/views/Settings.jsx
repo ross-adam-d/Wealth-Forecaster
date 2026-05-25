@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../utils/supabase.js'
 
-const API = 'https://wealthspan.au/api'
+const API = 'https://www.wealthspan.au/api'
 
 export default function Settings({ user }) {
   const [profile, setProfile] = useState(null)

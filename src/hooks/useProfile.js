@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const API = 'https://wealthspan.au/api'
+const API = 'https://www.wealthspan.au/api'
 
 export function useProfile(user) {
   const [profile, setProfile] = useState(null)
