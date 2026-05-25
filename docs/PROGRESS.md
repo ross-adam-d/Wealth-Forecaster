@@ -125,6 +125,35 @@
 
 ## Session Log
 
+### Session 47 — 2026-05-26
+
+**What was done:**
+
+- **Phase 4 — Paywall + trial banner (WF Vite app)**
+  - `src/hooks/useProfile.js` — fetches `/api/profile` + `/api/prices` in parallel on mount; 2.5s delayed fetch when `?subscribed=true` in URL (lets Stripe webhook fire before reading access state); exposes `subscribe()` action
+  - `src/components/TrialBanner.jsx` — amber strip below nav when `access === 'trial'`; shows days remaining; turns red when ≤2 days; one-click subscribe button; dismissible via sessionStorage (clears on tab close)
+  - `src/components/PaywallOverlay.jsx` — fixed full-screen `z-50` overlay when `access === 'expired'`; monthly + annual subscribe buttons; sign out link; cannot be dismissed
+  - `App.jsx` — calls `useProfile(user)`, renders `PaywallOverlay` as overlay, passes `trialProfile`/`trialPrices`/`onSubscribe` to Layout
+  - `Layout.jsx` — renders `TrialBanner` between header and scenario cards strip when `access === 'trial'`
+  - `success_url` in `create-checkout` changed to `/settings?subscribed=true` so user lands on Settings page with confirmation message after payment
+
+- **CORS + routing bug fixes (wf-landing)**
+  - Root cause: `wealthspan.au` (bare domain) returns 404 for API routes — Vercel only aliases production to `www.wealthspan.au`. API base URL in WF app changed from `wealthspan.au` to `www.wealthspan.au`.
+  - Added `lib/cors.js` shared helper — allowlist includes `app.wealthspan.au`, `wealthspan.au`, `www.wealthspan.au`, `wealth-forecaster.vercel.app`, Vercel preview URL pattern, localhost
+  - Added `middleware.js` — Next.js Edge middleware applies CORS headers to all `/api/*` routes (more reliable than per-handler headers in Next.js 16 App Router)
+  - All 4 CORS-bearing route handlers refactored to use `corsHeaders()` from `lib/cors.js`
+
+**Tests:** 568/568 passing.
+
+**Commits:** `c40b7b2` (WF app), `0ba1c1c` (wf-landing)
+
+**To do next session:**
+- Full end-to-end subscription flow test (trial → subscribe → active → manage billing → cancel)
+- Verify trial banner + paywall display correctly for trial/expired states
+- Verify `?subscribed=true` return from Stripe refreshes access state
+
+---
+
 ### Session 46 — 2026-05-25
 
 **What was done:**
