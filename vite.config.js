@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Aussie Retirement Simulator',
-        short_name: 'Retirement Sim',
-        description: 'Personal wealth projection and retirement planning tool',
+        name: 'WealthSpan',
+        short_name: 'WealthSpan',
+        description: 'Personal wealth projection and retirement planning tool for Australians',
         theme_color: '#0284c7',
         background_color: '#030712',
         display: 'standalone',

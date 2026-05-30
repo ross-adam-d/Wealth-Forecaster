@@ -7,7 +7,7 @@ import TrialBanner from './TrialBanner.jsx'
 
 const WELCOME_STEPS = [
   {
-    title: 'Welcome to Aussie Retirement Simulator',
+    title: 'Welcome to WealthSpan',
     body: 'This tool projects your financial future from today through retirement and beyond. It models super, shares, property, investment bonds, expenses, tax, and age pension — all in one place.',
   },
   {
@@ -79,8 +79,8 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
       {/* Top nav */}
       <header className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="font-semibold text-white text-sm tracking-tight whitespace-nowrap hidden sm:block">Aussie Retirement Simulator</span>
-          <span className="font-semibold text-white text-sm tracking-tight whitespace-nowrap sm:hidden">ARS</span>
+          <span className="font-semibold text-white text-sm tracking-tight whitespace-nowrap hidden sm:block">WealthSpan</span>
+          <span className="font-semibold text-white text-sm tracking-tight whitespace-nowrap sm:hidden">WealthSpan</span>
           {/* Desktop nav */}
           <nav className="hidden sm:flex items-center gap-0.5">
             {NAV.map(({ to, label }) => (
