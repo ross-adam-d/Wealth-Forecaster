@@ -36,7 +36,7 @@ const NAV = [
   { to: '/settings',   label: 'Settings' },
 ]
 
-export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots, isLight, toggleTheme, trialProfile, trialPrices, onSubscribe, trialCheckoutLoading }) {
+export default function Layout({ children, scenarios, activeId, setActiveId, addScenario, duplicateScenario, deleteScenario, renameScenario, displayReal, setDisplayReal, snapshots, isLight, toggleTheme, trialProfile, trialPrices, onSubscribe, trialCheckoutLoading, trialSubscribeError }) {
   const mainRef = useRef(null)
   const { pathname } = useLocation()
   useEffect(() => {
@@ -181,6 +181,7 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
           prices={trialPrices}
           onSubscribe={onSubscribe}
           checkoutLoading={trialCheckoutLoading}
+          error={trialSubscribeError}
         />
       )}
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function TrialBanner({ trialDaysLeft, prices, onSubscribe, checkoutLoading }) {
+export default function TrialBanner({ trialDaysLeft, prices, onSubscribe, checkoutLoading, error }) {
   const [dismissed, setDismissed] = useState(
     () => sessionStorage.getItem('trialBannerDismissed') === '1'
   )
@@ -33,6 +33,9 @@ export default function TrialBanner({ trialDaysLeft, prices, onSubscribe, checko
       >
         {checkoutLoading === 'monthly' ? 'Redirecting…' : 'Subscribe — $12/mo'}
       </button>
+      {error && (
+        <span className="text-xs text-red-300 whitespace-nowrap flex-shrink-0">{error}</span>
+      )}
       <button
         onClick={dismiss}
         className={`flex-shrink-0 p-1 rounded transition-colors ${

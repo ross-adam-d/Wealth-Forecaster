@@ -125,6 +125,39 @@
 
 ## Session Log
 
+### Session 48 — 2026-05-30
+
+**What was done:**
+
+Full end-to-end subscription flow testing and fixes.
+
+**Infrastructure fixes (outside code):**
+- Added `https://app.wealthspan.au` to Supabase Auth → Redirect URLs
+- Set Supabase Site URL to `https://app.wealthspan.au`
+- Added `VITE_AUTH_REDIRECT_URL=https://app.wealthspan.au` to Vercel wealth-forecaster env vars
+- Fixed Stripe `STRIPE_SECRET_KEY` in Vercel wf-landing (was `mk_...` invalid key)
+- Fixed Stripe webhook endpoint URL from `wealthspan.au` to `www.wealthspan.au`
+- Added `customer.subscription.updated` to Stripe webhook event subscriptions
+- Added `canceling` to Supabase `profiles.subscription_status` check constraint
+
+**wf-landing code fixes:**
+- `app/api/create-checkout/route.js` — fixed `cancel_url` from bare `wealthspan.au` to `www.wealthspan.au`; added trial delay: fetches `trial_start_at` from profile, passes `subscription_data: { trial_end }` to Stripe checkout if trial still active (first charge deferred to trial end)
+- `app/api/webhooks/stripe/route.js` — fixed `current_period_end` lookup for Stripe API `2026-04-22.dahlia` (field moved to `items.data[0].current_period_end`); added `cancel_at_period_end` handling: stores `subscription_status = 'canceling'` when user cancels at period end
+- `app/api/profile/route.js` — `canceling` status treated as `active` access but returns `cancelAtPeriodEnd: true`
+
+**WF app code fixes:**
+- `src/hooks/useProfile.js` — added `subscribeError` state; surfaces error when `priceId` missing or `create-checkout` fails
+- `src/components/TrialBanner.jsx` — accepts and displays `error` prop
+- `src/components/Layout.jsx` — passes `trialSubscribeError` to TrialBanner
+- `src/App.jsx` — threads `subscribeError` from `useProfile` down to Layout
+- `src/views/Settings.jsx` — shows "Cancels [date] — access continues until then" when `cancelAtPeriodEnd: true`
+
+**Tests:** 568/568 passing.
+
+**To do next session:**
+- Test the full trial-delay flow (subscribe during trial → first charge deferred)
+- Paywall block test (let a trial expire or manually set expired)
+
 ### Session 47 — 2026-05-26
 
 **What was done:**

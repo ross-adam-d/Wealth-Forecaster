@@ -7,6 +7,7 @@ export function useProfile(user) {
   const [prices, setPrices] = useState(null)
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(null)
+  const [subscribeError, setSubscribeError] = useState(null)
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) return
@@ -36,7 +37,12 @@ export function useProfile(user) {
   }, [fetchProfile, user?.id])
 
   async function subscribe(priceId, plan) {
-    if (!priceId || !user) return
+    setSubscribeError(null)
+    if (!priceId) {
+      setSubscribeError('Price not loaded — please refresh and try again')
+      return
+    }
+    if (!user) return
     setCheckoutLoading(plan)
     try {
       const res = await fetch(`${API}/create-checkout`, {
@@ -47,10 +53,11 @@ export function useProfile(user) {
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       window.location.href = data.url
-    } catch {
+    } catch (e) {
       setCheckoutLoading(null)
+      setSubscribeError(e.message || 'Something went wrong — please try again')
     }
   }
 
-  return { profile, prices, loading, checkoutLoading, subscribe }
+  return { profile, prices, loading, checkoutLoading, subscribe, subscribeError }
 }

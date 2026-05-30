@@ -51,7 +51,7 @@ export default function App() {
   const { isLight, toggleTheme } = useTheme()
   useLivePrices(scenarios, updateScenario, activeId)
 
-  const { profile, prices, loading: profileLoading, checkoutLoading, subscribe } = useProfile(user)
+  const { profile, prices, loading: profileLoading, checkoutLoading, subscribe, subscribeError } = useProfile(user)
 
   if (authLoading) {
     return (
@@ -102,6 +102,7 @@ export default function App() {
         trialPrices={prices}
         onSubscribe={subscribe}
         trialCheckoutLoading={checkoutLoading}
+        trialSubscribeError={subscribeError}
       >
         <Routes>
           <Route path="/" element={<Navigate to="/actuals" replace />} />

@@ -118,7 +118,7 @@ export default function Settings({ user }) {
 }
 
 function SubscriptionPanel({ profile, prices, onSubscribe, onPortal, checkoutLoading, portalLoading }) {
-  const { access, trialDaysLeft, subscriptionEndsAt } = profile
+  const { access, trialDaysLeft, subscriptionEndsAt, cancelAtPeriodEnd } = profile
   const showSubscribeButtons = access === 'trial' || access === 'expired' || access === 'grace'
 
   return (
@@ -133,8 +133,10 @@ function SubscriptionPanel({ profile, prices, onSubscribe, onPortal, checkoutLoa
         <span className="text-sm text-gray-400">
           {access === 'grace' && 'Free early-access until 1 July 2026'}
           {access === 'trial' && `${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''} remaining in your free trial`}
-          {access === 'active' && subscriptionEndsAt &&
+          {access === 'active' && subscriptionEndsAt && !cancelAtPeriodEnd &&
             `Renews ${new Date(subscriptionEndsAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+          {access === 'active' && subscriptionEndsAt && cancelAtPeriodEnd &&
+            `Cancels ${new Date(subscriptionEndsAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })} — access continues until then`}
           {access === 'expired' && 'Your trial has ended — subscribe to continue'}
         </span>
       </div>
