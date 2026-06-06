@@ -888,13 +888,13 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       <InvestmentPieChart snapshots={snapshots} scenario={scenario} />
 
       {/* Liquidity table */}
-      <div className="rounded-xl overflow-hidden">
+      <div className="card">
         <button
-          className="flex items-center justify-between w-full text-left px-1 py-1"
+          className="w-full flex items-center justify-between text-left"
           onClick={() => setLiquidityTableOpen(o => !o)}
         >
-          <h2 className="text-sm font-semibold text-gray-300">Liquidity Table</h2>
-          <span className="text-gray-500 text-xs ml-4 flex-shrink-0">{liquidityTableOpen ? '▾' : '▸'}</span>
+          <span className="text-sm font-semibold text-gray-300">Liquidity Table</span>
+          <span className="text-gray-500 text-xs">{liquidityTableOpen ? '▾' : '▸'}</span>
         </button>
         {liquidityTableOpen && <div className="overflow-x-auto mt-2"><table className="w-full text-sm">
           <thead>
