@@ -859,21 +859,21 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                     <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                     <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                     <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                    <Tooltip content={<SimpleTooltip />} />
+                    <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                     <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                    {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                    <Bar dataKey="liqCash"       stackId="1" fill="#60a5fa" fillOpacity={0.7} name="Cash" />
-                    <Bar dataKey="liqBonds"      stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Tax-Def. Bonds" />
-                    <Bar dataKey="liqOther"      stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other assets" />
-                    <Bar dataKey="liqComm"       stackId="1" fill="#f472b6" fillOpacity={0.7} name="Commodities" />
-                    <Bar dataKey="liqTB"         stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Treasury Bonds" />
-                    <Bar dataKey="liqShares"     stackId="1" fill="#34d399" fillOpacity={0.7} name="Shares" />
-                    <Bar dataKey="superA"        stackId="1" fill="#0ea5e9" fillOpacity={0.7} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
-                    <Bar dataKey="superB"        stackId="1" fill="#38bdf8" fillOpacity={0.7} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
-                    <Bar dataKey="preTenYrBonds" stackId="1" fill="#a78bfa" fillOpacity={0.3} name="Bonds (pre-10yr)" />
-                    <Bar dataKey="propertyEq"    stackId="1" fill="#f59e0b" fillOpacity={0.3} name="Property equity" />
-                    <Bar dataKey="lockedSuperA"  stackId="1" fill="#0ea5e9" fillOpacity={0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
-                    <Bar dataKey="lockedSuperB"  stackId="1" fill="#38bdf8" fillOpacity={0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+                    {retireYear && <ReferenceLine x={retireYear} stroke={cd('#60a5fa','#2563eb')} strokeDasharray="4 4" label={{ value: 'Retirement', fill: cd('#60a5fa','#2563eb'), fontSize: 11 }} />}
+                    <Bar dataKey="liqCash"       stackId="1" fill={cd('#60a5fa','#2563eb')} fillOpacity={barOp} name="Cash" />
+                    <Bar dataKey="liqBonds"      stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={barOp} name="Tax-Def. Bonds" />
+                    <Bar dataKey="liqOther"      stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={barOp} name="Other assets" />
+                    <Bar dataKey="liqComm"       stackId="1" fill={cd('#f472b6','#db2777')} fillOpacity={barOp} name="Commodities" />
+                    <Bar dataKey="liqTB"         stackId="1" fill={cd('#22d3ee','#0891b2')} fillOpacity={barOp} name="Treasury Bonds" />
+                    <Bar dataKey="liqShares"     stackId="1" fill={cd('#34d399','#059669')} fillOpacity={barOp} name="Shares" />
+                    <Bar dataKey="superA"        stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={barOp} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+                    <Bar dataKey="superB"        stackId="1" fill={cd('#38bdf8','#0284c7')} fillOpacity={barOp} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+                    <Bar dataKey="preTenYrBonds" stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={isLight ? 0.45 : 0.3} name="Bonds (pre-10yr)" />
+                    <Bar dataKey="propertyEq"    stackId="1" fill={cd('#f59e0b','#b45309')} fillOpacity={isLight ? 0.45 : 0.3} name="Property equity" />
+                    <Bar dataKey="lockedSuperA"  stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={isLight ? 0.35 : 0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+                    <Bar dataKey="lockedSuperB"  stackId="1" fill={cd('#38bdf8','#0284c7')} fillOpacity={isLight ? 0.35 : 0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
