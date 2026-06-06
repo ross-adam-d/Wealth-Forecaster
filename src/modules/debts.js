@@ -34,8 +34,8 @@ export function calcLeaseAnnualRepayment(financedAmount, interestRate, termYears
  * @param {number} year - simulation year
  * @returns {{ closingBalance, annualRepayment, interestPaid, principalPaid, isPaidOff, residualPayment }}
  */
-export function processDebtYear(debt, year) {
-  const { type, currentBalance, interestRate, startYear } = debt
+export function processDebtYear(debt, year, yearFraction = 1) {
+  const { type, currentBalance, startYear } = debt
 
   // Not yet started
   if (startYear != null && year < startYear) {
@@ -47,24 +47,25 @@ export function processDebtYear(debt, year) {
   }
 
   if (type === 'lease') {
-    return processLeaseYear(debt, year)
+    return processLeaseYear(debt, year, yearFraction)
   }
 
   if (type === 'credit_card') {
-    return processCreditCardYear(debt)
+    return processCreditCardYear(debt, yearFraction)
   }
 
   // Default: personal_loan (standard P&I)
-  return processLoanYear(debt)
+  return processLoanYear(debt, yearFraction)
 }
 
-function processLoanYear(debt) {
+function processLoanYear(debt, yearFraction = 1) {
   const { currentBalance, interestRate, monthlyRepayment } = debt
-  const annualRepayment = (monthlyRepayment || 0) * 12
+  const annualRepaymentFull = (monthlyRepayment || 0) * 12
+  const annualRepayment = annualRepaymentFull * yearFraction
 
   if (annualRepayment <= 0) {
-    // No repayment set — interest accrues
-    const interest = currentBalance * interestRate
+    // No repayment set — interest accrues (pro-rated)
+    const interest = currentBalance * interestRate * yearFraction
     return {
       closingBalance: currentBalance + interest,
       annualRepayment: 0,
@@ -75,7 +76,7 @@ function processLoanYear(debt) {
     }
   }
 
-  const interest = currentBalance * interestRate
+  const interest = currentBalance * interestRate * yearFraction
   const principal = Math.min(currentBalance, Math.max(0, annualRepayment - interest))
   const actualRepayment = Math.min(annualRepayment, currentBalance + interest)
   const closingBalance = Math.max(0, currentBalance - principal)
@@ -90,7 +91,7 @@ function processLoanYear(debt) {
   }
 }
 
-function processLeaseYear(debt, year) {
+function processLeaseYear(debt, year, yearFraction = 1) {
   const { currentBalance, interestRate, termYears, residualValue = 0, monthlyRepayment, startYear } = debt
 
   // Calculate years into lease
@@ -117,11 +118,13 @@ function processLeaseYear(debt, year) {
   }
 
   // Lease repayment is flat — principal portion is the repayment minus imputed interest
-  const imputedInterest = currentBalance * interestRate
-  const principal = Math.min(currentBalance - (residualValue || 0), Math.max(0, annualRepayment - imputedInterest))
+  // Pro-rated for partial simulation years
+  const effectiveRepayment = annualRepayment * yearFraction
+  const imputedInterest = currentBalance * interestRate * yearFraction
+  const principal = Math.min(currentBalance - (residualValue || 0), Math.max(0, effectiveRepayment - imputedInterest))
   const closingBalance = Math.max(0, currentBalance - principal)
 
-  // Final year: residual payment
+  // Final year: residual payment (not pro-rated — it's a lump sum when the lease ends)
   let residualPayment = 0
   if (year === termEnd - 1 || closingBalance <= (residualValue || 0) + 1) {
     residualPayment = Math.min(closingBalance, residualValue || 0)
@@ -129,7 +132,7 @@ function processLeaseYear(debt, year) {
 
   return {
     closingBalance: Math.max(0, closingBalance - residualPayment),
-    annualRepayment: annualRepayment + residualPayment,
+    annualRepayment: effectiveRepayment + residualPayment,
     interestPaid: imputedInterest,
     principalPaid: principal + residualPayment,
     isPaidOff: closingBalance - residualPayment <= 0,
@@ -137,17 +140,17 @@ function processLeaseYear(debt, year) {
   }
 }
 
-function processCreditCardYear(debt) {
+function processCreditCardYear(debt, yearFraction = 1) {
   const { currentBalance, interestRate, monthlyRepayment, repaymentMode } = debt
 
   if (currentBalance <= 0) {
     return { closingBalance: 0, annualRepayment: 0, interestPaid: 0, principalPaid: 0, isPaidOff: true, residualPayment: 0 }
   }
 
-  const interest = currentBalance * interestRate
+  const interest = currentBalance * interestRate * yearFraction
 
   if (repaymentMode === 'revolving') {
-    // Interest-only: balance stays, interest paid each year
+    // Interest-only: balance stays, interest paid each year (pro-rated)
     return {
       closingBalance: currentBalance,
       annualRepayment: interest,
@@ -158,10 +161,10 @@ function processCreditCardYear(debt) {
     }
   }
 
-  // Payoff mode: fixed repayment or minimum 2% of balance per month
+  // Payoff mode: fixed repayment or minimum 2% of balance per month (pro-rated)
   const minMonthly = currentBalance * 0.02
   const monthly = monthlyRepayment > 0 ? monthlyRepayment : Math.max(minMonthly, 25)
-  const annualRepayment = monthly * 12
+  const annualRepayment = monthly * 12 * yearFraction
 
   const principal = Math.min(currentBalance, Math.max(0, annualRepayment - interest))
   const actualRepayment = Math.min(annualRepayment, currentBalance + interest)
@@ -177,6 +180,8 @@ function processCreditCardYear(debt) {
   }
 }
 
+
+
 /**
  * Process all debts for a year.
  *
@@ -184,8 +189,8 @@ function processCreditCardYear(debt) {
  * @param {number} year
  * @returns {{ results, totalBalance, totalRepayment }}
  */
-export function processAllDebts(debts, year) {
-  const results = debts.map(debt => processDebtYear(debt, year))
+export function processAllDebts(debts, year, yearFraction = 1) {
+  const results = debts.map(debt => processDebtYear(debt, year, yearFraction))
   const totalBalance = results.reduce((sum, r) => sum + r.closingBalance, 0)
   const totalRepayment = results.reduce((sum, r) => sum + r.annualRepayment, 0)
   return { results, totalBalance, totalRepayment }

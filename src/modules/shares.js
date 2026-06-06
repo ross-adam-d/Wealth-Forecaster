@@ -25,6 +25,7 @@ export function processSharesYear({
   drawdownNeeded = 0,
   resolvedContribution,
   assumptions,
+  yearFraction = 1,
 }) {
   const {
     currentValue,
@@ -38,12 +39,12 @@ export function processSharesYear({
 
   const rate = resolveRatePeriodRate(ratePeriods, year, assumptions.sharesReturnRate)
 
-  // Capital growth (before dividends)
-  const capitalGrowth = currentValue * rate
+  // Capital growth (before dividends) — pro-rated for partial simulation year
+  const capitalGrowth = currentValue * rate * yearFraction
   const valuePreDividend = currentValue + capitalGrowth
 
-  // Dividends
-  const cashDividend = currentValue * dividendYield
+  // Dividends — pro-rated for partial simulation year
+  const cashDividend = currentValue * dividendYield * yearFraction
   const { grossUp: frankingGrossUp, credit: frankingCredit } = calcFrankingCredit(cashDividend, frankingPct)
 
   // Preserve capital mode

@@ -171,12 +171,17 @@ export function calcDiv293(grossSalary, totalConcessional) {
  * @param {number} year
  * @returns {object}
  */
-export function processContributions(superProfile, grossSalary, year) {
+export function processContributions(superProfile, grossSalary, year, yearFraction = 1) {
   const {
-    salarySacrificeAmount = 0,
-    voluntaryConcessional = 0,
-    voluntaryNonConcessional = 0,
+    salarySacrificeAmount: _ss = 0,
+    voluntaryConcessional: _vc = 0,
+    voluntaryNonConcessional: _vnc = 0,
   } = superProfile
+
+  // Fixed dollar contributions are pro-rated for partial simulation years
+  const salarySacrificeAmount = _ss * yearFraction
+  const voluntaryConcessional = _vc * yearFraction
+  const voluntaryNonConcessional = _vnc * yearFraction
 
   const employerContrib = calcEmployerContribution(superProfile, grossSalary, year)
 
@@ -247,6 +252,7 @@ export function growSuperBalance({
   personAge,
   retirementYear,
   assumptions,
+  yearFraction = 1,
 }) {
   const inPensionPhase =
     superProfile.pensionPhaseFromAge != null
@@ -258,8 +264,9 @@ export function growSuperBalance({
   const rate = resolveRatePeriodRate(superProfile.ratePeriods, year,
     inPensionPhase ? assumptions.superPensionRate : assumptions.superAccumulationRate)
 
-  // Balance grows at rate on opening balance + contributions (added mid-year approximation)
-  const grownBalance = (openingBalance + contributions) * (1 + rate)
+  // Balance grows at rate on opening balance + contributions — pro-rated for partial simulation year
+  const effectiveRate = rate * yearFraction
+  const grownBalance = (openingBalance + contributions) * (1 + effectiveRate)
 
   let drawdown = 0
   let minDrawdown = 0

@@ -25,7 +25,7 @@ import { resolveRatePeriodRate } from '../engine/ratePeriodEngine.js'
  * @param {object} assumptions
  * @returns {object}
  */
-export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContribution, assumptions }) {
+export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContribution, assumptions, yearFraction = 1 }) {
   const {
     currentBalance,
     annualContribution,
@@ -56,9 +56,9 @@ export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContri
   const yearsElapsed = year - inceptionYear
   const isTaxFree = yearsElapsed >= INVESTMENT_BOND_YEARS_FOR_TAX_FREE
 
-  // Growth — internal 30% tax on earnings
+  // Growth — internal 30% tax on earnings, pro-rated for partial simulation year
   const rate = resolveRatePeriodRate(ratePeriods, year, assumptions?.investmentBondRate ?? 0.07)
-  const grossEarnings = (currentBalance + effectiveContribution) * rate
+  const grossEarnings = (currentBalance + effectiveContribution) * rate * yearFraction
   const internalTax = grossEarnings * INVESTMENT_BOND_INTERNAL_TAX
   const netEarnings = grossEarnings - internalTax
 

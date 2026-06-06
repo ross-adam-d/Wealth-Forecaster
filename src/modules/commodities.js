@@ -23,6 +23,7 @@ export function processCommoditiesYear({
   drawdownNeeded = 0,
   resolvedContribution,
   assumptions,
+  yearFraction = 1,
 }) {
   const {
     currentValue,
@@ -32,8 +33,8 @@ export function processCommoditiesYear({
 
   const rate = resolveRatePeriodRate(ratePeriods, year, assumptions.commoditiesReturnRate)
 
-  // Capital growth only — no income
-  const capitalGrowth = currentValue * rate
+  // Capital growth only — pro-rated for partial simulation year
+  const capitalGrowth = currentValue * rate * yearFraction
   const valueAfterGrowth = currentValue + capitalGrowth
 
   const effectiveContribution = resolvedContribution != null ? resolvedContribution : annualContribution

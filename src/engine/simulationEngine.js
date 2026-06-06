@@ -231,6 +231,14 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
   } = scenario
 
   const currentYear = new Date().getFullYear()
+  // Fraction of the current calendar year that remains from today (e.g. Jun 6 → ~0.57).
+  // Applied to all flows in the first simulation year so that current balances (which already
+  // reflect Jan–today income/growth) are not double-counted.
+  const _now = new Date()
+  const _yearMs = new Date(currentYear + 1, 0, 1) - new Date(currentYear, 0, 1)
+  const _remainingMs = new Date(currentYear + 1, 0, 1) - _now
+  const initialYearFraction = Math.min(1, Math.max(0.01, _remainingMs / _yearMs))
+
   const personA = household.personA
   const personB = household.personB
 
@@ -281,6 +289,8 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
   for (let year = currentYear; year <= simEndYear; year++) {
     const yearsElapsed = year - currentYear
+    // Pro-rate the first simulation year — balances already include Jan→today flows.
+    const fy = yearsElapsed === 0 ? initialYearFraction : 1
     const ageA = getAge(personA.dateOfBirth, year)
     const ageB = getAge(personB.dateOfBirth, year)
     const retiredA = hasRetired(personA, year)
@@ -316,17 +326,27 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const wageRateB = personB.wageGrowthRate || yearAssumptions.wageGrowthRate
     // Salary changes are entered in today's dollars — grow from currentYear like base salary.
     // This keeps Today's $ display ≈ the entered amount throughout the change period.
+    // Full annual salary — used for display in snapshot and as wage-growth basis
     const salaryA = retiredA ? 0 : (resolvedA.activeSalary != null
       ? growSalary(resolvedA.activeSalary, wageRateA, yearsElapsed)
       : growSalary(resolvedA.baseSalary, wageRateA, yearsElapsed))
     const salaryB = retiredB ? 0 : (resolvedB.activeSalary != null
       ? growSalary(resolvedB.activeSalary, wageRateB, yearsElapsed)
       : growSalary(resolvedB.baseSalary, wageRateB, yearsElapsed))
+    // Pro-rated salary — used for all income calculations in year 1
+    const effSalaryA = salaryA * fy
+    const effSalaryB = salaryB * fy
 
-    const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, salaryA)
-    const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, salaryB)
-    const { reduction: leaseReductionA, employeePostTaxContrib: leasePostTaxA, residualPayment: leaseResidualA, fbtResult: fbtA } = resolveNovatedLeaseReduction(personA, year)
-    const { reduction: leaseReductionB, employeePostTaxContrib: leasePostTaxB, residualPayment: leaseResidualB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB, year)
+    const { packagingReduction: packReductionA, packagingSummary: packSummaryA } = resolvePackagingReductions(personA, effSalaryA)
+    const { packagingReduction: packReductionB, packagingSummary: packSummaryB } = resolvePackagingReductions(personB, effSalaryB)
+    const { reduction: _leaseRedA, employeePostTaxContrib: _leasePostTaxA, residualPayment: leaseResidualA, fbtResult: fbtA } = resolveNovatedLeaseReduction(personA, year)
+    const { reduction: _leaseRedB, employeePostTaxContrib: _leasePostTaxB, residualPayment: leaseResidualB, fbtResult: fbtB } = resolveNovatedLeaseReduction(personB, year)
+    // Pre-tax reduction and post-tax contribution are annual flows — pro-rate for partial year 1.
+    // Residual/balloon is a one-off lump sum and is not pro-rated.
+    const leaseReductionA = _leaseRedA * fy
+    const leaseReductionB = _leaseRedB * fy
+    const leasePostTaxA = _leasePostTaxA * fy
+    const leasePostTaxB = _leasePostTaxB * fy
 
     // ── Step 2: Income tax ────────────────────────────────────────────────
     // Zero out salary sacrifice and voluntary contributions when retired (no salary to sacrifice)
@@ -336,12 +356,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const superB_forContrib = retiredB
       ? { ...superB, salarySacrificeAmount: 0, voluntaryConcessional: 0, voluntaryNonConcessional: 0 }
       : superB
-    const superContribA_pre = processContributions(superA_forContrib, salaryA, year)
-    const superContribB_pre = processContributions(superB_forContrib, salaryB, year)
+    const superContribA_pre = processContributions(superA_forContrib, effSalaryA, year, fy)
+    const superContribB_pre = processContributions(superB_forContrib, effSalaryB, year, fy)
 
     const taxA = calcPersonTax({
       year,
-      grossSalary: salaryA,
+      grossSalary: effSalaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
       packagingReduction: packReductionA,
       novatedLeaseReduction: leaseReductionA,
@@ -351,7 +371,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     const taxB = calcPersonTax({
       year,
-      grossSalary: salaryB,
+      grossSalary: effSalaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
@@ -368,6 +388,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       personAge: ageA || 0,
       retirementYear: personA.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() + personA.retirementAge : null,
       assumptions: yearAssumptions,
+      yearFraction: fy,
     })
 
     const superB_result = growSuperBalance({
@@ -378,6 +399,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       personAge: ageB || 0,
       retirementYear: personB.dateOfBirth ? new Date(personB.dateOfBirth).getFullYear() + personB.retirementAge : null,
       assumptions: yearAssumptions,
+      yearFraction: fy,
     })
 
     // ── Step 6: Property ──────────────────────────────────────────────────
@@ -391,6 +413,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const propOpts = {
       cgtReform: draftLegislation?.cgtReform2027 || false,
       inflationRate: yearAssumptions.inflationRate,
+      yearFraction: fy,
     }
     const propertyResults = currentProperties.map((p, i) => processPropertyYear(p, year, cashForOffsetPerProperty[i], propOpts))
 
@@ -513,6 +536,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       drawdownNeeded: 0,
       resolvedContribution: 0,  // no contribution in growth pass — resolved after cashflow
       assumptions: yearAssumptions,
+      yearFraction: fy,
     })
 
     // ── Step 7b: Treasury bonds — growth phase ──
@@ -523,6 +547,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       drawdownNeeded: 0,
       resolvedContribution: 0,
       assumptions: yearAssumptions,
+      yearFraction: fy,
     })
 
     // ── Step 7c: Commodities — growth phase ──
@@ -532,17 +557,26 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       drawdownNeeded: 0,
       resolvedContribution: 0,
       assumptions: yearAssumptions,
+      yearFraction: fy,
     })
 
     // ── Other income sources ──────────────────────────────────────────────
-    const otherIncomeResult = processOtherIncome(otherIncomeInput, year, currentYear, yearAssumptions.inflationRate)
+    const otherIncomeRaw = processOtherIncome(otherIncomeInput, year, currentYear, yearAssumptions.inflationRate)
+    // Pro-rate other income for first simulation year (already earned Jan→today is in current balances)
+    const otherIncomeResult = fy < 1 ? {
+      total:      otherIncomeRaw.total      * fy,
+      taxableA:   otherIncomeRaw.taxableA   * fy,
+      taxableB:   otherIncomeRaw.taxableB   * fy,
+      nonTaxable: otherIncomeRaw.nonTaxable * fy,
+      breakdown:  otherIncomeRaw.breakdown.map(b => ({ ...b, amount: b.amount * fy })),
+    } : otherIncomeRaw
 
     // Recalculate tax with dividends + coupon income + property (CGT split by ownership %) + other income
     // Treasury bond coupon income split 50/50 between persons (taxed as ordinary income, no franking)
     const tbCouponHalf = tbResult.couponIncome * 0.5
     const taxAFinal = calcPersonTax({
       year,
-      grossSalary: salaryA,
+      grossSalary: effSalaryA,
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
       packagingReduction: packReductionA,
       novatedLeaseReduction: leaseReductionA,
@@ -561,7 +595,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     const hasTBCoupon = tbResult.couponIncome > 0
     const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon || hecsBalanceB > 0) ? calcPersonTax({
       year,
-      grossSalary: salaryB,
+      grossSalary: effSalaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
@@ -653,12 +687,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
 
     // Bond growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0
     const bondGrowthResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions: yearAssumptions })
+      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions: yearAssumptions, yearFraction: fy })
     )
 
     // Other asset growth phase: fixed-mode assets get their contribution now; surplus-mode get 0
     const otherAssetGrowthResults = currentOtherAssets.map((asset, i) =>
-      processOtherAssetYear({ asset, year, drawdownNeeded: 0, resolvedContribution: fixedOtherAssetContributions[i] })
+      processOtherAssetYear({ asset, year, drawdownNeeded: 0, resolvedContribution: fixedOtherAssetContributions[i], yearFraction: fy })
     )
 
     // ── Step 9: Expenses ──────────────────────────────────────────────────
@@ -676,12 +710,13 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       resolvedExpAdj,
     )
     // dollarDelta adds a flat annual amount in real (today's) dollars, inflated to the simulation year
+    // Pro-rated for the first partial simulation year
     const dollarDelta = resolvedExpAdj.dollarDelta ?? 0
     const inflatedDollarDelta = dollarDelta * Math.pow(1 + (yearAssumptions.inflationRate ?? 0.025), year - currentYear)
-    const totalExpenses = Math.max(0, expenseTree.total + inflatedDollarDelta)
+    const totalExpenses = Math.max(0, expenseTree.total + inflatedDollarDelta) * fy
 
     // ── Step 9b: Debts ────────────────────────────────────────────────────
-    const debtResult = processAllDebts(currentDebts, year)
+    const debtResult = processAllDebts(currentDebts, year, fy)
     const totalDebtRepayments = debtResult.totalRepayment
     const totalDebtBalance = debtResult.totalBalance
 
@@ -1171,7 +1206,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       fixedBondContributions[i] + surplusBondContributions[i] + routedBondContributions[i] + saleProceedsBondContributions[i]
     )
     const bondResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions: yearAssumptions })
+      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions: yearAssumptions, yearFraction: fy })
     )
     const totalBondContributions = finalBondContributions.reduce((sum, c) => sum + c, 0)
     const totalSurplusBondContributions = surplusBondContributions.reduce((sum, c) => sum + c, 0)
@@ -1181,7 +1216,7 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       fixedOtherAssetContributions[i] + surplusOtherAssetContributions[i] + routedOtherAssetContributions[i] + saleProceedsOtherAssetContributions[i]
     )
     const otherAssetResults = currentOtherAssets.map((asset, i) =>
-      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i], resolvedContribution: finalOtherAssetContributions[i] })
+      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i], resolvedContribution: finalOtherAssetContributions[i], yearFraction: fy })
     )
     const totalOtherAssetContributions = finalOtherAssetContributions.reduce((sum, c) => sum + c, 0)
 
@@ -1454,6 +1489,9 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       // Mortgage payoff events
       mortgagePayoffs,
       mortgagePayoffTotal: mortgagePayoffs.reduce((sum, mp) => sum + mp.amount, 0),
+      // Partial year flag — first simulation year is pro-rated from today to Dec 31
+      partialYear: fy < 1,
+      yearFraction: fy,
     })
   }
 

@@ -119,7 +119,7 @@ export function calcAnnualInterest(loanBalance, offsetBalance, annualRate) {
  * @returns {object}
  */
 export function processPropertyYear(property, year, cashForOffset = 0, opts = {}) {
-  const { cgtReform = false, inflationRate = 0.025 } = opts
+  const { cgtReform = false, inflationRate = 0.025, yearFraction = 1 } = opts
   const {
     isPrimaryResidence,
     currentValue,
@@ -203,7 +203,8 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
   const holdFraction = (saleYear === year) ? saleYearFraction : 1
 
   // Interest is calculated on the effective balance (net of offset), pro-rated in sale year
-  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * holdFraction
+  // and for partial simulation years (yearFraction < 1 in the first simulation year)
+  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * holdFraction * yearFraction
 
   // Fixed repayment: use original loan amount & term so the repayment stays constant.
   // This means offset accounts reduce interest → more goes to principal → loan pays off early.
@@ -221,8 +222,8 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
     annualRepayment = calcAnnualRepayment(originalLoanAmount, interestRate, originalLoanTermYears, 'pi')
   }
 
-  // Pro-rate repayment in sale year
-  annualRepayment *= holdFraction
+  // Pro-rate repayment in sale year and for partial simulation years
+  annualRepayment *= holdFraction * yearFraction
 
   // If mortgage is nearly paid off, cap repayment at remaining balance + interest
   if (mortgageBalance > 0 && annualRepayment > mortgageBalance + annualInterest) {
@@ -236,18 +237,19 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
 
   const principalRepayment = Math.max(0, annualRepayment - annualInterest)
 
-  // Land tax — investment properties only (PPOR exempt), pro-rated in sale year
+  // Land tax — investment properties only (PPOR exempt), pro-rated in sale year and partial years
   const state = property.state || null
-  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) * holdFraction : 0
+  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) * holdFraction * yearFraction : 0
 
-  // Net rental position (negative = negatively geared), pro-rated in sale year
+  // Net rental position (negative = negatively geared), pro-rated in sale year and partial years
   const netRentalIncomeLoss = isPrimaryResidence
     ? 0
-    : (annualRentalIncome * holdFraction) - (annualPropertyExpenses * holdFraction) - annualInterest - landTax
+    : (annualRentalIncome * holdFraction * yearFraction) - (annualPropertyExpenses * holdFraction * yearFraction) - annualInterest - landTax
 
   // Update balances
   const newMortgageBalance = Math.max(0, mortgageBalance - principalRepayment)
-  const newPropertyValue = currentValue * (1 + growthRate)
+  // Capital growth — pro-rated for partial simulation year
+  const newPropertyValue = currentValue * (1 + growthRate * yearFraction)
 
   // Sale event
   let saleProceeds = null

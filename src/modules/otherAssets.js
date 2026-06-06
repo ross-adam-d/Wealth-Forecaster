@@ -13,11 +13,12 @@
  * @param {number} resolvedContribution - actual contribution (resolved by engine based on mode)
  * @returns {object}
  */
-export function processOtherAssetYear({ asset, year, drawdownNeeded = 0, resolvedContribution }) {
+export function processOtherAssetYear({ asset, year, drawdownNeeded = 0, resolvedContribution, yearFraction = 1 }) {
   const { currentValue, annualContribution = 0, returnRate = 0.07 } = asset
 
   const effectiveContribution = resolvedContribution != null ? resolvedContribution : annualContribution
-  const growth = currentValue * returnRate
+  // Growth — pro-rated for partial simulation year
+  const growth = currentValue * returnRate * yearFraction
   const valueAfterGrowth = currentValue + growth + effectiveContribution
 
   let withdrawal = 0

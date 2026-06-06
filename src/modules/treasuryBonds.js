@@ -25,6 +25,7 @@ export function processTreasuryBondsYear({
   drawdownNeeded = 0,
   resolvedContribution,
   assumptions,
+  yearFraction = 1,
 }) {
   const {
     currentValue,
@@ -37,13 +38,13 @@ export function processTreasuryBondsYear({
 
   const rate = resolveRatePeriodRate(ratePeriods, year, assumptions.treasuryBondsReturnRate)
 
-  // Capital growth
-  const capitalGrowth = currentValue * rate
+  // Capital growth — pro-rated for partial simulation year
+  const capitalGrowth = currentValue * rate * yearFraction
   const valuePreCoupon = currentValue + capitalGrowth
 
-  // Coupon income — taxed as ordinary income (no franking credits)
+  // Coupon income — pro-rated for partial simulation year
   const effectiveCouponRate = couponRate ?? assumptions.treasuryBondsCouponRate ?? 0.03
-  const couponIncome = currentValue * effectiveCouponRate
+  const couponIncome = currentValue * effectiveCouponRate * yearFraction
 
   // Preserve capital mode
   const isPreservingCapital = preserveCapital &&

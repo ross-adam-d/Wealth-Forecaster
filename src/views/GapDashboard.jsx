@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { Tutorial, useTutorial, TutorialButton } from '../components/Tutorial.jsx'
 import { applyRealNominal } from '../utils/format.js'
 import {
@@ -210,8 +210,18 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   // Scratchpad retirement ages — local state only, never persisted to scenario
   const savedRetireA = scenario.household?.personA?.retirementAge ?? 60
   const savedRetireB = scenario.household?.personB?.retirementAge ?? 60
-  const [scratchRetireA, setScratchRetireA] = useState(() => savedRetireA)
-  const [scratchRetireB, setScratchRetireB] = useState(() => savedRetireB)
+  const [scratchRetireA, setScratchRetireA] = useState(savedRetireA)
+  const [scratchRetireB, setScratchRetireB] = useState(savedRetireB)
+  // Sync scratchpad when the scenario loads from Supabase (retirementAge may be undefined on
+  // first render before async load completes). Only update if user hasn't manually diverged.
+  const prevSavedA = useRef(savedRetireA)
+  const prevSavedB = useRef(savedRetireB)
+  useEffect(() => {
+    setScratchRetireA(prev => prev === prevSavedA.current ? savedRetireA : prev)
+    setScratchRetireB(prev => prev === prevSavedB.current ? savedRetireB : prev)
+    prevSavedA.current = savedRetireA
+    prevSavedB.current = savedRetireB
+  }, [savedRetireA, savedRetireB])
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
     || scratchRetireA !== savedRetireA || scratchRetireB !== savedRetireB
