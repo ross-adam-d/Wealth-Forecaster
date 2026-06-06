@@ -26,11 +26,21 @@ function fmt$(n) {
 
 function SimpleTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
-  const total = payload.reduce((s, p) => s + Math.max(0, p.value || 0), 0)
+  const items = payload.filter(p => (p.value || 0) > 0)
+  const total = items.reduce((s, p) => s + (p.value || 0), 0)
   return (
-    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '6px 10px' }}>
-      <p style={{ color: '#9ca3af', fontSize: 11, margin: 0 }}>{label}</p>
-      <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{fmt$(total)}</p>
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', minWidth: 170 }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: '0 0 4px' }}>{label}</p>
+      {items.map(p => (
+        <p key={p.dataKey} style={{ color: p.fill || p.stroke || '#9ca3af', fontSize: 12, margin: '2px 0', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span>{p.name}</span><span style={{ fontWeight: 600 }}>{fmt$(p.value)}</span>
+        </p>
+      ))}
+      {items.length > 1 && (
+        <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '5px 0 0', borderTop: '1px solid #374151', paddingTop: 4, display: 'flex', justifyContent: 'space-between' }}>
+          <span>Total</span><span>{fmt$(total)}</span>
+        </p>
+      )}
     </div>
   )
 }
@@ -87,11 +97,13 @@ const PROJECTION_TUTORIAL = [
 
 export default function Projection({ snapshots, scenario, retirementDate, displayReal = true }) {
   const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
-  const fillOp = isLight ? 0.75 : 0.5
-  const fillOpDebt = isLight ? 0.7 : 0.4
-  const fillOpSingle = isLight ? 0.65 : 0.3
-  const gridColor = isLight ? '#e5e7eb' : '#1f2937'
-  const tickColor = isLight ? '#374151' : '#9ca3af'
+  const fillOp       = isLight ? 1.0  : 0.5
+  const fillOpDebt   = isLight ? 0.95 : 0.4
+  const fillOpSingle = isLight ? 1.0  : 0.3
+  const barOp        = isLight ? 1.0  : 0.8
+  const gridColor    = isLight ? '#e5e7eb' : '#1f2937'
+  const tickColor    = isLight ? '#374151' : '#9ca3af'
+  const cd = (dark, light) => isLight ? light : dark
 
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('projectionTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [showAllYears, setShowAllYears] = useState(false)
@@ -467,45 +479,45 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="debts"          stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Other debts" />
-                      <Area type="monotone" dataKey="cash"           stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
-                      <Area type="monotone" dataKey="bonds"          stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={fillOp} name="Tax-Def. Bonds" />
-                      <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={fillOp} name="Other Assets" />
-                      <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
-                      <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
-                      <Area type="monotone" dataKey="shares"         stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={fillOp} name="Shares" />
-                      <Area type="monotone" dataKey="property"       stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={fillOp} name="Property (equity)" />
-                      <Area type="monotone" dataKey="super"          stackId="1" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={fillOp} name="Super" />
+                      <Area type="monotone" dataKey="debts"          stackId="2" stroke={cd('#f87171','#dc2626')} fill={cd('#f87171','#dc2626')} fillOpacity={fillOpDebt} name="Other debts" />
+                      <Area type="monotone" dataKey="cash"           stackId="1" stroke={cd('#60a5fa','#2563eb')} fill={cd('#60a5fa','#2563eb')} fillOpacity={fillOp} name="Cash" />
+                      <Area type="monotone" dataKey="bonds"          stackId="1" stroke={cd('#a78bfa','#7c3aed')} fill={cd('#a78bfa','#7c3aed')} fillOpacity={fillOp} name="Tax-Def. Bonds" />
+                      <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke={cd('#94a3b8','#475569')} fill={cd('#94a3b8','#475569')} fillOpacity={fillOp} name="Other Assets" />
+                      <Area type="monotone" dataKey="commodities"    stackId="1" stroke={cd('#f472b6','#db2777')} fill={cd('#f472b6','#db2777')} fillOpacity={fillOp} name="Commodities" />
+                      <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke={cd('#22d3ee','#0891b2')} fill={cd('#22d3ee','#0891b2')} fillOpacity={fillOp} name="Treasury Bonds" />
+                      <Area type="monotone" dataKey="shares"         stackId="1" stroke={cd('#34d399','#059669')} fill={cd('#34d399','#059669')} fillOpacity={fillOp} name="Shares" />
+                      <Area type="monotone" dataKey="property"       stackId="1" stroke={cd('#f59e0b','#b45309')} fill={cd('#f59e0b','#b45309')} fillOpacity={fillOp} name="Property (equity)" />
+                      <Area type="monotone" dataKey="super"          stackId="1" stroke={cd('#0ea5e9','#0369a1')} fill={cd('#0ea5e9','#0369a1')} fillOpacity={fillOp} name="Super" />
                     </AreaChart>
                   ) : netWorthView === 'liquidity' ? (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Liquid assets" />
+                      <Area type="monotone" dataKey="totalLiquid" stroke={cd('#4ade80','#16a34a')} fill={cd('#4ade80','#16a34a')} fillOpacity={fillOpSingle} name="Liquid assets" />
                     </AreaChart>
                   ) : (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="liqCash"   stackId="1" stroke="#60a5fa" fill="#60a5fa" fillOpacity={fillOp} name="Cash" />
-                      <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke="#a78bfa" fill="#a78bfa" fillOpacity={fillOp} name="Tax-Def. Bonds" />
-                      <Area type="monotone" dataKey="liqOther"  stackId="1" stroke="#94a3b8" fill="#94a3b8" fillOpacity={fillOp} name="Other assets" />
-                      <Area type="monotone" dataKey="liqComm"   stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
-                      <Area type="monotone" dataKey="liqTB"     stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
-                      <Area type="monotone" dataKey="liqShares" stackId="1" stroke="#34d399" fill="#34d399" fillOpacity={fillOp} name="Shares" />
-                      <Area type="monotone" dataKey="superA"    stackId="1" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={fillOp} name="Super A (unlocked)" />
-                      <Area type="monotone" dataKey="superB"    stackId="1" stroke="#38bdf8" fill="#38bdf8" fillOpacity={fillOp} name="Super B (unlocked)" />
+                      <Area type="monotone" dataKey="liqCash"   stackId="1" stroke={cd('#60a5fa','#2563eb')} fill={cd('#60a5fa','#2563eb')} fillOpacity={fillOp} name="Cash" />
+                      <Area type="monotone" dataKey="liqBonds"  stackId="1" stroke={cd('#a78bfa','#7c3aed')} fill={cd('#a78bfa','#7c3aed')} fillOpacity={fillOp} name="Tax-Def. Bonds" />
+                      <Area type="monotone" dataKey="liqOther"  stackId="1" stroke={cd('#94a3b8','#475569')} fill={cd('#94a3b8','#475569')} fillOpacity={fillOp} name="Other assets" />
+                      <Area type="monotone" dataKey="liqComm"   stackId="1" stroke={cd('#f472b6','#db2777')} fill={cd('#f472b6','#db2777')} fillOpacity={fillOp} name="Commodities" />
+                      <Area type="monotone" dataKey="liqTB"     stackId="1" stroke={cd('#22d3ee','#0891b2')} fill={cd('#22d3ee','#0891b2')} fillOpacity={fillOp} name="Treasury Bonds" />
+                      <Area type="monotone" dataKey="liqShares" stackId="1" stroke={cd('#34d399','#059669')} fill={cd('#34d399','#059669')} fillOpacity={fillOp} name="Shares" />
+                      <Area type="monotone" dataKey="superA"    stackId="1" stroke={cd('#0ea5e9','#0369a1')} fill={cd('#0ea5e9','#0369a1')} fillOpacity={fillOp} name="Super A (unlocked)" />
+                      <Area type="monotone" dataKey="superB"    stackId="1" stroke={cd('#38bdf8','#0284c7')} fill={cd('#38bdf8','#0284c7')} fillOpacity={fillOp} name="Super B (unlocked)" />
                     </AreaChart>
                   )}
                 </ResponsiveContainer>
@@ -565,57 +577,57 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                      <Bar dataKey="income"   fill="#34d399" fillOpacity={0.8} name="Income" />
-                      <Bar dataKey="outflows" fill="#f87171" fillOpacity={0.8} name="Outflows" />
-                      <Bar dataKey="net"      fill="#4ade80" fillOpacity={0.6} name="Net" />
+                      <Bar dataKey="income"   fill={cd('#34d399','#059669')} fillOpacity={barOp} name="Income" />
+                      <Bar dataKey="outflows" fill={cd('#f87171','#dc2626')} fillOpacity={barOp} name="Outflows" />
+                      <Bar dataKey="net"      fill={cd('#4ade80','#16a34a')} fillOpacity={barOp} name="Net" />
                     </BarChart>
                   ) : cashflowView === 'income' ? (
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
-                      <Bar dataKey="salaryA"   stackId="1" fill="#34d399" fillOpacity={0.8} name={`${personAName} salary`} />
-                      <Bar dataKey="salaryB"   stackId="1" fill="#6ee7b7" fillOpacity={0.8} name={`${personBName} salary`} />
-                      <Bar dataKey="superDraw" stackId="1" fill="#0ea5e9" fillOpacity={0.8} name="Super drawdown" />
-                      <Bar dataKey="pension"   stackId="1" fill="#fbbf24" fillOpacity={0.8} name="Age Pension" />
-                      <Bar dataKey="dividends" stackId="1" fill="#a78bfa" fillOpacity={0.7} name="Dividends" />
-                      <Bar dataKey="rental"    stackId="1" fill="#f59e0b" fillOpacity={0.7} name="Net rental" />
-                      <Bar dataKey="otherInc"  stackId="1" fill="#94a3b8" fillOpacity={0.7} name="Other income" />
-                      <Bar dataKey="propSale"  stackId="1" fill="#22d3ee" fillOpacity={0.7} name="Property sale" />
+                      <Bar dataKey="salaryA"   stackId="1" fill={cd('#34d399','#059669')} fillOpacity={barOp} name={`${personAName} salary`} />
+                      <Bar dataKey="salaryB"   stackId="1" fill={cd('#6ee7b7','#10b981')} fillOpacity={barOp} name={`${personBName} salary`} />
+                      <Bar dataKey="superDraw" stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={barOp} name="Super drawdown" />
+                      <Bar dataKey="pension"   stackId="1" fill={cd('#fbbf24','#d97706')} fillOpacity={barOp} name="Age Pension" />
+                      <Bar dataKey="dividends" stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={barOp} name="Dividends" />
+                      <Bar dataKey="rental"    stackId="1" fill={cd('#f59e0b','#b45309')} fillOpacity={barOp} name="Net rental" />
+                      <Bar dataKey="otherInc"  stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={barOp} name="Other income" />
+                      <Bar dataKey="propSale"  stackId="1" fill={cd('#22d3ee','#0891b2')} fillOpacity={barOp} name="Property sale" />
                     </BarChart>
                   ) : cashflowView === 'expenses' ? (
                     <BarChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
-                      <Bar dataKey="livingExp"          stackId="1" fill="#f87171" fillOpacity={0.8} name="Living expenses" />
-                      <Bar dataKey="tax"                stackId="1" fill="#ef4444" fillOpacity={0.6} name="Tax" />
-                      <Bar dataKey="mortgageExp"        stackId="1" fill="#fbbf24" fillOpacity={0.7} name="Mortgage" />
-                      <Bar dataKey="debtExp"            stackId="1" fill="#fb923c" fillOpacity={0.7} name="Debt repay" />
-                      <Bar dataKey="investContrib"      stackId="1" fill="#a78bfa" fillOpacity={0.6} name="Invest. contrib" />
-                      <Bar dataKey="saleProceedsRouted" stackId="1" fill="#c084fc" fillOpacity={0.6} name="Sale → invest" />
-                      <Bar dataKey="leaseExp"           stackId="1" fill="#94a3b8" fillOpacity={0.6} name="Novated lease" />
+                      <Bar dataKey="livingExp"          stackId="1" fill={cd('#f87171','#dc2626')} fillOpacity={barOp} name="Living expenses" />
+                      <Bar dataKey="tax"                stackId="1" fill={cd('#ef4444','#b91c1c')} fillOpacity={barOp} name="Tax" />
+                      <Bar dataKey="mortgageExp"        stackId="1" fill={cd('#fbbf24','#d97706')} fillOpacity={barOp} name="Mortgage" />
+                      <Bar dataKey="debtExp"            stackId="1" fill={cd('#fb923c','#ea580c')} fillOpacity={barOp} name="Debt repay" />
+                      <Bar dataKey="investContrib"      stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={barOp} name="Invest. contrib" />
+                      <Bar dataKey="saleProceedsRouted" stackId="1" fill={cd('#c084fc','#9333ea')} fillOpacity={barOp} name="Sale → invest" />
+                      <Bar dataKey="leaseExp"           stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={barOp} name="Novated lease" />
                     </BarChart>
                   ) : (
                     <ComposedChart data={rangeFilter(cashflowData, cashflowRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                      <Tooltip content={<SimpleTooltip />} />
+                      <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                       <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                       {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" />}
-                      <Bar dataKey="surplus" fill="#4ade80" fillOpacity={0.7} name="Surplus" />
-                      <Bar dataKey="deficit" fill="#f87171" fillOpacity={0.7} name="Deficit" />
-                      <Line type="monotone" dataKey="net" stroke="#e2e8f0" strokeWidth={1.5} dot={false} name="Net cashflow" />
+                      <Bar dataKey="surplus" fill={cd('#4ade80','#16a34a')} fillOpacity={barOp} name="Surplus" />
+                      <Bar dataKey="deficit" fill={cd('#f87171','#dc2626')} fillOpacity={barOp} name="Deficit" />
+                      <Line type="monotone" dataKey="net" stroke={cd('#e2e8f0','#374151')} strokeWidth={1.5} dot={false} name="Net cashflow" />
                     </ComposedChart>
                   )}
                 </ResponsiveContainer>
@@ -689,17 +701,17 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
                             label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }}
                           />
                         )}
-                        <Bar yAxisId="left" dataKey="incomeTaxA"      stackId="1" fill="#ef4444" fillOpacity={0.85} name={`Income tax — ${personAName}`} />
-                        <Bar yAxisId="left" dataKey="incomeTaxB"      stackId="1" fill="#f87171" fillOpacity={0.85} name={`Income tax — ${personBName}`} />
-                        <Bar yAxisId="left" dataKey="medicare"        stackId="1" fill="#fb923c" fillOpacity={0.85} name="Medicare levy" />
-                        <Bar yAxisId="left" dataKey="hecs"            stackId="1" fill="#fbbf24" fillOpacity={0.85} name="HECS/HELP" />
-                        <Bar yAxisId="left" dataKey="div293"          stackId="1" fill="#c084fc" fillOpacity={0.85} name="Division 293" />
-                        <Bar yAxisId="left" dataKey="superContribTax" stackId="1" fill="#94a3b8" fillOpacity={0.6}  name="Super contributions tax (15%)" />
+                        <Bar yAxisId="left" dataKey="incomeTaxA"      stackId="1" fill={cd('#ef4444','#b91c1c')} fillOpacity={barOp} name={`Income tax — ${personAName}`} />
+                        <Bar yAxisId="left" dataKey="incomeTaxB"      stackId="1" fill={cd('#f87171','#dc2626')} fillOpacity={barOp} name={`Income tax — ${personBName}`} />
+                        <Bar yAxisId="left" dataKey="medicare"        stackId="1" fill={cd('#fb923c','#ea580c')} fillOpacity={barOp} name="Medicare levy" />
+                        <Bar yAxisId="left" dataKey="hecs"            stackId="1" fill={cd('#fbbf24','#d97706')} fillOpacity={barOp} name="HECS/HELP" />
+                        <Bar yAxisId="left" dataKey="div293"          stackId="1" fill={cd('#c084fc','#9333ea')} fillOpacity={barOp} name="Division 293" />
+                        <Bar yAxisId="left" dataKey="superContribTax" stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={isLight ? 0.7 : 0.6} name="Super contributions tax (15%)" />
                         <Line
                           yAxisId="right"
                           type="monotone"
                           dataKey="effectiveRate"
-                          stroke="#e2e8f0"
+                          stroke={cd('#e2e8f0','#374151')}
                           strokeWidth={1.5}
                           dot={false}
                           name="Effective rate (%)"

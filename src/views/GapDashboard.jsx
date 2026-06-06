@@ -124,21 +124,26 @@ const GAP_TUTORIAL = [
   },
 ]
 
-const AREA_COLORS = {
-  cash: '#60a5fa',
-  shares: '#34d399',
-  bonds: '#a78bfa',
-  superA: '#0ea5e9',
-  superB: '#38bdf8',
-}
+const AREA_COLORS_DARK  = { cash: '#60a5fa', shares: '#34d399', bonds: '#a78bfa', superA: '#0ea5e9', superB: '#38bdf8' }
+const AREA_COLORS_LIGHT = { cash: '#2563eb', shares: '#059669', bonds: '#7c3aed', superA: '#0369a1', superB: '#0284c7' }
 
 function SimpleTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
-  const total = payload.reduce((s, p) => s + Math.max(0, p.value || 0), 0)
+  const items = payload.filter(p => (p.value || 0) > 0)
+  const total = items.reduce((s, p) => s + (p.value || 0), 0)
   return (
-    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '6px 10px' }}>
-      <p style={{ color: '#9ca3af', fontSize: 11, margin: 0 }}>{label}</p>
-      <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{fmt$(total)}</p>
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', minWidth: 170 }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: '0 0 4px' }}>{label}</p>
+      {items.map(p => (
+        <p key={p.dataKey} style={{ color: p.fill || p.stroke || '#9ca3af', fontSize: 12, margin: '2px 0', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <span>{p.name}</span><span style={{ fontWeight: 600 }}>{fmt$(p.value)}</span>
+        </p>
+      ))}
+      {items.length > 1 && (
+        <p style={{ color: '#f9fafb', fontSize: 13, fontWeight: 600, margin: '5px 0 0', borderTop: '1px solid #374151', paddingTop: 4, display: 'flex', justifyContent: 'space-between' }}>
+          <span>Total</span><span>{fmt$(total)}</span>
+        </p>
+      )}
     </div>
   )
 }
@@ -193,11 +198,13 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const [gapChartRange, setGapChartRange] = useState('full')
   const [tableOpen, setTableOpen] = useState(true)
   const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
-  const fillOp = isLight ? 0.75 : 0.5
-  const fillOpDebt = isLight ? 0.7 : 0.4
-  const fillOpSingle = isLight ? 0.65 : 0.25
-  const gridColor = isLight ? '#e5e7eb' : '#1f2937'
-  const tickColor = isLight ? '#374151' : '#9ca3af'
+  const fillOp       = isLight ? 1.0  : 0.5
+  const fillOpDebt   = isLight ? 0.95 : 0.4
+  const fillOpSingle = isLight ? 1.0  : 0.25
+  const gridColor    = isLight ? '#e5e7eb' : '#1f2937'
+  const tickColor    = isLight ? '#374151' : '#9ca3af'
+  const cd = (dark, light) => isLight ? light : dark
+  const AREA_COLORS = isLight ? AREA_COLORS_LIGHT : AREA_COLORS_DARK
 
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
   const gapCurrentYearForTransform = new Date().getFullYear()
@@ -368,14 +375,14 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 12 }} />
                         <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                        <Tooltip content={<SimpleTooltip />} />
+                        <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                         <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                        <Area type="monotone" dataKey="mortgage" stackId="2" stroke="#f87171" fill="#f87171" fillOpacity={fillOpDebt} name="Mortgage debt" />
-                        <Area type="monotone" dataKey="debts"    stackId="2" stroke="#fb923c" fill="#fb923c" fillOpacity={fillOpDebt} name="Other debts" />
+                        <Area type="monotone" dataKey="mortgage" stackId="2" stroke={cd('#f87171','#dc2626')} fill={cd('#f87171','#dc2626')} fillOpacity={fillOpDebt} name="Mortgage debt" />
+                        <Area type="monotone" dataKey="debts"    stackId="2" stroke={cd('#fb923c','#ea580c')} fill={cd('#fb923c','#ea580c')} fillOpacity={fillOpDebt} name="Other debts" />
                         <Area type="monotone" dataKey="cash"           stackId="1" stroke={AREA_COLORS.cash}   fill={AREA_COLORS.cash}   fillOpacity={fillOp} name="Cash" />
                         <Area type="monotone" dataKey="shares"         stackId="1" stroke={AREA_COLORS.shares} fill={AREA_COLORS.shares} fillOpacity={fillOp} name="Shares" />
-                        <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke="#22d3ee" fill="#22d3ee" fillOpacity={fillOp} name="Treasury Bonds" />
-                        <Area type="monotone" dataKey="commodities"    stackId="1" stroke="#f472b6" fill="#f472b6" fillOpacity={fillOp} name="Commodities" />
+                        <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke={cd('#22d3ee','#0891b2')} fill={cd('#22d3ee','#0891b2')} fillOpacity={fillOp} name="Treasury Bonds" />
+                        <Area type="monotone" dataKey="commodities"    stackId="1" stroke={cd('#f472b6','#db2777')} fill={cd('#f472b6','#db2777')} fillOpacity={fillOp} name="Commodities" />
                         <Area type="monotone" dataKey="bonds"          stackId="1" stroke={AREA_COLORS.bonds}  fill={AREA_COLORS.bonds}  fillOpacity={fillOp} name="Tax-Def. Bonds" />
                         <Area type="monotone" dataKey="superA" stackId="1" stroke={AREA_COLORS.superA} fill={AREA_COLORS.superA} fillOpacity={fillOp} name="Super A (unlocked)" />
                         <Area type="monotone" dataKey="superB" stackId="1" stroke={AREA_COLORS.superB} fill={AREA_COLORS.superB} fillOpacity={fillOp} name="Super B (unlocked)" />
@@ -387,9 +394,9 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 12 }} />
                         <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                        <Tooltip content={<SimpleTooltip />} />
+                        <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                         <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                        <Area type="monotone" dataKey="totalLiquid" stroke="#4ade80" fill="#4ade80" fillOpacity={fillOpSingle} name="Total liquid assets" strokeWidth={2} />
+                        <Area type="monotone" dataKey="totalLiquid" stroke={cd('#4ade80','#16a34a')} fill={cd('#4ade80','#16a34a')} fillOpacity={fillOpSingle} name="Total liquid assets" strokeWidth={2} />
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
                         {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
                         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
@@ -399,12 +406,12 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                         <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                         <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 12 }} />
                         <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                        <Tooltip content={<SimpleTooltip />} />
+                        <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                         <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
                         <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
-                        <Bar dataKey="income" name="Income (after tax)" fill="#0ea5e9" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
-                        <Bar dataKey="outflows" name="Outflows (inc. mortgage)" fill="#f87171" fillOpacity={0.75} radius={[2, 2, 0, 0]} />
-                        <Line type="monotone" dataKey="net" name="Net cashflow" strokeWidth={2} dot={false} stroke="#4ade80" />
+                        <Bar dataKey="income" name="Income (after tax)" fill={cd('#0ea5e9','#0369a1')} fillOpacity={isLight ? 1.0 : 0.75} radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="outflows" name="Outflows (inc. mortgage)" fill={cd('#f87171','#dc2626')} fillOpacity={isLight ? 1.0 : 0.75} radius={[2, 2, 0, 0]} />
+                        <Line type="monotone" dataKey="net" name="Net cashflow" strokeWidth={2} dot={false} stroke={cd('#4ade80','#16a34a')} />
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
                         {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
                       </ComposedChart>
