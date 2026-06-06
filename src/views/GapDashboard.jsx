@@ -205,7 +205,14 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const cd = (dark, light) => isLight ? light : dark
   const AREA_COLORS = isLight ? AREA_COLORS_LIGHT : AREA_COLORS_DARK
 
+  // Scratchpad retirement ages — local state only, never persisted to scenario
+  const savedRetireA = scenario.household?.personA?.retirementAge ?? 60
+  const savedRetireB = scenario.household?.personB?.retirementAge ?? 60
+  const [scratchRetireA, setScratchRetireA] = useState(() => savedRetireA)
+  const [scratchRetireB, setScratchRetireB] = useState(() => savedRetireB)
+
   const isStressed = stressExpenses !== 0 || stressReturn !== 0
+    || scratchRetireA !== savedRetireA || scratchRetireB !== savedRetireB
   const gapCurrentYearForTransform = new Date().getFullYear()
   const gapInflationRate = scenario?.assumptions?.inflationRate ?? 0.025
   const transform = (value, year) => applyRealNominal(value, year, gapCurrentYearForTransform, gapInflationRate, displayReal)
@@ -216,26 +223,35 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
     [snapshots, scenario]
   )
 
-  // Stressed simulation — runs only when sliders are non-zero
+  // Stressed simulation — scratchpad only, never touches saved scenario
   const stressedGapSnapshots = useMemo(() => {
     if (!isStressed || !scenario) return null
     try {
-      const sc = buildStressedScenario(scenario, stressReturn)
+      // Apply all three scratchpad levers: return rates, retirement ages, expenses
+      let sc = buildStressedScenario(scenario, stressReturn)
+      sc = {
+        ...sc,
+        household: {
+          ...sc.household,
+          personA: { ...sc.household.personA, retirementAge: scratchRetireA },
+          personB: { ...sc.household.personB, retirementAge: scratchRetireB },
+        },
+      }
       const leverAdjustments = stressExpenses !== 0
         ? { expenses: { dollarDelta: stressExpenses } }
         : {}
       const all = runSimulation(sc, { leverAdjustments })
-      return getGapYears(all, scenario).gapSnapshots
+      return getGapYears(all, sc).gapSnapshots  // use sc so gap period matches scratchpad ages
     } catch {
       return null
     }
-  }, [scenario, stressExpenses, stressReturn, isStressed])
+  }, [scenario, stressExpenses, stressReturn, scratchRetireA, scratchRetireB, isStressed])
 
   const activeGapSnapshots = (isStressed && stressedGapSnapshots) ? stressedGapSnapshots : gapSnapshots
 
   const viability = useMemo(() => noGap ? { status: 'no_gap', buffer: 0 } : calcGapViability(activeGapSnapshots), [activeGapSnapshots, noGap])
 
-  // Index base snapshots by year for delta column
+  // Index base snapshots by year — used for delta column and base-overlay chart line
   const baseByYear = useMemo(() => {
     const map = {}
     gapSnapshots.forEach(s => { map[s.year] = s })
@@ -260,6 +276,10 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
     debts: -(transform(s.totalDebtBalance || 0, s.year)),
     // Total liquidity view
     totalLiquid: Math.max(0, transform(s.totalLiquidAssets, s.year)),
+    // Base-scenario overlay for comparison when stressed (null when not stressed)
+    baseLiquid: isStressed && baseByYear[s.year] != null
+      ? Math.max(0, transform(baseByYear[s.year].totalLiquidAssets, s.year))
+      : null,
     // Cashflow view
     income: transform(s.totalIncome, s.year),
     outflows: transform(s.totalOutflows, s.year),
@@ -400,10 +420,11 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
                         <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                         <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                         <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                        <Area type="monotone" dataKey="totalLiquid" stroke={cd('#4ade80','#16a34a')} fill={cd('#4ade80','#16a34a')} fillOpacity={fillOpSingle} name="Total liquid assets" strokeWidth={2} />
+                        <Area type="monotone" dataKey="totalLiquid" stroke={cd('#4ade80','#16a34a')} fill={cd('#4ade80','#16a34a')} fillOpacity={fillOpSingle} name="Stressed liquidity" strokeWidth={2} />
+                        {isStressed && <Area type="monotone" dataKey="baseLiquid" stroke={cd('#9ca3af','#6b7280')} fill="none" strokeDasharray="5 3" strokeWidth={1.5} name="Base (saved) liquidity" dot={false} />}
                         {preserveYearA && <ReferenceLine x={preserveYearA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: 'A preserved', fill: '#f59e0b', fontSize: 11 }} />}
                         {preserveYearB && <ReferenceLine x={preserveYearB} stroke="#fb923c" strokeDasharray="4 4" label={{ value: 'B preserved', fill: '#fb923c', fontSize: 11 }} />}
-                        <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
+                        <ReferenceLine y={0} stroke={cd('#ef4444','#dc2626')} strokeDasharray="3 3" label={{ value: '$0', fill: cd('#ef4444','#dc2626'), fontSize: 10 }} />
                       </AreaChart>
                     ) : (
                       <ComposedChart data={chartData}>
@@ -440,29 +461,37 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
         )}
       </div>
 
-      {/* Retirement age sliders */}
+      {/* Retirement age sliders — scratchpad only */}
       <div className="card">
-        <h2 className="text-sm font-semibold text-gray-300 mb-4">Retirement Age</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-300">Retirement Age</h2>
+          <span className="text-xs text-gray-600">Scratchpad — changes here don't update your profile</span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {['personA', 'personB'].map(key => {
+          {[
+            { key: 'personA', scratch: scratchRetireA, setScratch: setScratchRetireA, saved: savedRetireA },
+            { key: 'personB', scratch: scratchRetireB, setScratch: setScratchRetireB, saved: savedRetireB },
+          ].map(({ key, scratch, setScratch, saved }) => {
             const person = scenario.household[key]
             const label = person.name || (key === 'personA' ? 'Person A' : 'Person B')
-            const age = person.retirementAge ?? 60
+            const changed = scratch !== saved
             return (
               <div key={key}>
                 <div className="flex justify-between mb-1">
                   <label className="label mb-0">{label}</label>
-                  <span className="text-sm font-semibold text-white">Age {age}</span>
+                  <div className="flex items-center gap-2">
+                    {changed && (
+                      <span className="text-xs text-amber-500">
+                        was {saved} · saved
+                      </span>
+                    )}
+                    <span className="text-sm font-semibold text-white">Age {scratch}</span>
+                  </div>
                 </div>
                 <input
                   type="range" min={35} max={70} step={1}
-                  value={age}
-                  onChange={e => updateScenario({
-                    household: {
-                      ...scenario.household,
-                      [key]: { ...person, retirementAge: Number(e.target.value) },
-                    }
-                  })}
+                  value={scratch}
+                  onChange={e => setScratch(Number(e.target.value))}
                   className="w-full accent-brand-500"
                 />
                 <div className="flex justify-between text-xs text-gray-600 mt-0.5">
@@ -543,10 +572,15 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
 
         {isStressed && (
           <button
-            onClick={() => { setStressExpenses(0); setStressReturn(0) }}
+            onClick={() => {
+              setStressExpenses(0)
+              setStressReturn(0)
+              setScratchRetireA(savedRetireA)
+              setScratchRetireB(savedRetireB)
+            }}
             className="mt-4 text-xs text-gray-500 hover:text-gray-300 underline"
           >
-            Reset stress test
+            Reset all scratchpad adjustments
           </button>
         )}
       </div>
