@@ -86,7 +86,7 @@ const COMPARE_TUTORIAL = [
 const COLOR_A = '#0ea5e9'  // brand-500
 const COLOR_B = '#34d399'  // emerald-400
 
-export default function Compare({ scenarios, displayReal = true }) {
+export default function Compare({ scenarios, displayReal = true, isLight = false }) {
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('compareTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [idA, setIdA] = useState(scenarios[0]?.id || '')
   const [idB, setIdB] = useState(scenarios[1]?.id || scenarios[0]?.id || '')
@@ -101,7 +101,6 @@ export default function Compare({ scenarios, displayReal = true }) {
 
   const currentYear = new Date().getFullYear()
   const inflationRate = scenarioA?.assumptions?.inflationRate ?? 0.025
-  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
   const gridColor = isLight ? '#e5e7eb' : '#1f2937'
   const tickColor = isLight ? '#374151' : '#9ca3af'
 

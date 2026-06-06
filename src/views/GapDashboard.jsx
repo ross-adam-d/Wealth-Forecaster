@@ -189,7 +189,7 @@ function buildStressedScenario(scenario, stressReturn) {
   }
 }
 
-export default function GapDashboard({ snapshots, scenario, updateScenario, displayReal = true }) {
+export default function GapDashboard({ snapshots, scenario, updateScenario, displayReal = true, isLight = false }) {
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('gapTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
   const [stressExpenses, setStressExpenses] = useState(0)   // fractional: -0.20 to +0.30
   const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
@@ -197,7 +197,6 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
   const [chartView, setChartView] = useState('breakdown')    // 'breakdown' | 'total' | 'cashflow'
   const [gapChartRange, setGapChartRange] = useState('full')
   const [tableOpen, setTableOpen] = useState(true)
-  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
   const fillOp       = isLight ? 1.0  : 0.5
   const fillOpDebt   = isLight ? 0.95 : 0.4
   const fillOpSingle = isLight ? 1.0  : 0.25

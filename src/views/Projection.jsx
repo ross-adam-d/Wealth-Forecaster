@@ -95,8 +95,7 @@ const PROJECTION_TUTORIAL = [
   },
 ]
 
-export default function Projection({ snapshots, scenario, retirementDate, displayReal = true }) {
-  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light')
+export default function Projection({ snapshots, scenario, retirementDate, displayReal = true, isLight = false }) {
   const fillOp       = isLight ? 1.0  : 0.5
   const fillOpDebt   = isLight ? 0.95 : 0.4
   const fillOpSingle = isLight ? 1.0  : 0.3
