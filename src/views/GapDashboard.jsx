@@ -50,15 +50,17 @@ function calcGapViability(gapSnapshots) {
   const prePreservation = gapSnapshots.slice(0, -1)
   const measureSnaps = prePreservation.length > 0 ? prePreservation : gapSnapshots
 
-  const deficitSnaps = measureSnaps.filter(s => s.isDeficit)
   const minLiquidity = Math.min(...measureSnaps.map(s => s.totalLiquidAssets))
 
-  if (deficitSnaps.length > 0 || minLiquidity < 0) {
+  // CRITICAL only when liquid assets actually reach zero — a negative cashflow year (isDeficit)
+  // where shares/bonds still carry positive value is NOT an exhaustion event.
+  const exhaustedSnaps = measureSnaps.filter(s => s.totalLiquidAssets <= 0)
+  if (exhaustedSnaps.length > 0 || minLiquidity < 0) {
     return {
       status: 'critical',
       buffer: minLiquidity,
       worstYear: measureSnaps.find(s => s.totalLiquidAssets === minLiquidity)?.year,
-      deficitCount: deficitSnaps.length,
+      deficitCount: exhaustedSnaps.length,
     }
   }
   if (minLiquidity < 50_000) {
@@ -316,12 +318,13 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
         <ViabilityBadge status={viability.status} buffer={viability.buffer} stressed={isStressed} deficitCount={viability.deficitCount} />
       </div>
 
-      {/* Liquidity exhaustion warning */}
+      {/* Liquidity exhaustion warning — only when assets actually reach zero */}
       {(() => {
-        const deficitSnaps = activeGapSnapshots.filter(s => s.isDeficit)
+        const deficitSnaps = activeGapSnapshots.filter(s => s.totalLiquidAssets <= 0)
         if (!deficitSnaps.length) return null
         const first = deficitSnaps[0]
-        const cumulative = deficitSnaps[deficitSnaps.length - 1]?.cumulativeDeficit || 0
+        // Sum of actual negative balances as the real shortfall figure
+        const cumulative = deficitSnaps.reduce((sum, s) => sum + Math.abs(Math.min(0, s.totalLiquidAssets)), 0)
         return (
           <div className="bg-red-950 border-2 border-red-600 rounded-xl p-5">
             <div className="flex items-start gap-4">
@@ -614,15 +617,17 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
               {activeGapSnapshots.map(s => {
                 const base = baseByYear[s.year]
                 const delta = (isStressed && base) ? fmtDelta(transform(s.totalLiquidAssets, s.year), transform(base.totalLiquidAssets, s.year)) : null
+                const exhausted = s.totalLiquidAssets <= 0
+                const cashflowTight = s.isDeficit && !exhausted
                 return (
-                  <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${s.isDeficit ? 'bg-red-950/40' : ''}`}>
-                    <td className={`py-2 px-3 ${s.isDeficit ? 'text-red-300 font-bold' : 'text-gray-300'}`}>
-                      {s.year}{s.isDeficit && ' !!'}
+                  <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${exhausted ? 'bg-red-950/40' : cashflowTight ? 'bg-amber-950/20' : ''}`}>
+                    <td className={`py-2 px-3 ${exhausted ? 'text-red-300 font-bold' : cashflowTight ? 'text-amber-400 font-medium' : 'text-gray-300'}`}>
+                      {s.year}{exhausted ? ' !!' : cashflowTight ? ' ~' : ''}
                     </td>
                     <td className="py-2 px-3 text-right text-gray-300">{fmt$(transform(s.totalIncome, s.year))}</td>
                     <td className="py-2 px-3 text-right text-gray-300">{fmt$(transform(s.totalOutflows, s.year))}</td>
-                    <td className={`py-2 px-3 text-right font-medium ${s.isDeficit ? 'text-red-400' : 'text-green-400'}`}>
-                      {s.isDeficit ? '−' : '+'}{fmt$(Math.abs(transform(s.netCashflow, s.year)))}
+                    <td className={`py-2 px-3 text-right font-medium ${exhausted ? 'text-red-400' : s.netCashflow < 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                      {s.netCashflow < 0 ? '−' : '+'}{fmt$(Math.abs(transform(s.netCashflow, s.year)))}
                     </td>
                     <td className={`py-2 px-3 text-right font-medium ${s.totalLiquidAssets < 50_000 ? 'text-amber-400' : 'text-gray-200'}`}>
                       {fmt$(transform(s.totalLiquidAssets, s.year))}
