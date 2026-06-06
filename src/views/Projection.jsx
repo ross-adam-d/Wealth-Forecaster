@@ -111,7 +111,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [sankeyYearIdx, setSankeyYearIdx] = useState(0)
   const [netWorthRange, setNetWorthRange] = useState('full')
   const [netWorthView, setNetWorthView] = useState('networth') // networth | liquidity | breakdown
-  const [liquidityTableOpen, setLiquidityTableOpen] = useState(true)
+  const [liquidityTableOpen, setLiquidityTableOpen] = useState(false)
   const [cashflowRange, setCashflowRange] = useState('full')
   const [cashflowView, setCashflowView] = useState('summary') // summary | income | expenses | surplus
   const [investRange, setInvestRange] = useState('full')
@@ -525,6 +525,60 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         </ChartFullscreen>
       </div>
 
+      {/* Investment breakdown */}
+      <div className="card">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="text-sm font-semibold text-gray-300">Investment Breakdown</h2>
+          <select
+            value={investRange}
+            onChange={e => setInvestRange(e.target.value)}
+            className="input text-xs py-1 px-2 h-7"
+          >
+            <option value="10">Next 10 years</option>
+            <option value="20">Next 20 years</option>
+            <option value="40">Next 40 years</option>
+            <option value="full">Full plan</option>
+          </select>
+        </div>
+        <p className="text-xs text-gray-600 mb-4">Each asset balance tracked year by year</p>
+        <ChartFullscreen title="Investment Breakdown">
+          {(isFullscreen) => (
+            <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
+              <div style={isFullscreen ? { height: '100%' } : { minWidth: '700px' }}>
+                <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 400}>
+                  <BarChart data={rangeFilter(netWorthData, investRange)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                    <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                    <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                    <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
+                    <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
+                    {retireYear && <ReferenceLine x={retireYear} stroke={cd('#60a5fa','#2563eb')} strokeDasharray="4 4" label={{ value: 'Retirement', fill: cd('#60a5fa','#2563eb'), fontSize: 11 }} />}
+                    <Bar dataKey="liqCash"       stackId="1" fill={cd('#60a5fa','#2563eb')} fillOpacity={barOp} name="Cash" />
+                    <Bar dataKey="liqBonds"      stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={barOp} name="Tax-Def. Bonds" />
+                    <Bar dataKey="liqOther"      stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={barOp} name="Other assets" />
+                    <Bar dataKey="liqComm"       stackId="1" fill={cd('#f472b6','#db2777')} fillOpacity={barOp} name="Commodities" />
+                    <Bar dataKey="liqTB"         stackId="1" fill={cd('#22d3ee','#0891b2')} fillOpacity={barOp} name="Treasury Bonds" />
+                    <Bar dataKey="liqShares"     stackId="1" fill={cd('#34d399','#059669')} fillOpacity={barOp} name="Shares" />
+                    <Bar dataKey="superA"        stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={barOp} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+                    <Bar dataKey="superB"        stackId="1" fill={cd('#38bdf8','#0284c7')} fillOpacity={barOp} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+                    <Bar dataKey="preTenYrBonds" stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={isLight ? 0.45 : 0.3} name="Bonds (pre-10yr)" />
+                    <Bar dataKey="propertyEq"    stackId="1" fill={cd('#f59e0b','#b45309')} fillOpacity={isLight ? 0.45 : 0.3} name="Property equity" />
+                    <Bar dataKey="lockedSuperA"  stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={isLight ? 0.35 : 0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
+                    <Bar dataKey="lockedSuperB"  stackId="1" fill={cd('#38bdf8','#0284c7')} fillOpacity={isLight ? 0.35 : 0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </ChartFullscreen>
+        <p className="mt-2 text-xs text-gray-600">
+          Solid = liquid / accessible. Faded = illiquid (locked super, pre-10yr bonds, property equity).
+        </p>
+      </div>
+
+      {/* Investment pie chart */}
+      <InvestmentPieChart snapshots={snapshots} scenario={scenario} />
+
       {/* Annual cashflow */}
       <div className="card">
         <div className="flex flex-wrap items-center gap-2 justify-between mb-1">
@@ -633,310 +687,6 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             </div>
           )}
         </ChartFullscreen>
-      </div>
-
-      {/* Tax summary */}
-      <div className="card">
-        <button
-          className="w-full flex items-center justify-between text-left"
-          onClick={() => setTaxOpen(o => !o)}
-        >
-          <div>
-            <span className="text-sm font-semibold text-gray-300">Tax Summary</span>
-            <span className="ml-2 text-xs text-gray-600">annual tax burden by type + effective rate</span>
-          </div>
-          <span className="text-gray-500 text-xs">{taxOpen ? '▾' : '▸'}</span>
-        </button>
-
-        {taxOpen && (
-          <div className="mt-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-gray-600">
-                Super contributions tax (15%) is deducted within the fund — not a household cash outflow.
-                Effective rate = personal income tax / assessable income (excludes super contributions tax).
-              </p>
-              <select
-                value={taxRange}
-                onChange={e => setTaxRange(e.target.value)}
-                className="input text-xs py-1 px-2 h-7 ml-3 flex-shrink-0"
-              >
-                <option value="10">Next 10 years</option>
-                <option value="20">Next 20 years</option>
-                <option value="40">Next 40 years</option>
-                <option value="full">Full plan</option>
-              </select>
-            </div>
-            <ChartFullscreen title="Tax Summary">
-              {(isFullscreen) => (
-                <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
-                  <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
-                    <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 340}>
-                      <ComposedChart data={rangeFilter(taxData, taxRange)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
-                        <YAxis
-                          yAxisId="left"
-                          tickFormatter={v => fmt$(v)}
-                          tick={{ fill: tickColor, fontSize: 11 }}
-                          width={isTouchDevice ? 40 : 56}
-                        />
-                        <YAxis
-                          yAxisId="right"
-                          orientation="right"
-                          tickFormatter={v => `${v}%`}
-                          tick={{ fill: tickColor, fontSize: 11 }}
-                          width={36}
-                          domain={[0, 60]}
-                        />
-                        <Tooltip content={<TaxTooltip fmt$={fmt$} />} />
-                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                        {retireYear && (
-                          <ReferenceLine
-                            yAxisId="left"
-                            x={retireYear}
-                            stroke="#60a5fa"
-                            strokeDasharray="4 4"
-                            label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }}
-                          />
-                        )}
-                        <Bar yAxisId="left" dataKey="incomeTaxA"      stackId="1" fill={cd('#ef4444','#b91c1c')} fillOpacity={barOp} name={`Income tax — ${personAName}`} />
-                        <Bar yAxisId="left" dataKey="incomeTaxB"      stackId="1" fill={cd('#f87171','#dc2626')} fillOpacity={barOp} name={`Income tax — ${personBName}`} />
-                        <Bar yAxisId="left" dataKey="medicare"        stackId="1" fill={cd('#fb923c','#ea580c')} fillOpacity={barOp} name="Medicare levy" />
-                        <Bar yAxisId="left" dataKey="hecs"            stackId="1" fill={cd('#fbbf24','#d97706')} fillOpacity={barOp} name="HECS/HELP" />
-                        <Bar yAxisId="left" dataKey="div293"          stackId="1" fill={cd('#c084fc','#9333ea')} fillOpacity={barOp} name="Division 293" />
-                        <Bar yAxisId="left" dataKey="superContribTax" stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={isLight ? 0.7 : 0.6} name="Super contributions tax (15%)" />
-                        <Line
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey="effectiveRate"
-                          stroke={cd('#e2e8f0','#374151')}
-                          strokeWidth={1.5}
-                          dot={false}
-                          name="Effective rate (%)"
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-            </ChartFullscreen>
-          </div>
-        )}
-      </div>
-
-      {/* Capital Gains — current FY */}
-      <div className="card">
-        <button
-          className="w-full flex items-center justify-between text-left"
-          onClick={() => setCgtOpen(o => !o)}
-        >
-          <div>
-            <span className="text-sm font-semibold text-gray-300">Capital Gains — {cgtSummary.fyLabel}</span>
-            <span className="ml-2 text-xs text-gray-600">
-              {cgtSummary.hasAny
-                ? `${cgtSummary.disposals.filter(d => !d.isPPOR).length} disposal${cgtSummary.disposals.filter(d => !d.isPPOR).length !== 1 ? 's' : ''} · net gain ${fmt$(cgtSummary.netCapitalGain)}`
-                : 'no disposals this FY'}
-            </span>
-          </div>
-          <span className="text-gray-500 text-xs">{cgtOpen ? '▾' : '▸'}</span>
-        </button>
-
-        {cgtOpen && (
-          <div className="mt-5 space-y-4">
-            {!cgtSummary.hasAny ? (
-              <p className="text-sm text-gray-500">
-                No assets disposed in {cgtSummary.fyLabel}. Add a sale date to share holdings or a sale event to property to see CGT estimates here.
-              </p>
-            ) : (
-              <>
-                {/* Disposal table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm" style={{ minWidth: 700 }}>
-                    <thead>
-                      <tr className="border-b border-gray-800">
-                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Asset</th>
-                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Type</th>
-                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Purchased</th>
-                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Sold</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Cost base</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Proceeds</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Gross gain</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">50% disc.</th>
-                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Net gain</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cgtSummary.disposals.map(d => (
-                        <tr key={d.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                          <td className="py-2 px-3 text-gray-200">
-                            {d.name}
-                            {d.isEstimate && <span className="ml-1 text-xs text-amber-500">est.</span>}
-                            {d.isPPOR && <span className="ml-1 text-xs text-green-500">PPOR exempt</span>}
-                          </td>
-                          <td className="py-2 px-3 text-gray-400 capitalize">{d.type}</td>
-                          <td className="py-2 px-3 text-gray-500">{d.purchaseDate ? d.purchaseDate.slice(0, 7) : '—'}</td>
-                          <td className="py-2 px-3 text-gray-500">{d.saleDate ? d.saleDate.slice(0, 7) : '—'}</td>
-                          <td className="py-2 px-3 text-right text-gray-300">{fmt$(d.costBase)}</td>
-                          <td className="py-2 px-3 text-right text-gray-300">{fmt$(d.proceeds)}</td>
-                          <td className={`py-2 px-3 text-right font-medium ${d.grossGain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {d.grossGain >= 0 ? '+' : ''}{fmt$(d.grossGain)}
-                          </td>
-                          <td className="py-2 px-3 text-right text-gray-500">
-                            {d.discountApplied ? '✓' : d.isPPOR ? '—' : '✗'}
-                          </td>
-                          <td className={`py-2 px-3 text-right font-semibold ${d.isPPOR ? 'text-green-500' : d.netGain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {d.isPPOR ? 'Exempt' : (d.netGain >= 0 ? '+' : '') + fmt$(d.netGain)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Summary */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total gains</p>
-                    <p className="text-base font-semibold text-green-400">{fmt$(cgtSummary.totalGains)}</p>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total losses</p>
-                    <p className="text-base font-semibold text-red-400">{fmt$(cgtSummary.totalLosses)}</p>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Net capital gain</p>
-                    <p className={`text-base font-semibold ${cgtSummary.netCapitalGain > 0 ? 'text-amber-400' : 'text-green-400'}`}>
-                      {fmt$(cgtSummary.netCapitalGain)}
-                    </p>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Losses carried fwd</p>
-                    <p className="text-base font-semibold text-gray-300">{fmt$(cgtSummary.carriedForward)}</p>
-                  </div>
-                </div>
-
-                {cgtSummary.newLossesCarriedForward > 0 && (
-                  <p className="text-xs text-amber-500">
-                    {fmt$(cgtSummary.newLossesCarriedForward)} in net losses will carry forward to offset future gains.
-                  </p>
-                )}
-
-                <p className="text-xs text-gray-600">
-                  Net gain is added to taxable income and taxed at your marginal rate.
-                  Set carried-forward losses in Household Profile → Shares section.
-                  Values marked "est." use engine-projected sale price — set an actual sale price in Property settings for accuracy.
-                </p>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Investment breakdown */}
-      <div className="card">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-          <h2 className="text-sm font-semibold text-gray-300">Investment Breakdown</h2>
-          <select
-            value={investRange}
-            onChange={e => setInvestRange(e.target.value)}
-            className="input text-xs py-1 px-2 h-7"
-          >
-            <option value="10">Next 10 years</option>
-            <option value="20">Next 20 years</option>
-            <option value="40">Next 40 years</option>
-            <option value="full">Full plan</option>
-          </select>
-        </div>
-        <p className="text-xs text-gray-600 mb-4">Each asset balance tracked year by year</p>
-        <ChartFullscreen title="Investment Breakdown">
-          {(isFullscreen) => (
-            <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
-              <div style={isFullscreen ? { height: '100%' } : { minWidth: '700px' }}>
-                <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 400}>
-                  <BarChart data={rangeFilter(netWorthData, investRange)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                    <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
-                    <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
-                    <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
-                    <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                    {retireYear && <ReferenceLine x={retireYear} stroke={cd('#60a5fa','#2563eb')} strokeDasharray="4 4" label={{ value: 'Retirement', fill: cd('#60a5fa','#2563eb'), fontSize: 11 }} />}
-                    <Bar dataKey="liqCash"       stackId="1" fill={cd('#60a5fa','#2563eb')} fillOpacity={barOp} name="Cash" />
-                    <Bar dataKey="liqBonds"      stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={barOp} name="Tax-Def. Bonds" />
-                    <Bar dataKey="liqOther"      stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={barOp} name="Other assets" />
-                    <Bar dataKey="liqComm"       stackId="1" fill={cd('#f472b6','#db2777')} fillOpacity={barOp} name="Commodities" />
-                    <Bar dataKey="liqTB"         stackId="1" fill={cd('#22d3ee','#0891b2')} fillOpacity={barOp} name="Treasury Bonds" />
-                    <Bar dataKey="liqShares"     stackId="1" fill={cd('#34d399','#059669')} fillOpacity={barOp} name="Shares" />
-                    <Bar dataKey="superA"        stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={barOp} name={`Super A (unlocked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
-                    <Bar dataKey="superB"        stackId="1" fill={cd('#38bdf8','#0284c7')} fillOpacity={barOp} name={`Super B (unlocked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
-                    <Bar dataKey="preTenYrBonds" stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={isLight ? 0.45 : 0.3} name="Bonds (pre-10yr)" />
-                    <Bar dataKey="propertyEq"    stackId="1" fill={cd('#f59e0b','#b45309')} fillOpacity={isLight ? 0.45 : 0.3} name="Property equity" />
-                    <Bar dataKey="lockedSuperA"  stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={isLight ? 0.35 : 0.2} name={`Super A (locked)${personAName !== 'Person A' ? ` — ${personAName}` : ''}`} />
-                    <Bar dataKey="lockedSuperB"  stackId="1" fill={cd('#38bdf8','#0284c7')} fillOpacity={isLight ? 0.35 : 0.2} name={`Super B (locked)${personBName !== 'Person B' ? ` — ${personBName}` : ''}`} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-        </ChartFullscreen>
-        <p className="mt-2 text-xs text-gray-600">
-          Solid = liquid / accessible. Faded = illiquid (locked super, pre-10yr bonds, property equity).
-        </p>
-      </div>
-
-      {/* Investment pie chart */}
-      <InvestmentPieChart snapshots={snapshots} scenario={scenario} />
-
-      {/* Liquidity table */}
-      <div className="card">
-        <button
-          className="w-full flex items-center justify-between text-left"
-          onClick={() => setLiquidityTableOpen(o => !o)}
-        >
-          <span className="text-sm font-semibold text-gray-300">Liquidity Table</span>
-          <span className="text-gray-500 text-xs">{liquidityTableOpen ? '▾' : '▸'}</span>
-        </button>
-        {liquidityTableOpen && <div className="overflow-x-auto mt-2"><table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-800/50">
-              <th className="text-left py-2 px-2 sm:px-3 text-gray-500 font-medium">Year</th>
-              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Liquid Assets</th>
-              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Bonds (pre-10yr)</th>
-              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Property equity</th>
-              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Super (locked)</th>
-              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Debts</th>
-              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Total net worth</th>
-            </tr>
-          </thead>
-          <tbody>
-            {snapshots.map(s => {
-              const isIllustrative = s.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
-              return (
-                <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${isIllustrative ? 'opacity-50' : ''} ${s.isDeficit ? 'bg-red-950/40' : ''}`}>
-                  <td className={`py-2 px-3 ${s.isDeficit ? 'text-red-300 font-bold' : 'text-gray-300'}`}>
-                    {s.year}{s.isDeficit && ' !!'}
-                    {isIllustrative && <span className="ml-1 text-xs text-gray-600">illus.</span>}
-                  </td>
-                  <td className={`py-2 px-3 text-right ${s.isDeficit ? 'text-red-400 font-bold' : 'text-gray-200'}`}>
-                    {fmt$(transform(s.totalLiquidAssets, s.year))}
-                    {s.isDeficit && <span className="ml-1">!!!</span>}
-                  </td>
-                  <td className="py-2 px-3 text-right text-amber-400">{fmt$(transform(s.bondPreTenYr, s.year))}</td>
-                  <td className="py-2 px-3 text-right text-gray-400">{fmt$(transform(s.propertyEquity, s.year))}</td>
-                  <td className="py-2 px-3 text-right text-gray-500">
-                    {s.superA?.isLocked || s.superB?.isLocked
-                      ? fmt$(transform((s.superA?.isLocked ? s.superABalance : 0) + (s.superB?.isLocked ? s.superBBalance : 0), s.year))
-                      : '—'
-                    }
-                  </td>
-                  <td className="py-2 px-3 text-right text-red-400">
-                    {(s.totalDebtBalance || 0) > 0 ? `-${fmt$(transform(s.totalDebtBalance, s.year))}` : '—'}
-                  </td>
-                  <td className="py-2 px-3 text-right font-medium text-white">{fmt$(transform(s.totalNetWorth, s.year))}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table></div>}
       </div>
 
       {/* Cashflow Flow diagram */}
@@ -1247,6 +997,256 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             </p>
           </div>
         )}
+      </div>
+
+      {/* Tax summary */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setTaxOpen(o => !o)}
+        >
+          <div>
+            <span className="text-sm font-semibold text-gray-300">Tax Summary</span>
+            <span className="ml-2 text-xs text-gray-600">annual tax burden by type + effective rate</span>
+          </div>
+          <span className="text-gray-500 text-xs">{taxOpen ? '▾' : '▸'}</span>
+        </button>
+
+        {taxOpen && (
+          <div className="mt-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-gray-600">
+                Super contributions tax (15%) is deducted within the fund — not a household cash outflow.
+                Effective rate = personal income tax / assessable income (excludes super contributions tax).
+              </p>
+              <select
+                value={taxRange}
+                onChange={e => setTaxRange(e.target.value)}
+                className="input text-xs py-1 px-2 h-7 ml-3 flex-shrink-0"
+              >
+                <option value="10">Next 10 years</option>
+                <option value="20">Next 20 years</option>
+                <option value="40">Next 40 years</option>
+                <option value="full">Full plan</option>
+              </select>
+            </div>
+            <ChartFullscreen title="Tax Summary">
+              {(isFullscreen) => (
+                <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
+                  <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
+                    <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 340}>
+                      <ComposedChart data={rangeFilter(taxData, taxRange)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                        <YAxis
+                          yAxisId="left"
+                          tickFormatter={v => fmt$(v)}
+                          tick={{ fill: tickColor, fontSize: 11 }}
+                          width={isTouchDevice ? 40 : 56}
+                        />
+                        <YAxis
+                          yAxisId="right"
+                          orientation="right"
+                          tickFormatter={v => `${v}%`}
+                          tick={{ fill: tickColor, fontSize: 11 }}
+                          width={36}
+                          domain={[0, 60]}
+                        />
+                        <Tooltip content={<TaxTooltip fmt$={fmt$} />} />
+                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
+                        {retireYear && (
+                          <ReferenceLine
+                            yAxisId="left"
+                            x={retireYear}
+                            stroke="#60a5fa"
+                            strokeDasharray="4 4"
+                            label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }}
+                          />
+                        )}
+                        <Bar yAxisId="left" dataKey="incomeTaxA"      stackId="1" fill={cd('#ef4444','#b91c1c')} fillOpacity={barOp} name={`Income tax — ${personAName}`} />
+                        <Bar yAxisId="left" dataKey="incomeTaxB"      stackId="1" fill={cd('#f87171','#dc2626')} fillOpacity={barOp} name={`Income tax — ${personBName}`} />
+                        <Bar yAxisId="left" dataKey="medicare"        stackId="1" fill={cd('#fb923c','#ea580c')} fillOpacity={barOp} name="Medicare levy" />
+                        <Bar yAxisId="left" dataKey="hecs"            stackId="1" fill={cd('#fbbf24','#d97706')} fillOpacity={barOp} name="HECS/HELP" />
+                        <Bar yAxisId="left" dataKey="div293"          stackId="1" fill={cd('#c084fc','#9333ea')} fillOpacity={barOp} name="Division 293" />
+                        <Bar yAxisId="left" dataKey="superContribTax" stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={isLight ? 0.7 : 0.6} name="Super contributions tax (15%)" />
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="effectiveRate"
+                          stroke={cd('#e2e8f0','#374151')}
+                          strokeWidth={1.5}
+                          dot={false}
+                          name="Effective rate (%)"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </ChartFullscreen>
+          </div>
+        )}
+      </div>
+
+      {/* Capital Gains — current FY */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setCgtOpen(o => !o)}
+        >
+          <div>
+            <span className="text-sm font-semibold text-gray-300">Capital Gains — {cgtSummary.fyLabel}</span>
+            <span className="ml-2 text-xs text-gray-600">
+              {cgtSummary.hasAny
+                ? `${cgtSummary.disposals.filter(d => !d.isPPOR).length} disposal${cgtSummary.disposals.filter(d => !d.isPPOR).length !== 1 ? 's' : ''} · net gain ${fmt$(cgtSummary.netCapitalGain)}`
+                : 'no disposals this FY'}
+            </span>
+          </div>
+          <span className="text-gray-500 text-xs">{cgtOpen ? '▾' : '▸'}</span>
+        </button>
+
+        {cgtOpen && (
+          <div className="mt-5 space-y-4">
+            {!cgtSummary.hasAny ? (
+              <p className="text-sm text-gray-500">
+                No assets disposed in {cgtSummary.fyLabel}. Add a sale date to share holdings or a sale event to property to see CGT estimates here.
+              </p>
+            ) : (
+              <>
+                {/* Disposal table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" style={{ minWidth: 700 }}>
+                    <thead>
+                      <tr className="border-b border-gray-800">
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Asset</th>
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Type</th>
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Purchased</th>
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">Sold</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Cost base</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Proceeds</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Gross gain</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">50% disc.</th>
+                        <th className="text-right py-2 px-3 text-gray-500 font-medium">Net gain</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cgtSummary.disposals.map(d => (
+                        <tr key={d.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                          <td className="py-2 px-3 text-gray-200">
+                            {d.name}
+                            {d.isEstimate && <span className="ml-1 text-xs text-amber-500">est.</span>}
+                            {d.isPPOR && <span className="ml-1 text-xs text-green-500">PPOR exempt</span>}
+                          </td>
+                          <td className="py-2 px-3 text-gray-400 capitalize">{d.type}</td>
+                          <td className="py-2 px-3 text-gray-500">{d.purchaseDate ? d.purchaseDate.slice(0, 7) : '—'}</td>
+                          <td className="py-2 px-3 text-gray-500">{d.saleDate ? d.saleDate.slice(0, 7) : '—'}</td>
+                          <td className="py-2 px-3 text-right text-gray-300">{fmt$(d.costBase)}</td>
+                          <td className="py-2 px-3 text-right text-gray-300">{fmt$(d.proceeds)}</td>
+                          <td className={`py-2 px-3 text-right font-medium ${d.grossGain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {d.grossGain >= 0 ? '+' : ''}{fmt$(d.grossGain)}
+                          </td>
+                          <td className="py-2 px-3 text-right text-gray-500">
+                            {d.discountApplied ? '✓' : d.isPPOR ? '—' : '✗'}
+                          </td>
+                          <td className={`py-2 px-3 text-right font-semibold ${d.isPPOR ? 'text-green-500' : d.netGain >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {d.isPPOR ? 'Exempt' : (d.netGain >= 0 ? '+' : '') + fmt$(d.netGain)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total gains</p>
+                    <p className="text-base font-semibold text-green-400">{fmt$(cgtSummary.totalGains)}</p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total losses</p>
+                    <p className="text-base font-semibold text-red-400">{fmt$(cgtSummary.totalLosses)}</p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Net capital gain</p>
+                    <p className={`text-base font-semibold ${cgtSummary.netCapitalGain > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                      {fmt$(cgtSummary.netCapitalGain)}
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Losses carried fwd</p>
+                    <p className="text-base font-semibold text-gray-300">{fmt$(cgtSummary.carriedForward)}</p>
+                  </div>
+                </div>
+
+                {cgtSummary.newLossesCarriedForward > 0 && (
+                  <p className="text-xs text-amber-500">
+                    {fmt$(cgtSummary.newLossesCarriedForward)} in net losses will carry forward to offset future gains.
+                  </p>
+                )}
+
+                <p className="text-xs text-gray-600">
+                  Net gain is added to taxable income and taxed at your marginal rate.
+                  Set carried-forward losses in Household Profile → Shares section.
+                  Values marked "est." use engine-projected sale price — set an actual sale price in Property settings for accuracy.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Liquidity table */}
+      <div className="card">
+        <button
+          className="w-full flex items-center justify-between text-left"
+          onClick={() => setLiquidityTableOpen(o => !o)}
+        >
+          <span className="text-sm font-semibold text-gray-300">Liquidity Table</span>
+          <span className="text-gray-500 text-xs">{liquidityTableOpen ? '▾' : '▸'}</span>
+        </button>
+        {liquidityTableOpen && <div className="overflow-x-auto mt-2"><table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-800/50">
+              <th className="text-left py-2 px-2 sm:px-3 text-gray-500 font-medium">Year</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Liquid Assets</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Bonds (pre-10yr)</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Property equity</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Super (locked)</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Debts</th>
+              <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Total net worth</th>
+            </tr>
+          </thead>
+          <tbody>
+            {snapshots.map(s => {
+              const isIllustrative = s.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD
+              return (
+                <tr key={s.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${isIllustrative ? 'opacity-50' : ''} ${s.isDeficit ? 'bg-red-950/40' : ''}`}>
+                  <td className={`py-2 px-3 ${s.isDeficit ? 'text-red-300 font-bold' : 'text-gray-300'}`}>
+                    {s.year}{s.isDeficit && ' !!'}
+                    {isIllustrative && <span className="ml-1 text-xs text-gray-600">illus.</span>}
+                  </td>
+                  <td className={`py-2 px-3 text-right ${s.isDeficit ? 'text-red-400 font-bold' : 'text-gray-200'}`}>
+                    {fmt$(transform(s.totalLiquidAssets, s.year))}
+                    {s.isDeficit && <span className="ml-1">!!!</span>}
+                  </td>
+                  <td className="py-2 px-3 text-right text-amber-400">{fmt$(transform(s.bondPreTenYr, s.year))}</td>
+                  <td className="py-2 px-3 text-right text-gray-400">{fmt$(transform(s.propertyEquity, s.year))}</td>
+                  <td className="py-2 px-3 text-right text-gray-500">
+                    {s.superA?.isLocked || s.superB?.isLocked
+                      ? fmt$(transform((s.superA?.isLocked ? s.superABalance : 0) + (s.superB?.isLocked ? s.superBBalance : 0), s.year))
+                      : '—'
+                    }
+                  </td>
+                  <td className="py-2 px-3 text-right text-red-400">
+                    {(s.totalDebtBalance || 0) > 0 ? `-${fmt$(transform(s.totalDebtBalance, s.year))}` : '—'}
+                  </td>
+                  <td className="py-2 px-3 text-right font-medium text-white">{fmt$(transform(s.totalNetWorth, s.year))}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table></div>}
       </div>
 
     </div>
