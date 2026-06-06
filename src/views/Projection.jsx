@@ -474,23 +474,22 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
               <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
                 <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 360}>
                   {netWorthView === 'networth' ? (
-                    <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
+                    <BarChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
                       <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
                       <Tooltip content={<SimpleTooltip />} position={{ y: 10 }} />
                       <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
-                      {retireYear && <ReferenceLine x={retireYear} stroke="#60a5fa" strokeDasharray="4 4" label={{ value: 'Retirement', fill: '#60a5fa', fontSize: 11 }} />}
-                      <Area type="monotone" dataKey="debts"          stackId="2" stroke={cd('#f87171','#dc2626')} fill={cd('#f87171','#dc2626')} fillOpacity={fillOpDebt} name="Other debts" />
-                      <Area type="monotone" dataKey="cash"           stackId="1" stroke={cd('#60a5fa','#2563eb')} fill={cd('#60a5fa','#2563eb')} fillOpacity={fillOp} name="Cash" />
-                      <Area type="monotone" dataKey="bonds"          stackId="1" stroke={cd('#a78bfa','#7c3aed')} fill={cd('#a78bfa','#7c3aed')} fillOpacity={fillOp} name="Tax-Def. Bonds" />
-                      <Area type="monotone" dataKey="otherAssets"    stackId="1" stroke={cd('#94a3b8','#475569')} fill={cd('#94a3b8','#475569')} fillOpacity={fillOp} name="Other Assets" />
-                      <Area type="monotone" dataKey="commodities"    stackId="1" stroke={cd('#f472b6','#db2777')} fill={cd('#f472b6','#db2777')} fillOpacity={fillOp} name="Commodities" />
-                      <Area type="monotone" dataKey="treasuryBonds"  stackId="1" stroke={cd('#22d3ee','#0891b2')} fill={cd('#22d3ee','#0891b2')} fillOpacity={fillOp} name="Treasury Bonds" />
-                      <Area type="monotone" dataKey="shares"         stackId="1" stroke={cd('#34d399','#059669')} fill={cd('#34d399','#059669')} fillOpacity={fillOp} name="Shares" />
-                      <Area type="monotone" dataKey="property"       stackId="1" stroke={cd('#f59e0b','#b45309')} fill={cd('#f59e0b','#b45309')} fillOpacity={fillOp} name="Property (equity)" />
-                      <Area type="monotone" dataKey="super"          stackId="1" stroke={cd('#0ea5e9','#0369a1')} fill={cd('#0ea5e9','#0369a1')} fillOpacity={fillOp} name="Super" />
-                    </AreaChart>
+                      {retireYear && <ReferenceLine x={retireYear} stroke={cd('#60a5fa','#2563eb')} strokeDasharray="4 4" label={{ value: 'Retirement', fill: cd('#60a5fa','#2563eb'), fontSize: 11 }} />}
+                      <Bar dataKey="cash"          stackId="1" fill={cd('#60a5fa','#2563eb')} fillOpacity={barOp} name="Cash" />
+                      <Bar dataKey="bonds"         stackId="1" fill={cd('#a78bfa','#7c3aed')} fillOpacity={barOp} name="Tax-Def. Bonds" />
+                      <Bar dataKey="otherAssets"   stackId="1" fill={cd('#94a3b8','#475569')} fillOpacity={barOp} name="Other Assets" />
+                      <Bar dataKey="commodities"   stackId="1" fill={cd('#f472b6','#db2777')} fillOpacity={barOp} name="Commodities" />
+                      <Bar dataKey="treasuryBonds" stackId="1" fill={cd('#22d3ee','#0891b2')} fillOpacity={barOp} name="Treasury Bonds" />
+                      <Bar dataKey="shares"        stackId="1" fill={cd('#34d399','#059669')} fillOpacity={barOp} name="Shares" />
+                      <Bar dataKey="property"      stackId="1" fill={cd('#f59e0b','#b45309')} fillOpacity={barOp} name="Property (equity)" />
+                      <Bar dataKey="super"         stackId="1" fill={cd('#0ea5e9','#0369a1')} fillOpacity={barOp} name="Super" />
+                    </BarChart>
                   ) : netWorthView === 'liquidity' ? (
                     <AreaChart data={rangeFilter(netWorthData, netWorthRange)}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
