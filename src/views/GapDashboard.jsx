@@ -191,8 +191,8 @@ function buildStressedScenario(scenario, stressReturn) {
 
 export default function GapDashboard({ snapshots, scenario, updateScenario, displayReal = true, isLight = false }) {
   const [showTutorial, setShowTutorial, closeTutorial] = useTutorial('gapTutorialSeen', { waitFor: 'welcomeTutorialSeen' })
-  const [stressExpenses, setStressExpenses] = useState(0)   // fractional: -0.20 to +0.30
-  const [stressReturn, setStressReturn] = useState(0)        // fractional delta on return rates
+  const [stressExpenses, setStressExpenses] = useState(0)   // dollar delta (today's $), $2k steps
+  const [stressReturn, setStressReturn] = useState(0)        // fractional delta on capital growth rate
   const [showPartTime, setShowPartTime] = useState(false)
   const [chartView, setChartView] = useState('breakdown')    // 'breakdown' | 'total' | 'cashflow'
   const [gapChartRange, setGapChartRange] = useState('full')
@@ -222,7 +222,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
     try {
       const sc = buildStressedScenario(scenario, stressReturn)
       const leverAdjustments = stressExpenses !== 0
-        ? { expenses: { discretionary: stressExpenses, fixed: stressExpenses } }
+        ? { expenses: { dollarDelta: stressExpenses } }
         : {}
       const all = runSimulation(sc, { leverAdjustments })
       return getGapYears(all, scenario).gapSnapshots
@@ -266,8 +266,13 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
     net: transform(s.netCashflow, s.year),
   }))
 
-  const baseReturnRate = scenario?.assumptions?.sharesReturnRate ?? 0.08
-  const currentReturnRate = baseReturnRate + stressReturn
+  const sharesGrowthRate = scenario?.assumptions?.sharesReturnRate ?? 0.07
+  const dividendYieldRate = scenario?.assumptions?.dividendYield ?? 0.04
+  const baseTotalReturn = sharesGrowthRate + dividendYieldRate  // total return = capital growth + dividends
+  const currentTotalReturn = baseTotalReturn + stressReturn
+  // Dynamic slider bounds: ±8pp around base, floored at 1%
+  const returnSliderMin = Math.max(1, Math.round((baseTotalReturn * 100 - 8) * 2) / 2)
+  const returnSliderMax = Math.round((baseTotalReturn * 100 + 8) * 2) / 2
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
@@ -479,18 +484,20 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
             <div className="flex justify-between mb-1">
               <label className="label mb-0">Expenses adjustment</label>
               <span className={`text-xs font-medium ${stressExpenses > 0 ? 'text-amber-400' : stressExpenses < 0 ? 'text-green-400' : 'text-gray-500'}`}>
-                {stressExpenses >= 0 ? '+' : ''}{Math.round(stressExpenses * 100)}%
+                {stressExpenses === 0
+                  ? '±$0'
+                  : `${stressExpenses > 0 ? '+' : '−'}${fmt$(Math.abs(stressExpenses))}/yr`}
               </span>
             </div>
             <input
-              type="range" min={-20} max={30} step={1}
-              value={Math.round(stressExpenses * 100)}
-              onChange={e => setStressExpenses(Number(e.target.value) / 100)}
+              type="range" min={-20000} max={20000} step={2000}
+              value={stressExpenses}
+              onChange={e => setStressExpenses(Number(e.target.value))}
               className="w-full accent-brand-500"
             />
             <div className="flex justify-between text-xs text-gray-600 mt-0.5">
-              <span>−20%</span>
-              <span>+30%</span>
+              <span>−$20k</span>
+              <span>+$20k</span>
             </div>
           </div>
 
@@ -498,7 +505,7 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
             <div className="flex justify-between mb-1">
               <label className="label mb-0">Portfolio return</label>
               <span className={`text-xs font-medium ${stressReturn < 0 ? 'text-red-400' : stressReturn > 0 ? 'text-green-400' : 'text-gray-500'}`}>
-                {(currentReturnRate * 100).toFixed(1)}%
+                {(currentTotalReturn * 100).toFixed(1)}%
                 {stressReturn !== 0 && (
                   <span className="text-gray-600 ml-1">
                     ({stressReturn > 0 ? '+' : ''}{(stressReturn * 100).toFixed(1)}%)
@@ -507,14 +514,15 @@ export default function GapDashboard({ snapshots, scenario, updateScenario, disp
               </span>
             </div>
             <input
-              type="range" min={4} max={10} step={0.5}
-              value={(currentReturnRate * 100).toFixed(1)}
-              onChange={e => setStressReturn(Number(e.target.value) / 100 - baseReturnRate)}
+              type="range" min={returnSliderMin} max={returnSliderMax} step={0.5}
+              value={(currentTotalReturn * 100).toFixed(1)}
+              onChange={e => setStressReturn(Number(e.target.value) / 100 - baseTotalReturn)}
               className="w-full accent-brand-500"
             />
             <div className="flex justify-between text-xs text-gray-600 mt-0.5">
-              <span>4%</span>
-              <span>10%</span>
+              <span>{returnSliderMin}%</span>
+              <span className="text-gray-500">{(baseTotalReturn * 100).toFixed(1)}% base</span>
+              <span>{returnSliderMax}%</span>
             </div>
           </div>
 

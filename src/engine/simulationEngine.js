@@ -675,7 +675,10 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
       yearAssumptions.inflationRate,
       resolvedExpAdj,
     )
-    const totalExpenses = expenseTree.total
+    // dollarDelta adds a flat annual amount in real (today's) dollars, inflated to the simulation year
+    const dollarDelta = resolvedExpAdj.dollarDelta ?? 0
+    const inflatedDollarDelta = dollarDelta * Math.pow(1 + (yearAssumptions.inflationRate ?? 0.025), year - currentYear)
+    const totalExpenses = Math.max(0, expenseTree.total + inflatedDollarDelta)
 
     // ── Step 9b: Debts ────────────────────────────────────────────────────
     const debtResult = processAllDebts(currentDebts, year)
