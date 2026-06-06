@@ -343,6 +343,7 @@ export function createDefaultScenario(name = 'Base Plan') {
     name,
     simulationEndAge: DEFAULT_SIMULATION_END_AGE,
     assumptions: createDefaultAssumptions(),
+    actualsSettings: { snapshotFrequency: 'monthly' }, // 'monthly' | 'quarterly' | 'manual'
     household: {
       personA: createDefaultPerson('A'),
       personB: createDefaultPerson('B'),

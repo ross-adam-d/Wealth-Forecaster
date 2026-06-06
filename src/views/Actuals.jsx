@@ -288,7 +288,7 @@ function AssetCompositionChart({ scenario, actuals }) {
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
-export default function Actuals({ scenario, isLight }) {
+export default function Actuals({ scenario, updateScenario, recordSnapshotNow, isLight }) {
   const actuals = useMemo(() => computeActuals(scenario), [scenario])
   const history = scenario.actualsHistory || []
 
@@ -422,16 +422,43 @@ export default function Actuals({ scenario, isLight }) {
 
       {/* Net worth history chart */}
       <div className="card">
-        <h2 className="text-sm font-semibold text-gray-300 mb-1">Net Worth History</h2>
-        <p className="text-xs text-gray-600 mb-4">
-          Auto-recorded snapshots when net worth shifts by 2%+ or after 7 days.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-300">Net Worth History</h2>
+            <p className="text-xs text-gray-600 mt-0.5">Snapshots of your actual position over time</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs text-gray-500 whitespace-nowrap">Record</label>
+              <select
+                value={scenario.actualsSettings?.snapshotFrequency ?? 'monthly'}
+                onChange={e => updateScenario({
+                  actualsSettings: {
+                    ...(scenario.actualsSettings || {}),
+                    snapshotFrequency: e.target.value,
+                  }
+                })}
+                className="input text-xs py-1 px-2 h-7"
+              >
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="manual">Manually only</option>
+              </select>
+            </div>
+            <button
+              onClick={recordSnapshotNow}
+              className="btn-ghost text-xs py-1 px-3 h-7 whitespace-nowrap"
+            >
+              Record now
+            </button>
+          </div>
+        </div>
 
         {historyData.length === 0 ? (
           <div className="py-10 text-center">
             <p className="text-gray-500 text-sm">No snapshot history yet.</p>
             <p className="text-gray-600 text-xs mt-1">
-              Save your scenario to record your first snapshot. The chart will appear here as history builds.
+              Click "Record now" or save your scenario to record your first snapshot.
             </p>
           </div>
         ) : (

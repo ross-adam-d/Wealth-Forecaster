@@ -44,6 +44,7 @@ export default function App() {
     duplicateScenario,
     deleteScenario,
     renameScenario,
+    recordSnapshotNow,
   } = useScenario(user?.id)
 
   const { snapshots, retirementDate } = useSimulation(activeScenario)
@@ -81,6 +82,7 @@ export default function App() {
     setDisplayReal,
     isLight,
     toggleTheme,
+    recordSnapshotNow,
   }
 
   const showPaywall = !profileLoading && profile?.access === 'expired'

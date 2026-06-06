@@ -46,9 +46,12 @@ export function useScenario(userId) {
     })()
   }, [userId])
 
-  // Append an actuals snapshot if the scenario has meaningful data and
-  // enough time has passed (>7 days) or net worth has shifted by >2%.
+  // Append an actuals snapshot on auto-save, respecting the user-configured frequency.
+  // 'manual' mode never auto-records; use recordSnapshotNow() instead.
   function withActualsSnapshot(scenario) {
+    const freq = scenario.actualsSettings?.snapshotFrequency ?? 'monthly'
+    if (freq === 'manual') return scenario
+
     const actuals = computeActuals(scenario)
     if (actuals.totalAssets === 0 && actuals.totalLiabilities === 0) return scenario
 
@@ -58,14 +61,12 @@ export function useScenario(userId) {
 
     if (last?.date === today) return scenario // already snapshotted today
 
+    const minDays = freq === 'quarterly' ? 90 : 30
     const daysSinceLast = last
       ? Math.floor((Date.now() - new Date(last.date).getTime()) / 86_400_000)
       : Infinity
-    const netWorthShift = last
-      ? Math.abs((actuals.netWorth - last.netWorth) / (Math.abs(last.netWorth) || 1))
-      : 1
 
-    if (daysSinceLast < 7 && netWorthShift < 0.02) return scenario
+    if (daysSinceLast < minDays) return scenario
 
     const newEntry = {
       date: today,
@@ -149,6 +150,30 @@ export function useScenario(userId) {
     })
   }, [triggerAutoSave])
 
+  // Force a snapshot right now regardless of frequency setting.
+  const recordSnapshotNow = useCallback(() => {
+    if (!userId) return
+    setScenarios(prev => {
+      const updated = prev.map(s => {
+        if (s.id !== activeId) return s
+        const actuals = computeActuals(s)
+        if (actuals.totalAssets === 0 && actuals.totalLiabilities === 0) return s
+        const today = new Date().toISOString().split('T')[0]
+        const history = s.actualsHistory || []
+        if (history[history.length - 1]?.date === today) return s // already one today
+        const newEntry = {
+          date: today,
+          netWorth:     Math.round(actuals.netWorth),
+          liquidAssets: Math.round(actuals.liquidAssets),
+          totalDebt:    Math.round(actuals.totalDebt),
+        }
+        return { ...s, actualsHistory: [...history, newEntry].slice(-100) }
+      })
+      triggerAutoSave(updated)
+      return updated
+    })
+  }, [activeId, userId, triggerAutoSave])
+
   return {
     scenarios,
     activeScenario,
@@ -159,5 +184,6 @@ export function useScenario(userId) {
     duplicateScenario,
     deleteScenario,
     renameScenario,
+    recordSnapshotNow,
   }
 }
