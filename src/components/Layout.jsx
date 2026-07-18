@@ -4,6 +4,7 @@ import { supabase } from '../utils/supabase.js'
 import ScenarioCards from './ScenarioCards.jsx'
 import { Tutorial, useTutorial } from './Tutorial.jsx'
 import TrialBanner from './TrialBanner.jsx'
+import InstallPrompt from './InstallPrompt.jsx'
 
 const WELCOME_STEPS = [
   {
@@ -52,6 +53,14 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
   const [cardsPinned, setCardsPinned] = useState(true)
   // Mobile nav menu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // Mobile disclaimer collapse (persists for the browsing session)
+  const [disclaimerCollapsed, setDisclaimerCollapsed] = useState(
+    () => typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disclaimerCollapsed') === '1'
+  )
+  const collapseDisclaimer = (collapsed) => {
+    setDisclaimerCollapsed(collapsed)
+    try { sessionStorage.setItem('disclaimerCollapsed', collapsed ? '1' : '0') } catch { /* ignore */ }
+  }
 
   return (
     <div className="h-screen flex flex-col">
@@ -202,6 +211,7 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
               {label}
             </NavLink>
           ))}
+          <InstallPrompt />
           <button
             className="block w-full text-left px-3 py-2.5 text-sm text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
             onClick={() => { setMobileMenuOpen(false); supabase.auth.signOut() }}
@@ -239,14 +249,51 @@ export default function Layout({ children, scenarios, activeId, setActiveId, add
         {children}
       </main>
 
-      {/* Mandatory ASIC disclaimer — appears on all views */}
-      <footer className="bg-gray-950 border-t border-gray-800 px-6 py-3">
-        <p className="text-xs text-gray-600 max-w-4xl">
-          This tool is for educational modelling only and does not constitute financial advice.
-          Projections are based on assumptions you have entered and may not reflect actual outcomes.
-          This tool does not recommend any specific financial product, fund, or investment platform.
-          Consult a licensed financial adviser before making any financial decisions.
-        </p>
+      {/* Mandatory ASIC disclaimer — appears on all views.
+          Desktop: always full. Mobile: collapsible to a persistent one-liner
+          (a short disclaimer stays on screen at all times). */}
+      <footer className="bg-gray-950 border-t border-gray-800">
+        {/* Desktop — always full */}
+        <div className="hidden sm:block px-6 py-3">
+          <p className="text-xs text-gray-600 max-w-4xl">
+            This tool is for educational modelling only and does not constitute financial advice.
+            Projections are based on assumptions you have entered and may not reflect actual outcomes.
+            This tool does not recommend any specific financial product, fund, or investment platform.
+            Consult a licensed financial adviser before making any financial decisions.
+          </p>
+        </div>
+
+        {/* Mobile — collapsible */}
+        <div className="sm:hidden">
+          {disclaimerCollapsed ? (
+            <button
+              onClick={() => collapseDisclaimer(false)}
+              className="w-full text-left px-4 py-2 text-xs text-gray-600 flex items-center gap-1.5"
+            >
+              <span className="text-gray-500 flex-shrink-0">ⓘ</span>
+              <span>Educational modelling only — not financial advice. Tap to read.</span>
+            </button>
+          ) : (
+            <div className="relative px-4 py-3 pr-9">
+              <p className="text-xs text-gray-600">
+                This tool is for educational modelling only and does not constitute financial advice.
+                Projections are based on assumptions you have entered and may not reflect actual outcomes.
+                This tool does not recommend any specific financial product, fund, or investment platform.
+                Consult a licensed financial adviser before making any financial decisions.
+              </p>
+              <button
+                onClick={() => collapseDisclaimer(true)}
+                aria-label="Collapse disclaimer"
+                className="absolute top-1.5 right-2 p-1 text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <line x1="3.5" y1="3.5" x2="10.5" y2="10.5" />
+                  <line x1="10.5" y1="3.5" x2="3.5" y2="10.5" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
       </footer>
     </div>
   )

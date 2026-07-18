@@ -298,15 +298,24 @@ export default function Actuals({ scenario, updateScenario, recordSnapshotNow, i
     { label: 'HECS/HELP',   value: actuals.hecsBalance,     color: '#fbbf24' },
   ]
 
-  const historyData = useMemo(() =>
-    history.map(h => ({
-      label: formatHistoryDate(h.date),
-      netWorth:     h.netWorth,
-      liquidAssets: h.liquidAssets,
-      totalDebt:    h.totalDebt,
-    })),
-    [history]
-  )
+  // Collapse to a single point per calendar month — the latest snapshot in
+  // each month wins. All snapshots stay stored; this only affects the chart.
+  const historyData = useMemo(() => {
+    const byMonth = new Map()
+    for (const h of history) {
+      const key = h.date.slice(0, 7) // YYYY-MM
+      const existing = byMonth.get(key)
+      if (!existing || h.date >= existing.date) byMonth.set(key, h)
+    }
+    return [...byMonth.values()]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(h => ({
+        label: formatHistoryDate(h.date),
+        netWorth:     h.netWorth,
+        liquidAssets: h.liquidAssets,
+        totalDebt:    h.totalDebt,
+      }))
+  }, [history])
 
   const netWorthColor = actuals.netWorth >= 0 ? 'text-green-400' : 'text-red-400'
   const surplusColor  = actuals.monthlySurplus >= 0 ? 'text-green-400' : 'text-red-400'
