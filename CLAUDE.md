@@ -8,6 +8,7 @@ Every session must:
 2. **Work** using the TodoWrite tool to track tasks in-progress and completed.
 3. **End** by:
    - Updating `docs/PROGRESS.md` with a dated session summary and the updated todo list.
+   - **On any production deploy**, prepend a dated, plain-English entry to `docs/RELEASE_NOTES.md` (user-facing changelog) and commit it with the change.
    - Committing all changes with a clear message.
    - Pushing to the active feature branch (`git push -u origin <branch>`).
 

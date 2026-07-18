@@ -125,6 +125,35 @@
 
 ## Session Log
 
+### Session 106 — 2026-07-18
+
+**Mobile UX pass + release-notes practice started.**
+
+**WF app code changes:**
+- `src/views/Actuals.jsx` — net-worth history chart now collapses to the latest
+  snapshot per calendar month (dedupe by `YYYY-MM`, keeping max date). Purely a
+  render change; `actualsHistory` storage untouched.
+- `src/components/Layout.jsx` — footer ASIC disclaimer is now collapsible on
+  mobile to a persistent one-line notice ("Educational modelling only — not
+  financial advice. Tap to read.") with an ✕; expands on tap. Session-persisted
+  via `sessionStorage['disclaimerCollapsed']`. Desktop always shows full text
+  (kept a short disclaimer on-screen at all times to satisfy the ASIC rule in
+  CLAUDE.md — nothing is ever fully removed).
+- `src/components/InstallPrompt.jsx` (new) — "Add to Home Screen" entry in the
+  mobile nav: fires `beforeinstallprompt` on Android/Chrome, shows iOS Safari
+  Share-sheet instructions, hides when already installed (standalone).
+
+**Process:**
+- Started `docs/RELEASE_NOTES.md` — user-facing changelog, append every deploy.
+
+**Deploy:** commit `8468968` on `main`; `npx vercel --prod` → aliased to
+app.wealthspan.au (deploy `wealth-forecaster-rjf6vo60x`). Build clean.
+
+**To do next session:**
+- Consider an in-app "What's new" surface that reads from a release-notes source
+  (like pbX's `lib/releaseNotes.ts`) if we want users to see changes in-app.
+- Decision Wizard (spec at `docs/decision_wizard_spec.md`).
+
 ### Session 48 — 2026-05-30
 
 **What was done:**
