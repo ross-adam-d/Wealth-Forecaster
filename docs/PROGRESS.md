@@ -12,6 +12,7 @@
 ## Running Todo List
 
 ### Done ✓
+- [x] **Deterministic test clock — fixes 24 date-dependent failures (2026-10-04)** — the Session 102 partial-year pro-rating (`initialYearFraction` from `new Date()`) made year-0 figures and `new Date().getFullYear()` in builders/assertions drift with the real date, so 24 tests across 5 files failed on any day the golden snapshots weren't captured. Fix: (1) `runSimulation` now takes an injectable `asOf` option (defaults to `new Date()` — production unchanged); (2) new `src/__tests__/setup.js` pins the clock to 2026-01-01 via `vi.useFakeTimers({ toFake: ['Date'] })`, wired through `vite.config.js` `setupFiles`. Year 0 is now a full year (fraction = 1) across the whole suite. **568/568 passing**, no snapshot regeneration needed.
 - [x] Product spec v2, scoping doc, project scaffold
 - [x] **Super pension phase bug** — `inPensionPhase` now requires both retirement AND preservation age (60); early retirees no longer draw super before 60. Regression test added (190 tests).
 - [x] **Post-sale rental income leak** — `processPropertyYear` now returns all-zeros for years after `saleEvent.year`; rental income, expenses and mortgage no longer flow after sale. Regression test added.

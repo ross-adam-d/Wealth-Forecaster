@@ -208,7 +208,7 @@ function resolveNovatedLeaseReduction(person, year) {
  * @param {object} opts.leverAdjustments - Impact Analyser overrides
  * @returns {Array<object>} yearSnapshots
  */
-export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
+export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date() } = {}) {
   const {
     household,
     super: superAccounts,
@@ -230,11 +230,12 @@ export function runSimulation(scenario, { leverAdjustments = {} } = {}) {
     draftLegislation = {},
   } = scenario
 
-  const currentYear = new Date().getFullYear()
-  // Fraction of the current calendar year that remains from today (e.g. Jun 6 → ~0.57).
+  const currentYear = asOf.getFullYear()
+  // Fraction of the current calendar year that remains from the as-of date (e.g. Jun 6 → ~0.57).
   // Applied to all flows in the first simulation year so that current balances (which already
-  // reflect Jan–today income/growth) are not double-counted.
-  const _now = new Date()
+  // reflect Jan–today income/growth) are not double-counted. `asOf` defaults to now but can be
+  // injected (e.g. in tests) for deterministic, date-independent results.
+  const _now = asOf
   const _yearMs = new Date(currentYear + 1, 0, 1) - new Date(currentYear, 0, 1)
   const _remainingMs = new Date(currentYear + 1, 0, 1) - _now
   const initialYearFraction = Math.min(1, Math.max(0.01, _remainingMs / _yearMs))
