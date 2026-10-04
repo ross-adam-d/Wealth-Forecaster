@@ -85,7 +85,7 @@ export default function App() {
     recordSnapshotNow,
   }
 
-  const showPaywall = !profileLoading && profile?.access === 'expired'
+  const showPaywall = false // private use — paywall disabled (business wind-down)
 
   return (
     <>

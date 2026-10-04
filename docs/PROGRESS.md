@@ -12,6 +12,7 @@
 ## Running Todo List
 
 ### Done ✓
+- [x] **Disable paywall for private use (2026-10-04)** — business wind-down: Wandering Bull Pty Ltd shutting down, WF kept for sole-user private use. `src/App.jsx` `showPaywall` hardcoded to `false` so `PaywallOverlay` never renders; all features open regardless of subscription status. Supabase (Google) login remains the private gate. No new test failures (544 pass; the 24 failing `scenarios.test.js` engine tests are pre-existing on `main`). Branch `private/disable-paywall`.
 - [x] Product spec v2, scoping doc, project scaffold
 - [x] **Super pension phase bug** — `inPensionPhase` now requires both retirement AND preservation age (60); early retirees no longer draw super before 60. Regression test added (190 tests).
 - [x] **Post-sale rental income leak** — `processPropertyYear` now returns all-zeros for years after `saleEvent.year`; rental income, expenses and mortgage no longer flow after sale. Regression test added.
