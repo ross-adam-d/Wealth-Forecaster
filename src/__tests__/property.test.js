@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { calcAnnualRepayment, calcAnnualInterest, processPropertyYear, calcStampDuty, calcLandTax } from '../modules/property.js'
+import { runSimulation } from '../engine/simulationEngine.js'
+import { createDefaultScenario, createDefaultProperty } from '../utils/schema.js'
 
 // ── calcAnnualRepayment ────────────────────────────────────────────────────
 
@@ -460,5 +462,82 @@ describe('processPropertyYear — future purchase', () => {
     }
     const result = processPropertyYear(fhbProp, 2030)
     expect(result.stampDuty).toBe(0) // fully exempt under $800k NSW
+  })
+})
+
+// ── Future purchase through the full simulation ───────────────────────────
+
+describe('Future property purchase — engine carry-forward', () => {
+  // Clock is pinned to 2026-01-01 (see setup.js), so year 0 = 2026.
+  const BUY_YEAR = 2029
+
+  function scenarioWithFuturePurchase({ existingOffsetHome = false } = {}) {
+    const s = createDefaultScenario('Future purchase')
+    s.household.personA.dateOfBirth = '1985-01-01'
+    s.household.personA.currentSalary = 180_000
+    s.household.personA.retirementAge = 65
+    s.cashSavings = 250_000
+
+    const future = {
+      ...createDefaultProperty(false),
+      currentValue: 800_000,
+      purchasePrice: 800_000,
+      purchaseDate: `${BUY_YEAR}-07`,  // how the form stores a future purchase
+      futurePurchaseYear: null,
+      mortgageBalance: 640_000,
+      originalLoanAmount: 640_000,
+      originalLoanTermYears: 30,
+      loanTermYearsRemaining: 30,
+      interestRate: 0.065,
+      hasOffset: true,
+      annualRentalIncome: 35_000,
+      state: 'NSW',
+    }
+
+    s.properties = existingOffsetHome
+      ? [future, {
+          ...createDefaultProperty(true),
+          currentValue: 900_000, purchasePrice: 600_000, purchaseDate: '2015-01',
+          mortgageBalance: 400_000, originalLoanAmount: 480_000, originalLoanTermYears: 30,
+          loanTermYearsRemaining: 19, interestRate: 0.06, hasOffset: true,
+        }]
+      : [future]
+    return s
+  }
+
+  const snapFor = (snaps, year) => snaps.find(s => s.year === year)
+
+  it('charges mortgage repayments from the purchase year onwards', () => {
+    const snaps = runSimulation(scenarioWithFuturePurchase())
+    const expected = calcAnnualRepayment(640_000, 0.065, 30, 'pi')
+
+    expect(snapFor(snaps, BUY_YEAR - 1).totalMortgageRepayments).toBe(0)
+    expect(snapFor(snaps, BUY_YEAR).totalMortgageRepayments).toBeCloseTo(expected, 0)
+    expect(snapFor(snaps, BUY_YEAR + 1).totalMortgageRepayments).toBeCloseTo(expected, 0)
+  })
+
+  it('records the loan and property value once purchased', () => {
+    const snaps = runSimulation(scenarioWithFuturePurchase())
+    const buy = snapFor(snaps, BUY_YEAR)
+    expect(buy.totalPropertyValue).toBeGreaterThan(800_000)
+    // Loan starts at 640k and is paid down by at most one year's repayment (offset may
+    // send the whole repayment to principal)
+    const repayment = calcAnnualRepayment(640_000, 0.065, 30, 'pi')
+    expect(buy.totalMortgageBalance).toBeGreaterThanOrEqual(640_000 - repayment - 1)
+    expect(buy.totalMortgageBalance).toBeLessThan(640_000)
+  })
+
+  it('takes only deposit + stamp duty as the purchase outflow, not the full price', () => {
+    const snaps = runSimulation(scenarioWithFuturePurchase())
+    const duty = calcStampDuty(800_000, 'NSW', false, false)
+    expect(snapFor(snaps, BUY_YEAR).totalPurchaseCashOutflow).toBeCloseTo(160_000 + duty, 0)
+  })
+
+  it('does not point the offset at a property that has not been bought yet', () => {
+    const snaps = runSimulation(scenarioWithFuturePurchase({ existingOffsetHome: true }))
+    const preBuy = snapFor(snaps, BUY_YEAR - 1)
+    // Existing home (index 1) should receive the offset; future property (index 0) none
+    expect(preBuy.propertyResults[0].offsetBalance).toBe(0)
+    expect(preBuy.propertyResults[1].offsetBalance).toBeGreaterThan(0)
   })
 })

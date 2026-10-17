@@ -10,6 +10,20 @@ not an internal diff. Date format: `YYYY-MM-DD`.
 
 ---
 
+## 2026-10-17
+
+- **Fix: future property purchases now include mortgage repayments** — if you
+  set a property to be bought in a future year, the forecast was dropping its
+  loan before the purchase happened. Repayments, the loan balance and the
+  property's value were missing from that year onwards, and the full purchase
+  price was taken from your cash instead of just the deposit and stamp duty.
+  Projections with a future purchase will now look different (and more
+  accurate).
+- **Offset accounts** now only reduce interest on properties you already own,
+  not on a property you haven't bought yet.
+- **Draft negative-gearing quarantine** (Assumptions → draft legislation) now
+  correctly applies to future purchases entered on the Household page.
+
 ## 2026-07-18
 
 - **Cleaner net-worth history chart** — the Actuals history graph now shows a

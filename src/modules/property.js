@@ -108,6 +108,21 @@ export function calcAnnualInterest(loanBalance, offsetBalance, annualRate) {
 }
 
 /**
+ * Year a future property will be acquired, or null if already owned.
+ * futurePurchaseYear takes precedence; falls back to the year of purchaseDate
+ * (the Household form stores future purchases as purchaseDate only).
+ */
+export function getPurchaseYear(property) {
+  return extractYear(property.futurePurchaseYear) || extractYear(property.purchaseDate) || null
+}
+
+/** True if the property has not yet been acquired in the given simulation year. */
+export function isNotYetPurchased(property, year) {
+  const purchaseYear = getPurchaseYear(property)
+  return !!purchaseYear && year < purchaseYear
+}
+
+/**
  * Process a property for a single simulation year.
  *
  * @param {object} property - property profile from data model
@@ -142,9 +157,8 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
   const loanTermYearsRemaining = _loanTerm || 0
 
   // Future purchase — property not yet acquired
-  // futurePurchaseYear takes precedence; fall back to year extracted from purchaseDate
-  const futurePurchaseYear = extractYear(property.futurePurchaseYear) || extractYear(property.purchaseDate) || null
-  if (futurePurchaseYear && year < futurePurchaseYear) {
+  const futurePurchaseYear = getPurchaseYear(property)
+  if (isNotYetPurchased(property, year)) {
     return {
       openingValue: 0, closingValue: 0, mortgageBalance: 0, offsetBalance: 0,
       annualInterest: 0, annualRepayment: 0, principalRepayment: 0,

@@ -9,7 +9,7 @@
 import { resolvePackagingReductions, calcPersonTax, calcFrankingCredit } from './taxEngine.js'
 import { calcECM, calcStatutory } from '../modules/fbt.js'
 import { processContributions, growSuperBalance, hasReachedPreservationAge, calcDownsizerContribution, calcDiv296 } from '../modules/super.js'
-import { processPropertyYear } from '../modules/property.js'
+import { processPropertyYear, isNotYetPurchased, getPurchaseYear } from '../modules/property.js'
 import { processSharesYear } from '../modules/shares.js'
 import { processTreasuryBondsYear } from '../modules/treasuryBonds.js'
 import { processCommoditiesYear } from '../modules/commodities.js'
@@ -406,7 +406,8 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     // ── Step 6: Property ──────────────────────────────────────────────────
     // Offset is cash: the entire cash buffer offsets the FIRST property with hasOffset=true.
     // Only one mortgage is offset at a time — an offset account is linked to a single loan.
-    const offsetTargetIndex = currentProperties.findIndex(p => p.hasOffset && p.mortgageBalance > 0)
+    const offsetTargetIndex = currentProperties.findIndex(p =>
+      p.hasOffset && p.mortgageBalance > 0 && !isNotYetPurchased(p, year))
     const cashForOffsetPerProperty = currentProperties.map((p, i) => {
       if (i !== offsetTargetIndex) return 0
       return Math.min(Math.max(0, cashBuffer), p.mortgageBalance)
@@ -425,8 +426,8 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     const quarantineNegGearing = draftLegislation?.negativeGearingQuarantine || false
     const adjustedRentalResults = propertyResults.map((r, i) => {
       if (!quarantineNegGearing) return r
-      const purchYr = currentProperties[i].futurePurchaseYear
-      const isNewAcquisition = purchYr && Number(purchYr) >= 2027
+      const purchYr = getPurchaseYear(currentProperties[i])
+      const isNewAcquisition = purchYr && purchYr >= 2027
       if (!isNewAcquisition || r.netRentalIncomeLoss >= 0) return r
       // Loss quarantined: doesn't reduce other income this year
       return { ...r, netRentalIncomeLoss: 0 }
@@ -724,8 +725,9 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     // ── Age Pension (preliminary — calculated before cashflow for income inclusion) ──
     // NOTE: Full pension calc with final asset values is done post-balances (see below).
     // This preliminary calc uses opening-year balances for income inclusion.
-    const hasHomePrimaryPrelim = currentProperties.some(p => p.isPrimaryResidence)
-    const investmentPropertyEquityPrelim = currentProperties.reduce((sum, p) =>
+    const ownedPropertiesPrelim = currentProperties.filter(p => !isNotYetPurchased(p, year))
+    const hasHomePrimaryPrelim = ownedPropertiesPrelim.some(p => p.isPrimaryResidence)
+    const investmentPropertyEquityPrelim = ownedPropertiesPrelim.reduce((sum, p) =>
       sum + (p.isPrimaryResidence ? 0 : Math.max(0, (p.currentValue || 0) - (p.mortgageBalance || 0))), 0)
 
     const agePensionPrelim = calcAgePension({
@@ -1305,7 +1307,9 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       currentValue: otherAssetResults[i].closingValue,
       priorYearContribution: otherAssetResults[i].effectiveContribution,  // Track actual for annual increase ratchet
     }))
-    currentProperties = currentProperties.map((p, i) => ({
+    // Not-yet-purchased properties keep their entered value and loan until the purchase year
+    // (their year result is all zeros, which must not overwrite the inputs).
+    currentProperties = currentProperties.map((p, i) => isNotYetPurchased(p, year) ? p : ({
       ...p,
       currentValue: propertyResults[i].closingValue,
       mortgageBalance: propertyResults[i].mortgageBalance,
