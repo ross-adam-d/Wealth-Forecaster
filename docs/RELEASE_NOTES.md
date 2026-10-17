@@ -23,6 +23,14 @@ not an internal diff. Date format: `YYYY-MM-DD`.
   not on a property you haven't bought yet.
 - **Draft negative-gearing quarantine** (Assumptions → draft legislation) now
   correctly applies to future purchases entered on the Household page.
+- **Fix: mortgage repayments near zero for some loans** — the mortgage form
+  could save the loan as the first digit you typed (e.g. $7 instead of
+  $700,000), which made yearly repayments almost nothing. Repayments are now
+  always based on the outstanding balance and years remaining you enter.
+  Existing scenarios are corrected automatically — no need to re-enter.
+- **Purchase-year costs pro-rated by month** — a property bought part-way
+  through a year now only incurs repayments, interest, rent, expenses and
+  land tax from the purchase month (e.g. April → 9 months), not the full year.
 
 ## 2026-07-18
 

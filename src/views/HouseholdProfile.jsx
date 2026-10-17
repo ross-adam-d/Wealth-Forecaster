@@ -992,12 +992,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                     <span className="text-xs text-gray-500 shrink-0">$</span>
                     <input className="compact-input flex-1 text-right text-sm" type="number" step="1"
                       value={p.mortgageBalance ?? ''}
-                      onChange={e => {
-                        const v = numVal(e.target.value)
-                        const patch = { mortgageBalance: v }
-                        if (!p.originalLoanAmount && v > 0) patch.originalLoanAmount = v
-                        onUpdate(patch)
-                      }}
+                      onChange={e => onUpdate({ mortgageBalance: numVal(e.target.value) })}
                       onWheel={e => e.target.blur()} placeholder="0" />
                   </div>
                 </div>
@@ -1015,12 +1010,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   <span className="text-sm text-gray-400">Years remaining</span>
                   <input className="compact-input w-full text-right" type="number" step="1"
                     value={p.loanTermYearsRemaining || ''}
-                    onChange={e => {
-                      const yrs = numVal(e.target.value)
-                      const patch = { loanTermYearsRemaining: yrs }
-                      if (!p.originalLoanTermYears && yrs > 0) patch.originalLoanTermYears = yrs
-                      onUpdate(patch)
-                    }}
+                    onChange={e => onUpdate({ loanTermYearsRemaining: numVal(e.target.value) })}
                     onWheel={e => e.target.blur()} placeholder="0" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-1 sm:gap-3 px-4 py-3">

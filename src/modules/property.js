@@ -123,6 +123,23 @@ export function isNotYetPurchased(property, year) {
 }
 
 /**
+ * Original loan amount/term that fix the P&I repayment. Stored values are kept only if
+ * they could be a genuine original loan (at least the current balance and term).
+ * Otherwise the loan as entered is used: the old Household form captured originals from
+ * the first keystroke (e.g. 7 for a 700k loan), which gave near-zero repayments.
+ */
+export function resolveOriginalLoan(property) {
+  const balance = property.mortgageBalance || 0
+  const term = property.loanTermYearsRemaining || 0
+  const amount = property.originalLoanAmount || 0
+  const origTerm = property.originalLoanTermYears || 0
+  const plausible = amount >= balance && origTerm >= term
+  return plausible
+    ? { originalLoanAmount: amount, originalLoanTermYears: origTerm }
+    : { originalLoanAmount: balance, originalLoanTermYears: term }
+}
+
+/**
  * Process a property for a single simulation year.
  *
  * @param {object} property - property profile from data model
@@ -212,13 +229,23 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
   const effectiveLoanType = (loanType === 'io' && ioEndYear && year > ioEndYear) ? 'pi' : loanType
   const ioStepUpThisYear = loanType === 'io' && ioEndYear && year === ioEndYear + 1
 
-  // Pro-rate factor: in the sale year with month precision, only charge for months held
-  // e.g. sale in June → holdFraction = 6/12 = 0.5
-  const holdFraction = (saleYear === year) ? saleYearFraction : 1
+  // Pro-rate factor: months held this year. Sale in June → Jan–Jun = 6/12;
+  // purchase in April → Apr–Dec = 9/12; both in the same year → months between.
+  const purchaseMonth = isPurchaseYear
+    ? parseYearMonth(property.futurePurchaseYear)?.month || parseYearMonth(property.purchaseDate)?.month || 1
+    : 1
+  const lastMonthHeld = (saleYear === year) ? saleYearFraction * 12 : 12
+  const holdFraction = Math.max(0, lastMonthHeld - purchaseMonth + 1) / 12
+
+  // Combined with the partial first simulation year (yearFraction = rest of this year from
+  // today). In a purchase year both measure time remaining, so take the shorter, not the product.
+  const periodFraction = isPurchaseYear
+    ? Math.min(holdFraction, yearFraction)
+    : holdFraction * yearFraction
 
   // Interest is calculated on the effective balance (net of offset), pro-rated in sale year
   // and for partial simulation years (yearFraction < 1 in the first simulation year)
-  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * holdFraction * yearFraction
+  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * periodFraction
 
   // Fixed repayment: use original loan amount & term so the repayment stays constant.
   // This means offset accounts reduce interest → more goes to principal → loan pays off early.
@@ -237,7 +264,7 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
   }
 
   // Pro-rate repayment in sale year and for partial simulation years
-  annualRepayment *= holdFraction * yearFraction
+  annualRepayment *= periodFraction
 
   // If mortgage is nearly paid off, cap repayment at remaining balance + interest
   if (mortgageBalance > 0 && annualRepayment > mortgageBalance + annualInterest) {
@@ -253,17 +280,17 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
 
   // Land tax — investment properties only (PPOR exempt), pro-rated in sale year and partial years
   const state = property.state || null
-  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) * holdFraction * yearFraction : 0
+  const landTax = (!isPrimaryResidence && state) ? calcLandTax(currentValue, state) * periodFraction : 0
 
   // Net rental position (negative = negatively geared), pro-rated in sale year and partial years
   const netRentalIncomeLoss = isPrimaryResidence
     ? 0
-    : (annualRentalIncome * holdFraction * yearFraction) - (annualPropertyExpenses * holdFraction * yearFraction) - annualInterest - landTax
+    : (annualRentalIncome * periodFraction) - (annualPropertyExpenses * periodFraction) - annualInterest - landTax
 
   // Update balances
   const newMortgageBalance = Math.max(0, mortgageBalance - principalRepayment)
   // Capital growth — pro-rated for partial simulation year
-  const newPropertyValue = currentValue * (1 + growthRate * yearFraction)
+  const newPropertyValue = currentValue * (1 + growthRate * (isPurchaseYear ? periodFraction : yearFraction))
 
   // Sale event
   let saleProceeds = null

@@ -9,7 +9,7 @@
 import { resolvePackagingReductions, calcPersonTax, calcFrankingCredit } from './taxEngine.js'
 import { calcECM, calcStatutory } from '../modules/fbt.js'
 import { processContributions, growSuperBalance, hasReachedPreservationAge, calcDownsizerContribution, calcDiv296 } from '../modules/super.js'
-import { processPropertyYear, isNotYetPurchased, getPurchaseYear } from '../modules/property.js'
+import { processPropertyYear, isNotYetPurchased, getPurchaseYear, resolveOriginalLoan } from '../modules/property.js'
 import { processSharesYear } from '../modules/shares.js'
 import { processTreasuryBondsYear } from '../modules/treasuryBonds.js'
 import { processCommoditiesYear } from '../modules/commodities.js'
@@ -282,6 +282,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     ...p,
     hasOffset: p.hasOffset || (p.offsetBalance > 0),
     offsetBalance: 0,
+    ...resolveOriginalLoan(p),
   }))
   let firstDeficitYear = null
   let cumulativeDeficit = 0

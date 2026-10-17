@@ -12,6 +12,8 @@
 ## Running Todo List
 
 ### Done ✓
+- [x] **Near-zero repayments from first-keystroke originalLoan* (2026-10-17)** — `HouseholdProfile` set hidden `originalLoanAmount`/`originalLoanTermYears` only when empty, i.e. on the first keystroke (typing 700000 / 30 stored 7 / 3) → fixed P&I repayment on a $7 loan. Found in user's "Upgrade" scenario. Fix: `resolveOriginalLoan()` in `modules/property.js`, applied at engine init — stored originals kept only if ≥ current balance and term, else balance/term as entered (repairs all saved data). Form no longer writes originals. Golden snapshots unchanged.
+- [x] **Purchase-year pro-rating by month (2026-10-17)** — `processPropertyYear` now holds the property from the purchase month (`purchaseDate`/`futurePurchaseYear` "YYYY-MM"); purchase+sale same year = months between; in year 0 takes min(hold, yearFraction) not the product. Capital growth in purchase year also pro-rated. No month → full year (unchanged). **576/576 passing.**
 - [x] **Future property purchase dropped its mortgage (2026-10-17)** — engine wrote each pre-purchase year's all-zero property result back into `currentProperties`, so by the purchase year `currentValue`/`mortgageBalance` were 0: no repayments, no value, and deposit = full price. Fix: new `getPurchaseYear` / `isNotYetPurchased` helpers in `modules/property.js`; engine skips the carry-forward pre-purchase, excludes unpurchased properties from offset targeting and the Age Pension prelim assets test, and the neg-gearing quarantine now reads `purchaseDate` (form never sets `futurePurchaseYear`). 4 regression tests in `property.test.js`. **572/572 passing.**
 - [x] **Deterministic test clock — fixes 24 date-dependent failures (2026-10-04)** — the Session 102 partial-year pro-rating (`initialYearFraction` from `new Date()`) made year-0 figures and `new Date().getFullYear()` in builders/assertions drift with the real date, so 24 tests across 5 files failed on any day the golden snapshots weren't captured. Fix: (1) `runSimulation` now takes an injectable `asOf` option (defaults to `new Date()` — production unchanged); (2) new `src/__tests__/setup.js` pins the clock to 2026-01-01 via `vi.useFakeTimers({ toFake: ['Date'] })`, wired through `vite.config.js` `setupFiles`. Year 0 is now a full year (fraction = 1) across the whole suite. **568/568 passing**, no snapshot regeneration needed.
 - [x] Product spec v2, scoping doc, project scaffold
@@ -142,6 +144,8 @@ the paywall live (built from `main`). `private/disable-paywall` is NOT deployed.
   (no zero carry-forward); excluded from offset target and Age Pension prelim;
   neg-gearing quarantine uses `getPurchaseYear`.
 - `src/__tests__/property.test.js` — engine-level future-purchase regression tests.
+- Second deploy: `resolveOriginalLoan()` (first-keystroke originals bug) + purchase-month
+  pro-rating; `HouseholdProfile.jsx` stops writing `originalLoan*`.
 
 **wf-landing (separate repo):** trial 7 → 14 days (`lib/trial.js`); annual Stripe price
 env var corrected; repo now on GitHub (private, `ross-adam-d/wf-landing`).

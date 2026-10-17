@@ -444,6 +444,24 @@ describe('processPropertyYear — future purchase', () => {
     expect(result.purchaseCashOutflow).toBe(0)
   })
 
+  it('pro-rates repayments and interest from the purchase month', () => {
+    const full = processPropertyYear(baseProperty, 2031) // full year held
+    const april = processPropertyYear({ ...baseProperty, purchaseDate: '2030-04', futurePurchaseYear: null }, 2030)
+    expect(april.annualRepayment).toBeCloseTo(full.annualRepayment * 9 / 12, 0) // Apr–Dec
+    expect(april.annualInterest).toBeCloseTo(calcAnnualInterest(640_000, 0, 0.065) * 9 / 12, 0)
+  })
+
+  it('purchase and sale in the same year: only the months between are charged', () => {
+    const p = { ...baseProperty, purchaseDate: '2030-04', futurePurchaseYear: null, saleEvent: { year: '2030-09' } }
+    const r = processPropertyYear(p, 2030)
+    expect(r.annualInterest).toBeCloseTo(calcAnnualInterest(640_000, 0, 0.065) * 6 / 12, 0) // Apr–Sep
+  })
+
+  it('purchase year with no month still charges a full year', () => {
+    const r = processPropertyYear(baseProperty, 2030) // futurePurchaseYear: 2030, no month
+    expect(r.annualInterest).toBeCloseTo(calcAnnualInterest(640_000, 0, 0.065), 0)
+  })
+
   it('cash purchase: full price + stamp duty as outflow', () => {
     const cashProp = { ...baseProperty, purchasedCash: true, mortgageBalance: 0 }
     const result = processPropertyYear(cashProp, 2030)
@@ -512,7 +530,8 @@ describe('Future property purchase — engine carry-forward', () => {
     const expected = calcAnnualRepayment(640_000, 0.065, 30, 'pi')
 
     expect(snapFor(snaps, BUY_YEAR - 1).totalMortgageRepayments).toBe(0)
-    expect(snapFor(snaps, BUY_YEAR).totalMortgageRepayments).toBeCloseTo(expected, 0)
+    // Bought in July → Jul–Dec = 6 months of repayments in the purchase year
+    expect(snapFor(snaps, BUY_YEAR).totalMortgageRepayments).toBeCloseTo(expected * 6 / 12, 0)
     expect(snapFor(snaps, BUY_YEAR + 1).totalMortgageRepayments).toBeCloseTo(expected, 0)
   })
 
@@ -531,6 +550,16 @@ describe('Future property purchase — engine carry-forward', () => {
     const snaps = runSimulation(scenarioWithFuturePurchase())
     const duty = calcStampDuty(800_000, 'NSW', false, false)
     expect(snapFor(snaps, BUY_YEAR).totalPurchaseCashOutflow).toBeCloseTo(160_000 + duty, 0)
+  })
+
+  it('ignores stale originalLoan* captured from the first keystroke', () => {
+    // Old form saved originals on first keystroke: typing 700000 / 30 stored 7 / 3
+    const s = scenarioWithFuturePurchase()
+    s.properties[0].originalLoanAmount = 6
+    s.properties[0].originalLoanTermYears = 3
+    const snaps = runSimulation(s)
+    const expected = calcAnnualRepayment(640_000, 0.065, 30, 'pi')
+    expect(snapFor(snaps, BUY_YEAR + 1).totalMortgageRepayments).toBeCloseTo(expected, 0)
   })
 
   it('does not point the offset at a property that has not been bought yet', () => {
