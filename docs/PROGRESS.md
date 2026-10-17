@@ -79,7 +79,7 @@
 - [x] **Recurring expense frequency** — new `recurring` amountType with configurable `recurringEveryYears` (e.g. buy car every 10 years from 2026 to 2070). Engine fires expense only in matching years within active window. UI: dropdown option + frequency input + summary hint. 7 new tests.
 - [x] **Month precision across app** — `yearFraction()` and `extractYear()` utilities support "YYYY-MM" strings. Expenses and other income modules pro-rate amounts for partial years. Property purchase/sale dates use MonthYearInput component. 19 new format utility tests.
 - [ ] Partner-specific gap phase labels — dynamic dates, not placeholder text
-- [ ] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses"
+- [x] Add hint in Properties section: "Mortgage repayments are calculated automatically — do not enter them in expenses" (2026-10-18)
 - [x] Impact Analyser: wire lever values into simulation overrides
 - [x] Impact Analyser: base vs adjusted diff columns with headline metric (retirement date delta)
 - [x] Impact Analyser: supporting metrics panel (net worth, liquidity runway, gap viability)

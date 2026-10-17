@@ -1022,6 +1022,9 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                   </select>
                 </div>
               </div>
+              <p className="text-xs text-gray-500">
+                Mortgage repayments are calculated automatically from the balance, rate and term — don't enter them in expenses.
+              </p>
 
               {p.loanType === 'io' && (
                 <div className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/10">

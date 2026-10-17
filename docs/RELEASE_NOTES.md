@@ -10,6 +10,12 @@ not an internal diff. Date format: `YYYY-MM-DD`.
 
 ---
 
+## 2026-10-18
+
+- **Mortgage repayment hint** — the property form now reminds you that
+  mortgage repayments are calculated automatically from the balance, rate and
+  term, so you don't need to (and shouldn't) add them to your expenses.
+
 ## 2026-10-17
 
 - **Fix: future property purchases now include mortgage repayments** — if you
