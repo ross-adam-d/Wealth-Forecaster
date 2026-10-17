@@ -206,9 +206,11 @@ function resolveNovatedLeaseReduction(person, year) {
  * @param {object} scenario  - full scenario from data model
  * @param {object} opts
  * @param {object} opts.leverAdjustments - Impact Analyser overrides
+ * @param {Array<object>} opts.returnShocks - Monte Carlo: per-year (indexed by years elapsed)
+ *   deviations added to each asset class's resolved return, e.g. { shares: -0.12, super: -0.07 }
  * @returns {Array<object>} yearSnapshots
  */
-export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date() } = {}) {
+export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date(), returnShocks = null } = {}) {
   const {
     household,
     super: superAccounts,
@@ -307,6 +309,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     const yearAssumptions = Object.keys(returnOverride).length > 0
       ? { ...assumptions, ...returnOverride }
       : assumptions
+    const shock = returnShocks?.[yearsElapsed] || {}
 
     // ── HECS/HELP: CPI-index balances (ATO indexes on June 1 by prior-year CPI) ─────────────
     // Index from year 1 onwards — the entered balance is the current year opening balance.
@@ -391,6 +394,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       retirementYear: personA.dateOfBirth ? new Date(personA.dateOfBirth).getFullYear() + personA.retirementAge : null,
       assumptions: yearAssumptions,
       yearFraction: fy,
+      returnShock: shock.super,
     })
 
     const superB_result = growSuperBalance({
@@ -402,6 +406,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       retirementYear: personB.dateOfBirth ? new Date(personB.dateOfBirth).getFullYear() + personB.retirementAge : null,
       assumptions: yearAssumptions,
       yearFraction: fy,
+      returnShock: shock.super,
     })
 
     // ── Step 6: Property ──────────────────────────────────────────────────
@@ -417,6 +422,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       cgtReform: draftLegislation?.cgtReform2027 || false,
       inflationRate: yearAssumptions.inflationRate,
       yearFraction: fy,
+      returnShock: shock.property,
     }
     const propertyResults = currentProperties.map((p, i) => processPropertyYear(p, year, cashForOffsetPerProperty[i], propOpts))
 
@@ -540,6 +546,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       resolvedContribution: 0,  // no contribution in growth pass — resolved after cashflow
       assumptions: yearAssumptions,
       yearFraction: fy,
+      returnShock: shock.shares,
     })
 
     // ── Step 7b: Treasury bonds — growth phase ──
@@ -551,6 +558,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       resolvedContribution: 0,
       assumptions: yearAssumptions,
       yearFraction: fy,
+      returnShock: shock.treasuryBonds,
     })
 
     // ── Step 7c: Commodities — growth phase ──
@@ -561,6 +569,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       resolvedContribution: 0,
       assumptions: yearAssumptions,
       yearFraction: fy,
+      returnShock: shock.commodities,
     })
 
     // ── Other income sources ──────────────────────────────────────────────
@@ -690,12 +699,12 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
 
     // Bond growth phase: fixed-mode bonds get their contribution now; surplus-mode bonds get 0
     const bondGrowthResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions: yearAssumptions, yearFraction: fy })
+      processBondYear({ bond, year, drawdownNeeded: 0, resolvedContribution: fixedBondContributions[i], assumptions: yearAssumptions, yearFraction: fy, returnShock: shock.investmentBonds })
     )
 
     // Other asset growth phase: fixed-mode assets get their contribution now; surplus-mode get 0
     const otherAssetGrowthResults = currentOtherAssets.map((asset, i) =>
-      processOtherAssetYear({ asset, year, drawdownNeeded: 0, resolvedContribution: fixedOtherAssetContributions[i], yearFraction: fy })
+      processOtherAssetYear({ asset, year, drawdownNeeded: 0, resolvedContribution: fixedOtherAssetContributions[i], yearFraction: fy, returnShock: shock.otherAssets })
     )
 
     // ── Step 9: Expenses ──────────────────────────────────────────────────
@@ -1210,7 +1219,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       fixedBondContributions[i] + surplusBondContributions[i] + routedBondContributions[i] + saleProceedsBondContributions[i]
     )
     const bondResults = currentBonds.map((bond, i) =>
-      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions: yearAssumptions, yearFraction: fy })
+      processBondYear({ bond, year, drawdownNeeded: bondDrawdowns[i], resolvedContribution: finalBondContributions[i], assumptions: yearAssumptions, yearFraction: fy, returnShock: shock.investmentBonds })
     )
     const totalBondContributions = finalBondContributions.reduce((sum, c) => sum + c, 0)
     const totalSurplusBondContributions = surplusBondContributions.reduce((sum, c) => sum + c, 0)
@@ -1220,7 +1229,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       fixedOtherAssetContributions[i] + surplusOtherAssetContributions[i] + routedOtherAssetContributions[i] + saleProceedsOtherAssetContributions[i]
     )
     const otherAssetResults = currentOtherAssets.map((asset, i) =>
-      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i], resolvedContribution: finalOtherAssetContributions[i], yearFraction: fy })
+      processOtherAssetYear({ asset, year, drawdownNeeded: otherAssetDrawdowns[i], resolvedContribution: finalOtherAssetContributions[i], yearFraction: fy, returnShock: shock.otherAssets })
     )
     const totalOtherAssetContributions = finalOtherAssetContributions.reduce((sum, c) => sum + c, 0)
 

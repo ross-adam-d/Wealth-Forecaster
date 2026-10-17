@@ -242,6 +242,7 @@ export function processContributions(superProfile, grossSalary, year, yearFracti
  * @param {number} params.personAge           - age at end of year
  * @param {number} params.retirementYear      - year the person retired
  * @param {object} params.assumptions
+ * @param {number} params.returnShock         - Monte Carlo deviation added to the resolved rate
  * @returns {object}
  */
 export function growSuperBalance({
@@ -253,6 +254,7 @@ export function growSuperBalance({
   retirementYear,
   assumptions,
   yearFraction = 1,
+  returnShock = 0,
 }) {
   const inPensionPhase =
     superProfile.pensionPhaseFromAge != null
@@ -262,7 +264,7 @@ export function growSuperBalance({
   const isTTR = superProfile.isTTR && !inPensionPhase && hasReachedPreservationAge(personAge)
 
   const rate = resolveRatePeriodRate(superProfile.ratePeriods, year,
-    inPensionPhase ? assumptions.superPensionRate : assumptions.superAccumulationRate)
+    inPensionPhase ? assumptions.superPensionRate : assumptions.superAccumulationRate) + returnShock
 
   // Balance grows at rate on opening balance + contributions — pro-rated for partial simulation year
   const effectiveRate = rate * yearFraction

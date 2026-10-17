@@ -148,10 +148,11 @@ export function resolveOriginalLoan(property) {
  * @param {object} opts     - options including draft legislation flags
  * @param {boolean} opts.cgtReform - apply draft CGT reform (no 50% discount, CPI-indexed cost base)
  * @param {number}  opts.inflationRate - inflation rate for CPI cost-base indexation
+ * @param {number}  opts.returnShock - Monte Carlo deviation added to the capital growth rate
  * @returns {object}
  */
 export function processPropertyYear(property, year, cashForOffset = 0, opts = {}) {
-  const { cgtReform = false, inflationRate = 0.025, yearFraction = 1 } = opts
+  const { cgtReform = false, inflationRate = 0.025, yearFraction = 1, returnShock = 0 } = opts
   const {
     isPrimaryResidence,
     currentValue,
@@ -290,7 +291,7 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
   // Update balances
   const newMortgageBalance = Math.max(0, mortgageBalance - principalRepayment)
   // Capital growth — pro-rated for partial simulation year
-  const newPropertyValue = currentValue * (1 + growthRate * (isPurchaseYear ? periodFraction : yearFraction))
+  const newPropertyValue = currentValue * (1 + (growthRate + returnShock) * (isPurchaseYear ? periodFraction : yearFraction))
 
   // Sale event
   let saleProceeds = null

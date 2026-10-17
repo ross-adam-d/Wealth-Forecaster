@@ -12,6 +12,7 @@
 ## Running Todo List
 
 ### Done ✓
+- [x] **Monte Carlo simulation (2026-10-18)** — `runSimulation` takes optional `returnShocks` (per-year deviation per asset class, indexed by years elapsed); each module (`super`, `shares`, `treasuryBonds`, `commodities`, `investmentBonds`, `otherAssets`, `property`) adds a `returnShock` (default 0) to its resolved rate, so rate periods/holdings still apply. New `engine/monteCarlo.js`: seeded RNG, one-factor correlated normal shocks (vol + market beta per asset in `MONTE_CARLO_ASSET_RISK`), 500 runs → p10/25/50/75/90 of net worth + liquid assets per year, success = liquid never < 0 (same test as `solveRetirementDate`). Runs in a Web Worker (`monteCarlo.worker.js`, `hooks/useMonteCarlo.js`), on demand via button, cached until scenario changes. UI: new "Simulations" card on Projection (below Net Worth) — success badge, liquid/net-worth toggle, fan chart (p10–p90, p25–p75, median, main forecast) + outcome table (Poor/Below avg/Middle/Above avg/Strong/Main forecast, 5-yr steps or all years). ~1.5–2s per 500 runs on desktop. 9 new tests; **585/585 passing**, golden snapshots unchanged.
 - [x] **Near-zero repayments from first-keystroke originalLoan* (2026-10-17)** — `HouseholdProfile` set hidden `originalLoanAmount`/`originalLoanTermYears` only when empty, i.e. on the first keystroke (typing 700000 / 30 stored 7 / 3) → fixed P&I repayment on a $7 loan. Found in user's "Upgrade" scenario. Fix: `resolveOriginalLoan()` in `modules/property.js`, applied at engine init — stored originals kept only if ≥ current balance and term, else balance/term as entered (repairs all saved data). Form no longer writes originals. Golden snapshots unchanged.
 - [x] **Purchase-year pro-rating by month (2026-10-17)** — `processPropertyYear` now holds the property from the purchase month (`purchaseDate`/`futurePurchaseYear` "YYYY-MM"); purchase+sale same year = months between; in year 0 takes min(hold, yearFraction) not the product. Capital growth in purchase year also pro-rated. No month → full year (unchanged). **576/576 passing.**
 - [x] **Future property purchase dropped its mortgage (2026-10-17)** — engine wrote each pre-purchase year's all-zero property result back into `currentProperties`, so by the purchase year `currentValue`/`mortgageBalance` were 0: no repayments, no value, and deposit = full price. Fix: new `getPurchaseYear` / `isNotYetPurchased` helpers in `modules/property.js`; engine skips the carry-forward pre-purchase, excludes unpurchased properties from offset targeting and the Age Pension prelim assets test, and the neg-gearing quarantine now reads `purchaseDate` (form never sets `futurePurchaseYear`). 4 regression tests in `property.test.js`. **572/572 passing.**
@@ -119,7 +120,7 @@
 
 ### Phase 2 (future)
 - [x] Age Pension means testing
-- [ ] Monte Carlo simulation (500 runs)
+- [x] Monte Carlo simulation (500 runs) — 2026-10-18, Projection → Simulations section
 - [x] Division 293 tax
 - [x] Downsizer contribution rule
 - [ ] PDF export

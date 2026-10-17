@@ -12,6 +12,12 @@ not an internal diff. Date format: `YYYY-MM-DD`.
 
 ## 2026-10-18
 
+- **New: Simulations** — a new section on the Projection page runs your plan
+  through 500 different sequences of good and bad market years. It shows how
+  often your money lasts, a chart of the range of outcomes, and a year-by-year
+  table from poor to strong markets alongside your main forecast. Press
+  "Run 500 simulations" to start; results stay until you change your plan.
+
 - **Mortgage repayment hint** — the property form now reminds you that
   mortgage repayments are calculated automatically from the balance, rate and
   term, so you don't need to (and shouldn't) add them to your expenses.

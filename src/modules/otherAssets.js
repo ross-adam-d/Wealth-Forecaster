@@ -11,14 +11,15 @@
  * @param {number} year
  * @param {number} drawdownNeeded - deficit fill amount
  * @param {number} resolvedContribution - actual contribution (resolved by engine based on mode)
+ * @param {number} returnShock - Monte Carlo deviation added to the asset's return rate
  * @returns {object}
  */
-export function processOtherAssetYear({ asset, year, drawdownNeeded = 0, resolvedContribution, yearFraction = 1 }) {
+export function processOtherAssetYear({ asset, year, drawdownNeeded = 0, resolvedContribution, yearFraction = 1, returnShock = 0 }) {
   const { currentValue, annualContribution = 0, returnRate = 0.07 } = asset
 
   const effectiveContribution = resolvedContribution != null ? resolvedContribution : annualContribution
   // Growth — pro-rated for partial simulation year
-  const growth = currentValue * returnRate * yearFraction
+  const growth = currentValue * (returnRate + returnShock) * yearFraction
   const valueAfterGrowth = currentValue + growth + effectiveContribution
 
   let withdrawal = 0

@@ -10,6 +10,7 @@ import LifeEventsTimeline from '../components/LifeEventsTimeline.jsx'
 import InvestmentPieChart from '../components/InvestmentPieChart.jsx'
 import ChartFullscreen from '../components/ChartFullscreen.jsx'
 import { computeCGTSummary } from '../utils/cgt.js'
+import { useMonteCarlo } from '../hooks/useMonteCarlo.js'
 
 // Tooltips stick on touch devices — disable them
 const isTouchDevice = typeof window !== 'undefined' && (
@@ -70,6 +71,37 @@ function TaxTooltip({ active, payload, label, fmt$ }) {
   )
 }
 
+function RangeTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0].payload
+  const row = (text, value, color) => (
+    <p style={{ color, fontSize: 12, margin: '2px 0', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+      <span>{text}</span><span style={{ fontWeight: 600 }}>{value}</span>
+    </p>
+  )
+  return (
+    <div style={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, padding: '8px 12px', minWidth: 200 }}>
+      <p style={{ color: '#9ca3af', fontSize: 11, margin: '0 0 4px' }}>{label}</p>
+      {row('Middle outcome', fmt$(d.median), '#f3f4f6')}
+      {row('Middle 50%', `${fmt$(d.band50[0])} – ${fmt$(d.band50[1])}`, '#38bdf8')}
+      {row('8 in 10 runs', `${fmt$(d.band80[0])} – ${fmt$(d.band80[1])}`, '#9ca3af')}
+      {row('Main forecast', fmt$(d.forecast), '#fbbf24')}
+    </div>
+  )
+}
+
+const NET_WORTH_VIEW_TITLES = {
+  networth: 'Net Worth',
+  liquidity: 'Liquidity',
+  breakdown: 'Liquidity Breakdown',
+}
+
+function successBadgeClass(rate) {
+  if (rate >= 0.85) return 'badge-viable'
+  if (rate >= 0.7) return 'badge-at-risk'
+  return 'badge-critical'
+}
+
 function applyRealNominal(value, year, currentYear, inflationRate, isReal) {
   if (!isReal || value == null) return value
   const years = year - currentYear
@@ -111,6 +143,10 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   const [sankeyYearIdx, setSankeyYearIdx] = useState(0)
   const [netWorthRange, setNetWorthRange] = useState('full')
   const [netWorthView, setNetWorthView] = useState('networth') // networth | liquidity | breakdown
+  const [rangeMetric, setRangeMetric] = useState('liquid') // liquid | netWorth
+  const [simRange, setSimRange] = useState('full')
+  const [simShowAllYears, setSimShowAllYears] = useState(false)
+  const monteCarlo = useMonteCarlo(scenario)
   const [liquidityTableOpen, setLiquidityTableOpen] = useState(false)
   const [cashflowRange, setCashflowRange] = useState('full')
   const [cashflowView, setCashflowView] = useState('summary') // summary | income | expenses | surplus
@@ -226,6 +262,28 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
   )
 
   const retireYear = retirementDate?.retirementYear
+
+  // Monte Carlo fan chart — bands are [low, high] pairs for Recharts range areas
+  const rangeData = (monteCarlo.result?.years ?? []).map((y, i) => {
+    const b = y[rangeMetric]
+    const s = snapshots[i]
+    const forecast = rangeMetric === 'liquid' ? s?.totalLiquidAssets : s?.totalNetWorth
+    return {
+      year: y.year,
+      age: s?.ageA,
+      isIllustrative: s?.ageA != null && s.ageA >= ILLUSTRATIVE_AGE_THRESHOLD,
+      band80: [transform(b.p10, y.year), transform(b.p90, y.year)],
+      band50: [transform(b.p25, y.year), transform(b.p75, y.year)],
+      median: transform(b.p50, y.year),
+      forecast: transform(forecast ?? 0, y.year),
+    }
+  })
+  // Same 5-yr stepping as the cashflow detail table (always keep current, retirement and final year)
+  const simLastYear = rangeData[rangeData.length - 1]?.year
+  const simTableRows = simShowAllYears
+    ? rangeData
+    : rangeData.filter(r =>
+      r.year % 5 === 0 || r.year === currentYear || r.year === retireYear || r.year === simLastYear)
 
   function rangeFilter(snaps, range) {
     if (range === 'full') return snaps
@@ -432,7 +490,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         <div className="flex flex-wrap items-center gap-2 justify-between mb-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold text-gray-300">
-              {netWorthView === 'networth' ? 'Net Worth' : netWorthView === 'liquidity' ? 'Liquidity' : 'Liquidity Breakdown'}
+              {NET_WORTH_VIEW_TITLES[netWorthView]}
             </h2>
             <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
               {[
@@ -468,7 +526,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         <p className="text-xs text-gray-600 mb-4">
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
         </p>
-        <ChartFullscreen title={netWorthView === 'networth' ? 'Net Worth' : netWorthView === 'liquidity' ? 'Liquidity' : 'Liquidity Breakdown'}>
+        <ChartFullscreen title={NET_WORTH_VIEW_TITLES[netWorthView]}>
           {(isFullscreen) => (
             <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
               <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
@@ -523,6 +581,152 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             </div>
           )}
         </ChartFullscreen>
+      </div>
+
+      {/* Simulations (Monte Carlo) */}
+      <div className="card">
+        <div className="flex flex-wrap items-center gap-2 justify-between mb-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-gray-300">Simulations</h2>
+            {monteCarlo.result && (
+              <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
+                {[
+                  { id: 'liquid', label: 'Liquid assets' },
+                  { id: 'netWorth', label: 'Net worth' },
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    onClick={() => setRangeMetric(id)}
+                    className={`text-xs px-3 py-1 rounded-md transition-colors ${
+                      rangeMetric === id
+                        ? 'bg-brand-600 text-white font-medium'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {monteCarlo.result && (
+            <select
+              value={simRange}
+              onChange={e => setSimRange(e.target.value)}
+              className="input text-xs py-1 px-2 h-7"
+            >
+              <option value="10">Next 10 years</option>
+              <option value="20">Next 20 years</option>
+              <option value="40">Next 40 years</option>
+              <option value="full">Full plan</option>
+            </select>
+          )}
+        </div>
+
+        {!monteCarlo.result ? (
+          <div className="py-10 flex flex-col items-center text-center gap-3">
+            <p className="text-sm text-gray-400 max-w-md">
+              Markets don't return the same amount every year. This runs your plan through 500 different
+              sequences of good and bad years to show the range of outcomes and how often the money lasts.
+            </p>
+            <button className="btn-primary" onClick={monteCarlo.run} disabled={monteCarlo.running}>
+              {monteCarlo.running ? 'Running 500 simulations…' : 'Run 500 simulations'}
+            </button>
+            {monteCarlo.error && <p className="text-xs text-amber-400">Simulation failed: {monteCarlo.error}</p>}
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-gray-600 mb-3">
+              Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
+            </p>
+            <div className="mb-3">
+              <span className={successBadgeClass(monteCarlo.result.successRate)}>
+                Money lasts in {Math.round(monteCarlo.result.successRate * 100)}% of {monteCarlo.result.runs} simulations
+              </span>
+            </div>
+            <ChartFullscreen title="Simulations">
+              {(isFullscreen) => (
+                <div className={isFullscreen ? 'h-full' : 'overflow-x-auto'}>
+                  <div style={isFullscreen ? { height: '100%' } : { minWidth: '600px' }}>
+                    <ResponsiveContainer width="100%" height={isFullscreen ? '100%' : 360}>
+                      <ComposedChart data={rangeFilter(rangeData, simRange)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                        <XAxis dataKey="year" tick={{ fill: tickColor, fontSize: 11 }} />
+                        <YAxis tickFormatter={v => fmt$(v)} tick={{ fill: tickColor, fontSize: 11 }} width={isTouchDevice ? 40 : 56} />
+                        {!isTouchDevice && <Tooltip content={<RangeTooltip />} position={{ y: 10 }} />}
+                        <Legend wrapperStyle={{ fontSize: 12, color: tickColor }} />
+                        <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="4 4" />
+                        {retireYear && <ReferenceLine x={retireYear} stroke={cd('#60a5fa','#2563eb')} strokeDasharray="4 4" label={{ value: 'Retirement', fill: cd('#60a5fa','#2563eb'), fontSize: 11 }} />}
+                        <Area type="monotone" dataKey="band80" stroke="none" fill={cd('#0ea5e9','#0369a1')} fillOpacity={0.15} name="8 in 10 runs" isAnimationActive={false} />
+                        <Area type="monotone" dataKey="band50" stroke="none" fill={cd('#0ea5e9','#0369a1')} fillOpacity={0.35} name="Middle 50%" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="median" stroke={cd('#f3f4f6','#111827')} strokeWidth={2} dot={false} name="Middle outcome" isAnimationActive={false} />
+                        <Line type="monotone" dataKey="forecast" stroke={cd('#fbbf24','#b45309')} strokeWidth={1.5} strokeDasharray="5 4" dot={false} name="Main forecast" isAnimationActive={false} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </ChartFullscreen>
+
+            <div className="flex items-center justify-between mt-5 mb-2">
+              <span className="text-xs text-gray-500 uppercase tracking-wide">
+                {rangeMetric === 'liquid' ? 'Liquid assets' : 'Net worth'} by outcome
+              </span>
+              <label className="flex items-center gap-2 text-xs text-gray-400">
+                <input type="checkbox" className="accent-brand-500" checked={simShowAllYears}
+                  onChange={e => setSimShowAllYears(e.target.checked)} />
+                Show all years
+              </label>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-800/50">
+                    <th className="text-left py-2 px-2 sm:px-3 text-gray-500 font-medium">Year</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Age</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Poor</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Below avg</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-gray-300 font-medium">Middle</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Above avg</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-gray-500 font-medium">Strong</th>
+                    <th className="text-right py-2 px-2 sm:px-3 text-amber-400 font-medium">Main forecast</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {simTableRows.map(r => {
+                    const cell = (v, base = 'text-gray-400') => (
+                      <td className={`py-2 px-2 sm:px-3 text-right ${v < 0 ? 'text-red-400' : base}`}>{fmt$(v)}</td>
+                    )
+                    return (
+                      <tr key={r.year} className={`border-b border-gray-800/50 hover:bg-gray-800/30 ${r.isIllustrative ? 'opacity-50' : ''} ${r.year === retireYear ? 'bg-blue-950/40' : ''}`}>
+                        <td className="py-2 px-2 sm:px-3 text-gray-300">
+                          {r.year}
+                          {r.isIllustrative && <span className="ml-1 text-xs text-gray-600">illus.</span>}
+                        </td>
+                        <td className="py-2 px-2 sm:px-3 text-right text-gray-500">{r.age ?? '—'}</td>
+                        {cell(r.band80[0])}
+                        {cell(r.band50[0])}
+                        {cell(r.median, 'text-white font-medium')}
+                        {cell(r.band50[1])}
+                        {cell(r.band80[1])}
+                        {cell(r.forecast, 'text-amber-400')}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-3">
+              Each simulation applies random yearly ups and downs to super, shares, property and other investments
+              around the returns in your plan. "Money lasts" means liquid assets never fall below zero.
+              Poor / Strong: 1 in 10 simulations ended below / above this. Below avg / Above avg: 1 in 4.
+              Middle: half ended above, half below. The middle outcome usually sits a little below the main
+              forecast because losses hurt compounding more than equal gains help.
+              Illustrative only — not a prediction of actual returns.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Investment breakdown */}

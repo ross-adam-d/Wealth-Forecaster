@@ -16,6 +16,7 @@ import { resolveRatePeriodRate } from '../engine/ratePeriodEngine.js'
  * @param {number} drawdownNeeded  - amount needed from portfolio (deficit fill)
  * @param {number} resolvedContribution - actual contribution (resolved by engine)
  * @param {object} assumptions
+ * @param {number} returnShock  - Monte Carlo deviation added to the resolved rate
  * @returns {object}
  */
 export function processTreasuryBondsYear({
@@ -26,6 +27,7 @@ export function processTreasuryBondsYear({
   resolvedContribution,
   assumptions,
   yearFraction = 1,
+  returnShock = 0,
 }) {
   const {
     currentValue,
@@ -36,7 +38,7 @@ export function processTreasuryBondsYear({
     ratePeriods,
   } = bonds
 
-  const rate = resolveRatePeriodRate(ratePeriods, year, assumptions.treasuryBondsReturnRate)
+  const rate = resolveRatePeriodRate(ratePeriods, year, assumptions.treasuryBondsReturnRate) + returnShock
 
   // Capital growth — pro-rated for partial simulation year
   const capitalGrowth = currentValue * rate * yearFraction

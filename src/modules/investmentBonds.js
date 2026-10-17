@@ -23,9 +23,10 @@ import { resolveRatePeriodRate } from '../engine/ratePeriodEngine.js'
  * @param {number} drawdownNeeded
  * @param {number} resolvedContribution - actual contribution amount (already resolved by engine based on mode)
  * @param {object} assumptions
+ * @param {number} returnShock - Monte Carlo deviation added to the resolved rate
  * @returns {object}
  */
-export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContribution, assumptions, yearFraction = 1 }) {
+export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContribution, assumptions, yearFraction = 1, returnShock = 0 }) {
   const {
     currentBalance,
     annualContribution,
@@ -57,7 +58,7 @@ export function processBondYear({ bond, year, drawdownNeeded = 0, resolvedContri
   const isTaxFree = yearsElapsed >= INVESTMENT_BOND_YEARS_FOR_TAX_FREE
 
   // Growth — internal 30% tax on earnings, pro-rated for partial simulation year
-  const rate = resolveRatePeriodRate(ratePeriods, year, assumptions?.investmentBondRate ?? 0.07)
+  const rate = resolveRatePeriodRate(ratePeriods, year, assumptions?.investmentBondRate ?? 0.07) + returnShock
   const grossEarnings = (currentBalance + effectiveContribution) * rate * yearFraction
   const internalTax = grossEarnings * INVESTMENT_BOND_INTERNAL_TAX
   const netEarnings = grossEarnings - internalTax

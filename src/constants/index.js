@@ -20,6 +20,25 @@ export const TREASURY_BONDS_RETURN_RATE = 0.04   // 4.0% p.a. capital growth
 export const TREASURY_BONDS_COUPON_RATE = 0.03   // 3.0% p.a. coupon (income)
 export const COMMODITIES_RETURN_RATE = 0.05      // 5.0% p.a. capital growth, no income
 
+// --- Monte Carlo market variability ---
+// Each year, every asset class's resolved return gets a random deviation:
+//   shock = volatility × (marketBeta × marketDraw + √(1 − marketBeta²) × ownDraw)
+// One shared "market" draw per year makes bad share years tend to be bad super years too.
+// Volatilities are long-run annual standard deviations (illustrative, not fund-specific).
+export const MONTE_CARLO_RUNS = 500
+export const MONTE_CARLO_SEED = 20261018     // fixed so the same scenario gives the same bands
+export const MONTE_CARLO_MIN_SHOCK = -0.6    // floor on a single year's deviation
+export const MONTE_CARLO_ASSET_RISK = {
+  super:           { volatility: 0.10, marketBeta: 0.90 },  // balanced/growth fund
+  shares:          { volatility: 0.16, marketBeta: 0.95 },
+  investmentBonds: { volatility: 0.10, marketBeta: 0.85 },
+  otherAssets:     { volatility: 0.12, marketBeta: 0.60 },
+  property:        { volatility: 0.08, marketBeta: 0.30 },
+  commodities:     { volatility: 0.18, marketBeta: 0.20 },
+  treasuryBonds:   { volatility: 0.05, marketBeta: -0.10 },
+}
+export const MONTE_CARLO_PERCENTILES = [10, 25, 50, 75, 90]
+
 // --- Superannuation ---
 export const PRESERVATION_AGE = 60          // For those born after 1 July 1964 — hardcoded
 
