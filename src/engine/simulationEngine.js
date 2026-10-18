@@ -1272,6 +1272,16 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     // Downsizer contributions added directly to super (tax-free, outside caps)
     superA = { ...superA, currentBalance: Math.max(0, closingBalA - div296A) }
     superB = { ...superB, currentBalance: Math.max(0, closingBalB - div296B) }
+    // Transfer balance cap: carry the pension (retirement phase) portion forward. Extra draws come
+    // from accumulation first; downsizer lands in accumulation and moves across next year if cap space.
+    if (superA_result.inPensionPhase) {
+      const pensionLeft = superA_result.pensionClosing - Math.max(0, superAExtra - superA_result.accumClosing)
+      superA = { ...superA, pensionBalance: Math.max(0, Math.min(pensionLeft, superA.currentBalance)), tbcUsed: superA_result.tbcUsed, personalTbc: superA_result.transferBalanceCap }
+    }
+    if (superB_result.inPensionPhase) {
+      const pensionLeft = superB_result.pensionClosing - Math.max(0, superBExtra - superB_result.accumClosing)
+      superB = { ...superB, pensionBalance: Math.max(0, Math.min(pensionLeft, superB.currentBalance)), tbcUsed: superB_result.tbcUsed, personalTbc: superB_result.transferBalanceCap }
+    }
     // Apply shares growth + resolved contributions + deficit drawdowns
     // Split new total back into parent (unallocated) + holdings portions proportionally.
     const newSharesValue = Math.max(0, sharesResult.closingValue + sharesNetAdjustment)

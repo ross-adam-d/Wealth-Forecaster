@@ -7,6 +7,9 @@ import {
   CONCESSIONAL_CAP_SCHEDULE,
   NON_CONCESSIONAL_CAP_SCHEDULE,
   SUPER_CONTRIBUTIONS_TAX_RATE,
+  SUPER_EARNINGS_TAX_RATE,
+  TRANSFER_BALANCE_CAP_SCHEDULE,
+  TRANSFER_BALANCE_CAP_INDEX_INCREMENT,
   MIN_DRAWDOWN_RATES,
   PRESERVATION_AGE,
   SG_RATE_SCHEDULE,
@@ -232,7 +235,34 @@ export function processContributions(superProfile, grossSalary, year, yearFracti
 }
 
 /**
+ * General transfer balance cap for a simulation year.
+ * Known schedule up to the latest legislated amount, then CPI-indexed in $100k steps.
+ *
+ * @param {number} year
+ * @param {number} inflationRate
+ * @returns {number}
+ */
+export function getTransferBalanceCap(year, inflationRate = 0.025) {
+  const sorted = [...TRANSFER_BALANCE_CAP_SCHEDULE].sort((a, b) => b.fromFY - a.fromFY)
+  const latest = sorted[0]
+  if (year > latest.fromFY) {
+    const indexed = latest.cap * Math.pow(1 + inflationRate, year - latest.fromFY)
+    return Math.floor(indexed / TRANSFER_BALANCE_CAP_INDEX_INCREMENT) * TRANSFER_BALANCE_CAP_INDEX_INCREMENT
+  }
+  const entry = sorted.find(e => year >= e.fromFY)
+  return (entry || sorted[sorted.length - 1]).cap
+}
+
+/**
  * Grow super balance for a year and apply drawdown if in pension phase.
+ *
+ * In pension phase the balance is split in two:
+ *   - pension (retirement phase): tax-free earnings, minimum drawdown applies.
+ *     Total moved in over time (superProfile.tbcUsed) is limited to the person's own transfer
+ *     balance cap (superProfile.personalTbc); balance carried in superProfile.pensionBalance.
+ *   - accumulation: whatever didn't fit under the cap. Same investments, but earnings
+ *     taxed at 15%; no minimum drawdown.
+ * Below the cap everything sits in pension, exactly as without the cap.
  *
  * @param {object} params
  * @param {number} params.openingBalance
@@ -268,15 +298,60 @@ export function growSuperBalance({
 
   // Balance grows at rate on opening balance + contributions — pro-rated for partial simulation year
   const effectiveRate = rate * yearFraction
+
+  if (inPensionPhase) {
+    // Personal cap starts at the general cap; later rises in the general cap only flow through in
+    // proportion to the unused share (fully used → no increase).
+    // Move accumulation money (incl. this year's contributions) into pension, up to remaining cap space.
+    // Cap space is not credited back for withdrawals — extra draws come from accumulation first.
+    const tbcUsedOpening = superProfile.tbcUsed || 0
+    const generalCap = getTransferBalanceCap(year, assumptions.inflationRate)
+    const transferBalanceCap = superProfile.personalTbc == null
+      ? generalCap
+      : superProfile.personalTbc
+        + Math.max(0, generalCap - getTransferBalanceCap(year - 1, assumptions.inflationRate))
+        * Math.max(0, 1 - tbcUsedOpening / superProfile.personalTbc)
+    const pensionStart = Math.min(superProfile.pensionBalance || 0, openingBalance)
+    const accumStart = openingBalance - pensionStart + contributions
+    const transferred = Math.min(accumStart, Math.max(0, transferBalanceCap - tbcUsedOpening))
+    const pensionOpening = pensionStart + transferred
+    const accumOpening = accumStart - transferred
+    const tbcUsed = tbcUsedOpening + transferred
+
+    const pensionGrown = pensionOpening * (1 + effectiveRate)
+    const accumEarnings = accumOpening * effectiveRate
+    const excessEarningsTax = Math.max(0, accumEarnings) * SUPER_EARNINGS_TAX_RATE
+    const accumGrown = accumOpening + accumEarnings - excessEarningsTax
+
+    const minDrawdown = pensionGrown * getMinDrawdownRate(personAge)
+    const pensionClosing = Math.max(0, pensionGrown - minDrawdown)
+    const accumClosing = Math.max(0, accumGrown)
+
+    return {
+      openingBalance,
+      contributions,
+      rate,
+      grownBalance: pensionGrown + accumGrown,
+      drawdown: minDrawdown,
+      minDrawdown,
+      closingBalance: pensionClosing + accumClosing,
+      pensionClosing,
+      accumClosing,
+      transferBalanceCap,
+      tbcUsed,
+      excessEarningsTax,
+      inPensionPhase,
+      isTTR,
+      isLocked: !hasReachedPreservationAge(personAge) && !isTTR,
+    }
+  }
+
   const grownBalance = (openingBalance + contributions) * (1 + effectiveRate)
 
   let drawdown = 0
   let minDrawdown = 0
 
-  if (inPensionPhase) {
-    minDrawdown = grownBalance * getMinDrawdownRate(personAge)
-    drawdown = minDrawdown
-  } else if (isTTR) {
+  if (isTTR) {
     // TTR: pension income stream, up to 10% of balance
     minDrawdown = grownBalance * getMinDrawdownRate(personAge)
     drawdown = minDrawdown
@@ -292,6 +367,11 @@ export function growSuperBalance({
     drawdown,
     minDrawdown,
     closingBalance,
+    pensionClosing: 0,
+    accumClosing: closingBalance,
+    transferBalanceCap: null,
+    tbcUsed: superProfile.tbcUsed || 0,
+    excessEarningsTax: 0,
     inPensionPhase,
     isTTR,
     isLocked: !hasReachedPreservationAge(personAge) && !isTTR,

@@ -5,7 +5,10 @@ import {
   hasReachedPreservationAge,
   processContributions,
   growSuperBalance,
+  getTransferBalanceCap,
 } from '../modules/super.js'
+import { runSimulation } from '../engine/simulationEngine.js'
+import { createDefaultScenario } from '../utils/schema.js'
 
 // ── getSGRate ──────────────────────────────────────────────────────────────
 // Schedule: FY2025 = 11.5%, FY2026+ = 12%
@@ -236,5 +239,124 @@ describe('growSuperBalance', () => {
     expect(result.isLocked).toBe(true)
     // Must grow at accumulation rate, not pension rate
     expect(result.rate).toBe(baseAssumptions.superAccumulationRate)
+  })
+})
+
+// ── Transfer balance cap ───────────────────────────────────────────────────
+
+describe('getTransferBalanceCap', () => {
+  it('follows the legislated schedule', () => {
+    expect(getTransferBalanceCap(2024)).toBe(1_900_000)
+    expect(getTransferBalanceCap(2026)).toBe(2_000_000)
+    expect(getTransferBalanceCap(2027)).toBe(2_100_000)
+  })
+
+  it('indexes to CPI in $100k steps after the last legislated amount', () => {
+    // 2.1M × 1.025^3 = 2.261M → 2.2M
+    expect(getTransferBalanceCap(2030, 0.025)).toBe(2_200_000)
+    expect(getTransferBalanceCap(2027, 0.025)).toBe(2_100_000)
+    expect(getTransferBalanceCap(2040, 0)).toBe(2_100_000)
+  })
+})
+
+describe('growSuperBalance — transfer balance cap', () => {
+  const assumptions = { superAccumulationRate: 0.07, superPensionRate: 0.06, inflationRate: 0.025 }
+  const pensioner = (extra = {}) => ({
+    contributions: 0,
+    year: 2027,
+    personAge: 65,      // 5% minimum drawdown
+    retirementYear: 2025,
+    assumptions,
+    ...extra,
+  })
+
+  it('below the cap, everything is in pension — same as before the cap existed', () => {
+    const r = growSuperBalance(pensioner({ openingBalance: 1_000_000, superProfile: { ratePeriods: [] } }))
+    expect(r.pensionClosing).toBeCloseTo(1_000_000 * 1.06 * 0.95, 0)
+    expect(r.accumClosing).toBe(0)
+    expect(r.excessEarningsTax).toBe(0)
+    expect(r.tbcUsed).toBe(1_000_000)
+  })
+
+  it('above the cap, the excess stays in accumulation: taxed earnings, no minimum drawdown', () => {
+    const r = growSuperBalance(pensioner({ openingBalance: 3_000_000, superProfile: { ratePeriods: [] } }))
+    expect(r.transferBalanceCap).toBe(2_100_000)
+    expect(r.tbcUsed).toBe(2_100_000)
+    // Pension: 2.1M × 1.06, then 5% drawn
+    expect(r.minDrawdown).toBeCloseTo(2_100_000 * 1.06 * 0.05, 0)
+    expect(r.pensionClosing).toBeCloseTo(2_100_000 * 1.06 * 0.95, 0)
+    // Accumulation: 900k earning 6% less 15% tax
+    expect(r.excessEarningsTax).toBeCloseTo(900_000 * 0.06 * 0.15, 0)
+    expect(r.accumClosing).toBeCloseTo(900_000 * (1 + 0.06 * 0.85), 0)
+    expect(r.closingBalance).toBeCloseTo(r.pensionClosing + r.accumClosing, 6)
+  })
+
+  it('a fully used cap gets none of a later general cap increase', () => {
+    const r = growSuperBalance(pensioner({
+      year: 2029,           // general cap rises 2.1M → 2.2M this year
+      personAge: 67,
+      openingBalance: 3_000_000,
+      superProfile: { ratePeriods: [], pensionBalance: 2_000_000, tbcUsed: 2_100_000, personalTbc: 2_100_000 },
+    }))
+    expect(r.transferBalanceCap).toBe(2_100_000)
+    expect(r.tbcUsed).toBe(2_100_000)
+    expect(r.pensionClosing).toBeCloseTo(2_000_000 * 1.06 * 0.95, 0)
+    expect(r.accumClosing).toBeCloseTo(1_000_000 * (1 + 0.06 * 0.85), 0)
+  })
+
+  it('a half-used cap gets half of a later general cap increase', () => {
+    const r = growSuperBalance(pensioner({
+      year: 2029,           // +100k general increase × 50% unused = +50k
+      personAge: 67,
+      openingBalance: 3_000_000,
+      superProfile: { ratePeriods: [], pensionBalance: 1_000_000, tbcUsed: 1_050_000, personalTbc: 2_100_000 },
+    }))
+    expect(r.transferBalanceCap).toBeCloseTo(2_150_000, 0)
+    // 1.1M of space → moved from the 2M accumulation balance
+    expect(r.tbcUsed).toBeCloseTo(2_150_000, 0)
+    expect(r.pensionClosing).toBeCloseTo(2_100_000 * 1.06 * 0.95, 0)
+    expect(r.accumClosing).toBeCloseTo(900_000 * (1 + 0.06 * 0.85), 0)
+  })
+
+  it('a pension that has grown above the cap is not forced back to it', () => {
+    const r = growSuperBalance(pensioner({
+      openingBalance: 2_600_000,
+      superProfile: { ratePeriods: [], pensionBalance: 2_600_000, tbcUsed: 2_000_000 },
+    }))
+    expect(r.accumClosing).toBe(0)
+    expect(r.excessEarningsTax).toBe(0)
+  })
+})
+
+describe('transfer balance cap through the engine', () => {
+  function retiree(superBalance) {
+    const s = createDefaultScenario('TBC retiree')
+    s.household.personA.dateOfBirth = '1960-01-01'
+    s.household.personA.retirementAge = 65
+    s.simulationEndAge = 80
+    s.super[0].currentBalance = superBalance
+    s.expenses = {
+      id: 'root', label: 'Expenses', type: 'group', amountType: 'annual', amount: 0,
+      children: [{ id: 'living', label: 'Living', type: 'category', amountType: 'annual', amount: 60_000, children: [] }],
+    }
+    return s
+  }
+
+  it('a $1.5M balance pays no excess earnings tax', () => {
+    const snaps = runSimulation(retiree(1_500_000))
+    expect(snaps.every(s => s.superA.excessEarningsTax === 0)).toBe(true)
+  })
+
+  it('a $3.5M balance keeps the excess in accumulation and pays tax on its earnings', () => {
+    const snaps = runSimulation(retiree(3_500_000))
+    const first = snaps[0].superA
+    expect(first.inPensionPhase).toBe(true)
+    expect(first.excessEarningsTax).toBeGreaterThan(0)
+    // Minimum drawdown only on the capped pension portion (age 66 → 5%)
+    expect(first.minDrawdown).toBeLessThan(3_500_000 * 0.05)
+    expect(first.accumClosing).toBeGreaterThan(1_000_000)
+    // Sim starts in 2026 (cap $2.0M) and the cap is fully used, so later general increases add nothing
+    expect(first.tbcUsed).toBe(2_000_000)
+    expect(snaps.every(s => s.superA.tbcUsed === 2_000_000)).toBe(true)
   })
 })

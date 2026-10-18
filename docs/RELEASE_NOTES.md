@@ -12,6 +12,13 @@ not an internal diff. Date format: `YYYY-MM-DD`.
 
 ## 2026-10-18
 
+- **Super above the transfer balance cap** — only up to the transfer balance
+  cap ($2.0M, rising to $2.1M from 1 July 2026) can move into tax-free pension
+  phase. Super above that now stays in an accumulation account where earnings
+  are taxed at 15%, and the minimum pension drawdown applies only to the
+  pension part. Forecasts with large super balances will now be a little lower
+  (and more accurate); balances under the cap are unchanged.
+
 - **New: Simulations** — a new section on the Projection page runs your plan
   through 500 different sequences of good and bad market years. It shows how
   often your money lasts, a chart of the range of outcomes, and a year-by-year

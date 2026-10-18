@@ -82,6 +82,17 @@ export const MIN_DRAWDOWN_RATES = [
 ]
 
 export const SUPER_CONTRIBUTIONS_TAX_RATE = 0.15  // 15% within fund
+export const SUPER_EARNINGS_TAX_RATE = 0.15        // 15% on accumulation-phase earnings (pension phase: 0%)
+
+// --- Transfer balance cap (max moved into tax-free retirement phase, per person) ---
+// Applied when the pension starts; the pension can later grow above it without a breach.
+// Indexed to CPI in $100k increments.
+export const TRANSFER_BALANCE_CAP_SCHEDULE = [
+  { fromFY: 2024, cap: 1_900_000 },
+  { fromFY: 2025, cap: 2_000_000 },
+  { fromFY: 2027, cap: 2_100_000 },  // from 1 July 2026
+]
+export const TRANSFER_BALANCE_CAP_INDEX_INCREMENT = 100_000
 export const DOWNSIZER_CONTRIBUTION_CAP = 300_000 // Max downsizer contribution per person
 export const DOWNSIZER_MIN_AGE = 55               // Minimum age for downsizer contribution
 export const DIV293_THRESHOLD = 250_000           // Division 293 income threshold
