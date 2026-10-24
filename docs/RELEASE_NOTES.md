@@ -23,6 +23,12 @@ not an internal diff. Date format: `YYYY-MM-DD`.
   repayments. Income above $125,000 is now repaid at 17c per dollar (was
   15c). If you have HECS, your debt may now clear sooner.
 
+- **Jointly owned investment properties** — rental income and negative
+  gearing losses are now split between you and your partner using the
+  property's ownership slider (renamed "Ownership — Person A"). Before, all of
+  it was counted against Person A's tax. Previously the slider only affected
+  capital gains tax on sale.
+
 - **Today's dollars note** — when showing today's dollars, the cashflow chart
   and table now explain that a fixed mortgage repayment looks smaller each
   year because of inflation. Switch to nominal to see the actual amount, which

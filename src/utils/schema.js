@@ -119,7 +119,7 @@ export function createDefaultProperty(isPrimary = false) {
     futurePurchaseYear: null, // year property will be purchased (null = already owned)
     saleEvent: null,          // { year, netProceeds, destination, sellingCostsPct }
     payOffWhenAble: false,    // auto-pay mortgage from liquid assets when affordable
-    ownershipPctA: 100,       // % of CGT attributed to Person A (0–100)
+    ownershipPctA: 100,       // % of rental income/loss and CGT attributed to Person A (0–100)
   }
 }
 

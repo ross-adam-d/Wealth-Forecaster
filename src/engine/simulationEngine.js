@@ -440,6 +440,10 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       return { ...r, netRentalIncomeLoss: 0 }
     })
     const totalNetRentalIncomeLoss = adjustedRentalResults.reduce((sum, r) => sum + r.netRentalIncomeLoss, 0)
+    // Split rental income/loss between A and B by ownership, like CGT below
+    const rentalIncomeLossA = adjustedRentalResults.reduce((sum, r, i) =>
+      sum + r.netRentalIncomeLoss * (currentProperties[i].ownershipPctA ?? 100) / 100, 0)
+    const rentalIncomeLossB = totalNetRentalIncomeLoss - rentalIncomeLossA
     const totalMortgageRepayments = propertyResults.reduce((sum, r) => sum + r.annualRepayment, 0)
     const propertySaleProceeds = propertyResults.reduce((sum, r) => sum + (r.saleProceeds || 0), 0)
     const totalLandTax = propertyResults.reduce((sum, r) => sum + (r.landTax || 0), 0)
@@ -592,7 +596,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       salarySacrifice: superContribA_pre.salarySacrificeAmount,
       packagingReduction: packReductionA,
       novatedLeaseReduction: leaseReductionA,
-      rentalIncomeLoss: totalNetRentalIncomeLoss,
+      rentalIncomeLoss: rentalIncomeLossA,
       dividendIncome: sharesResult.cashDividend * 0.5,
       frankingCredit: sharesResult.frankingCredit * 0.5,
       capitalGain: propertyCGT_A,
@@ -605,12 +609,13 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     })
 
     const hasTBCoupon = tbResult.couponIncome > 0
-    const taxBFinal = (propertyCGT_B > 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon || hecsBalanceB > 0) ? calcPersonTax({
+    const taxBFinal = (propertyCGT_B > 0 || rentalIncomeLossB !== 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon || hecsBalanceB > 0) ? calcPersonTax({
       year,
       grossSalary: effSalaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
+      rentalIncomeLoss: rentalIncomeLossB,
       capitalGain: propertyCGT_B,
       otherIncome: otherIncomeResult.taxableB + tbCouponHalf,
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,

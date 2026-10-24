@@ -621,3 +621,51 @@ describe('mortgage amortises monthly', () => {
     expect(s.repaid).toBeCloseTo(1_000 + 1_000 * 0.005, 6)
   })
 })
+
+// ── Rental income/loss split by ownership (2026-10-24) ─────────────────────
+// Rental losses used to be attributed entirely to person A regardless of ownershipPctA.
+
+describe('rental income/loss split by ownership', () => {
+  function scenario(ownershipPctA) {
+    const s = createDefaultScenario('Joint investment')
+    s.household.personA.dateOfBirth = '1985-01-01'
+    s.household.personA.currentSalary = 150_000
+    s.household.personB.dateOfBirth = '1986-01-01'
+    s.household.personB.currentSalary = 100_000
+    s.properties = [{
+      ...createDefaultProperty(false),
+      currentValue: 800_000, purchasePrice: 700_000, purchaseDate: '2020-01',
+      mortgageBalance: 700_000, originalLoanAmount: 700_000, originalLoanTermYears: 30,
+      loanTermYearsRemaining: 30, interestRate: 0.065, hasOffset: false,
+      annualRentalIncome: 30_000, annualPropertyExpenses: 8_000, state: 'VIC',
+      ownershipPctA,
+    }]
+    return s
+  }
+
+  const year1 = snaps => snaps.find(s => s.year === 2027)
+
+  it('50/50 ownership splits a rental loss evenly', () => {
+    const snap = year1(runSimulation(scenario(50)))
+    const loss = snap.propertyResults[0].netRentalIncomeLoss
+    expect(loss).toBeLessThan(0)
+    const salaryOnlyA = year1(runSimulation({ ...scenario(50), properties: [] })).taxA.assessableIncome
+    const salaryOnlyB = year1(runSimulation({ ...scenario(50), properties: [] })).taxB.assessableIncome
+    expect(snap.taxA.assessableIncome).toBeCloseTo(salaryOnlyA + loss / 2, 0)
+    expect(snap.taxB.assessableIncome).toBeCloseTo(salaryOnlyB + loss / 2, 0)
+  })
+
+  it('100% A ownership keeps the whole loss with A', () => {
+    const snap = year1(runSimulation(scenario(100)))
+    const salaryOnlyB = year1(runSimulation({ ...scenario(100), properties: [] })).taxB.assessableIncome
+    expect(snap.taxB.assessableIncome).toBeCloseTo(salaryOnlyB, 0)
+  })
+
+  it('0% A ownership moves the whole loss to B', () => {
+    const snap = year1(runSimulation(scenario(0)))
+    const loss = snap.propertyResults[0].netRentalIncomeLoss
+    const salaryOnlyA = year1(runSimulation({ ...scenario(0), properties: [] })).taxA.assessableIncome
+    expect(snap.taxA.assessableIncome).toBeCloseTo(salaryOnlyA, 0)
+    expect(snap.taxB.taxableIncome).toBeLessThan(100_000 * 1.04)
+  })
+})

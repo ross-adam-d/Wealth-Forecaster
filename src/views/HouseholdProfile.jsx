@@ -1085,7 +1085,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
           )}
 
           <div className="px-4 py-3">
-            <label className="compact-label">CGT ownership — Person A</label>
+            <label className="compact-label">Ownership — Person A</label>
             <div className="flex items-center gap-2 mt-1">
               <input type="range" min={0} max={100} step={5}
                 value={p.ownershipPctA ?? 100}
@@ -1095,7 +1095,7 @@ function PropertyForm({ property, index, allProperties, onUpdate, onRemove }) {
                 {p.ownershipPctA ?? 100}% / {100 - (p.ownershipPctA ?? 100)}%
               </span>
             </div>
-            <p className="text-xs text-gray-600 mt-1">How CGT is split between A and B on sale</p>
+            <p className="text-xs text-gray-600 mt-1">How rental income or losses and CGT on sale are split between A and B</p>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
             <span className="text-sm text-gray-400">Sale event</span>
