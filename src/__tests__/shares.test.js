@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { runSimulation } from '../engine/simulationEngine.js'
+import { createDefaultScenario } from '../utils/schema.js'
 import { processSharesYear } from '../modules/shares.js'
 
 const assumptions = { sharesReturnRate: 0.08 }
@@ -127,5 +129,40 @@ describe('processSharesYear', () => {
     })
     // cgtOnDrawdown > 0 when there's a drawdown
     expect(result.cgtOnDrawdown).toBeGreaterThan(0)
+  })
+})
+
+// ── Dividend tax split between persons (2026-10-24) ────────────────────────
+// Person A used to be taxed on half the dividends and person B on none, so half of all
+// dividend income went untaxed (and B's franking credits were lost).
+
+describe('dividends taxed across the household', () => {
+  function scenario({ couple }) {
+    const s = createDefaultScenario('Dividends')
+    s.household.personA.dateOfBirth = '1980-01-01'
+    s.household.personA.currentSalary = 120_000
+    if (couple) {
+      s.household.personB.dateOfBirth = '1981-01-01'
+      s.household.personB.currentSalary = 90_000
+    }
+    s.shares = { ...s.shares, currentValue: 500_000 }
+    return s
+  }
+  const year1 = snaps => snaps.find(s => s.year === 2027)
+
+  it('couple: each person is taxed on half the dividends and franking', () => {
+    const snap = year1(runSimulation(scenario({ couple: true })))
+    const half = snap.sharesResult.cashDividend / 2 + snap.sharesResult.frankingCredit / 2
+    expect(half).toBeGreaterThan(0)
+    const noShares = year1(runSimulation({ ...scenario({ couple: true }), shares: { ...scenario({ couple: true }).shares, currentValue: 0 } }))
+    expect(snap.taxA.assessableIncome).toBeCloseTo(noShares.taxA.assessableIncome + half, 0)
+    expect(snap.taxB.assessableIncome).toBeCloseTo(noShares.taxB.assessableIncome + half, 0)
+  })
+
+  it('single: person A is taxed on all the dividends and franking', () => {
+    const snap = year1(runSimulation(scenario({ couple: false })))
+    const all = snap.sharesResult.cashDividend + snap.sharesResult.frankingCredit
+    const noShares = year1(runSimulation({ ...scenario({ couple: false }), shares: { ...scenario({ couple: false }).shares, currentValue: 0 } }))
+    expect(snap.taxA.assessableIncome).toBeCloseTo(noShares.taxA.assessableIncome + all, 0)
   })
 })

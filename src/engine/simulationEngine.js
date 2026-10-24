@@ -588,8 +588,16 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
     } : otherIncomeRaw
 
     // Recalculate tax with dividends + coupon income + property (CGT split by ownership %) + other income
-    // Treasury bond coupon income split 50/50 between persons (taxed as ordinary income, no franking)
-    const tbCouponHalf = tbResult.couponIncome * 0.5
+    // Dividends, franking credits and treasury bond coupons are split 50/50 for couples
+    // (no per-holding ownership); a single person is taxed on all of it.
+    const investmentShareA = personB.dateOfBirth ? 0.5 : 1
+    const investmentShareB = 1 - investmentShareA
+    const dividendA = sharesResult.cashDividend * investmentShareA
+    const dividendB = sharesResult.cashDividend * investmentShareB
+    const frankingA = sharesResult.frankingCredit * investmentShareA
+    const frankingB = sharesResult.frankingCredit * investmentShareB
+    const tbCouponA = tbResult.couponIncome * investmentShareA
+    const tbCouponB = tbResult.couponIncome * investmentShareB
     const taxAFinal = calcPersonTax({
       year,
       grossSalary: effSalaryA,
@@ -597,10 +605,10 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       packagingReduction: packReductionA,
       novatedLeaseReduction: leaseReductionA,
       rentalIncomeLoss: rentalIncomeLossA,
-      dividendIncome: sharesResult.cashDividend * 0.5,
-      frankingCredit: sharesResult.frankingCredit * 0.5,
+      dividendIncome: dividendA,
+      frankingCredit: frankingA,
       capitalGain: propertyCGT_A,
-      otherIncome: otherIncomeResult.taxableA + tbCouponHalf,
+      otherIncome: otherIncomeResult.taxableA + tbCouponA,
       inPensionPhase: ageA != null && hasReachedPreservationAge(ageA) && retiredA,
       hecsBalance: hecsBalanceA,
       hecsExtraAnnual: personA.hecs?.extraAnnual || 0,
@@ -608,16 +616,17 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       draftLegislation,
     })
 
-    const hasTBCoupon = tbResult.couponIncome > 0
-    const taxBFinal = (propertyCGT_B > 0 || rentalIncomeLossB !== 0 || otherIncomeResult.taxableB > 0 || hasTBCoupon || hecsBalanceB > 0) ? calcPersonTax({
+    const taxBFinal = (propertyCGT_B > 0 || rentalIncomeLossB !== 0 || otherIncomeResult.taxableB > 0 || tbCouponB > 0 || dividendB > 0 || hecsBalanceB > 0) ? calcPersonTax({
       year,
       grossSalary: effSalaryB,
       salarySacrifice: superContribB_pre.salarySacrificeAmount,
       packagingReduction: packReductionB,
       novatedLeaseReduction: leaseReductionB,
       rentalIncomeLoss: rentalIncomeLossB,
+      dividendIncome: dividendB,
+      frankingCredit: frankingB,
       capitalGain: propertyCGT_B,
-      otherIncome: otherIncomeResult.taxableB + tbCouponHalf,
+      otherIncome: otherIncomeResult.taxableB + tbCouponB,
       inPensionPhase: ageB != null && hasReachedPreservationAge(ageB) && retiredB,
       hecsBalance: hecsBalanceB,
       hecsExtraAnnual: personB.hecs?.extraAnnual || 0,
@@ -774,6 +783,7 @@ export function runSimulation(scenario, { leverAdjustments = {}, asOf = new Date
       sharesResult.cashDividend +
       tbResult.couponIncome +           // Treasury bond coupon (already taxed via otherIncome in calcPersonTax)
       taxAFinal.frankingRefund +
+      taxBFinal.frankingRefund +
       superA_result.drawdown +
       superB_result.drawdown +
       propertySaleProceeds +

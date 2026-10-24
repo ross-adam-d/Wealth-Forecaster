@@ -29,6 +29,13 @@ not an internal diff. Date format: `YYYY-MM-DD`.
   it was counted against Person A's tax. Previously the slider only affected
   capital gains tax on sale.
 
+- **Tax on share dividends corrected** — for couples, dividends and franking
+  credits are now split evenly between both partners (before, half was taxed
+  to Person A and the other half not taxed at all). Singles are now taxed on
+  all their dividends and bond interest. Forecasts with shares will be a little
+  lower while you're working. After retirement they can be higher, because both
+  partners now get refunds of franking credits.
+
 - **Today's dollars note** — when showing today's dollars, the cashflow chart
   and table now explain that a fixed mortgage repayment looks smaller each
   year because of inflation. Switch to nominal to see the actual amount, which

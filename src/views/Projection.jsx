@@ -211,7 +211,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       salaryA: transform(s.salaryA ?? 0, s.year),
       salaryB: transform(s.salaryB ?? 0, s.year),
       rental: transform(Math.max(0, rentalNet), s.year),
-      dividends: transform((s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0), s.year),
+      dividends: transform((s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0) + (s.taxB?.frankingRefund ?? 0), s.year),
       propSale: transform(s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0, s.year),
       otherInc: transform(s.totalOtherIncome ?? 0, s.year),
       superDraw: transform((s.superA?.drawdown ?? 0) + (s.superB?.drawdown ?? 0), s.year),
@@ -365,7 +365,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
       employerSuperA:  s.employerContribA ?? 0,
       employerSuperB:  s.employerContribB ?? 0,
       rentalNet,
-      dividends:       (s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0),
+      dividends:       (s.sharesResult?.cashDividend ?? 0) + (s.taxA?.frankingRefund ?? 0) + (s.taxB?.frankingRefund ?? 0),
       propertySale:    s.propertyResults?.reduce((sum, r) => sum + (r.saleProceeds || 0), 0) ?? 0,
       otherIncome:     s.totalOtherIncome ?? 0,
       // Expenses (including tax + super accum)
