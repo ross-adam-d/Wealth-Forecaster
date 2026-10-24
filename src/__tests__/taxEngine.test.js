@@ -158,14 +158,32 @@ describe('calcPersonTax', () => {
     expect(result.grossTax).toBe(0)
   })
 
-  it('franking credit is not refundable outside pension phase', () => {
+  it('franking credit is refundable outside pension phase too (any individual)', () => {
     const result = calcPersonTax({
       grossSalary: 0,
       dividendIncome: 500,
       frankingCredit: 214,
       inPensionPhase: false,
     })
+    expect(result.frankingRefund).toBeCloseTo(214, 6)
+  })
+
+  it('franking covers income tax, then Medicare levy, before any refund', () => {
+    // $30k dividends + $12,857 credit: income tax ≈ $3,941, Medicare ≈ $857
+    const result = calcPersonTax({ dividendIncome: 30_000, frankingCredit: 12_857 })
+    const grossTax = calcIncomeTax(42_857, 2026)
+    const levy = calcMedicareLevy(42_857)
+    expect(result.netTax).toBe(0)
+    expect(result.medicareLevy).toBe(0)
+    expect(result.totalTaxPayable).toBe(0)
+    expect(result.frankingRefund).toBeCloseTo(12_857 - grossTax - levy, 6)
+  })
+
+  it('franking smaller than income tax leaves Medicare untouched and no refund', () => {
+    const result = calcPersonTax({ grossSalary: 100_000, dividendIncome: 1_000, frankingCredit: 429 })
     expect(result.frankingRefund).toBe(0)
+    expect(result.medicareLevy).toBeCloseTo(calcMedicareLevy(101_429), 6)
+    expect(result.netTax).toBeCloseTo(calcIncomeTax(101_429, 2026) - 429, 6)
   })
 
   it('packaging reduction reduces assessable income', () => {

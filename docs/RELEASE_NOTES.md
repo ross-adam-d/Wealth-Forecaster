@@ -36,6 +36,12 @@ not an internal diff. Date format: `YYYY-MM-DD`.
   lower while you're working. After retirement they can be higher, because both
   partners now get refunds of franking credits.
 
+- **Franking credit refunds in any year** — unused franking credits are now
+  refunded whenever your tax is lower than your credits, not only once you're
+  drawing a super pension. This helps low-income years, such as the gap
+  between stopping work and turning 60. Credits now also reduce your Medicare
+  levy before any refund.
+
 - **Today's dollars note** — when showing today's dollars, the cashflow chart
   and table now explain that a fixed mortgage repayment looks smaller each
   year because of inflation. Switch to nominal to see the actual amount, which

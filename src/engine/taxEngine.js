@@ -123,7 +123,7 @@ export function resolvePackagingReductions(person, grossSalary) {
  * @param {number} params.dividendIncome          - cash dividends
  * @param {number} params.frankingCredit          - franking credit gross-up
  * @param {number} params.capitalGain             - post-discount CGT amount (sale year only)
- * @param {boolean} params.inPensionPhase         - franking credits refundable in pension phase
+ * @param {boolean} params.inPensionPhase         - no longer affects franking (refundable for everyone); kept for callers
  * @param {number}  params.hecsBalance            - current HECS/HELP balance (post CPI-indexation)
  * @param {number}  params.hecsExtraAnnual        - optional extra voluntary repayment per year
  * @param {number}  params.hecsThresholdGrowthFactor - cumulative growth factor to scale repayment thresholds
@@ -168,24 +168,20 @@ export function calcPersonTax({
   // Step 2: gross income tax (year-aware brackets)
   const grossTax = calcIncomeTax(taxableIncome, year)
 
-  // Step 3: franking credit offset
-  // Refundable in pension phase — if offset > tax liability, person receives refund
-  let frankingOffset = frankingCredit  // credit = gross-up amount
-  let frankingRefund = 0
-  if (inPensionPhase && frankingOffset > grossTax) {
-    frankingRefund = frankingOffset - grossTax
-    frankingOffset = grossTax
-  } else if (!inPensionPhase) {
-    frankingOffset = Math.min(frankingOffset, grossTax)
-  }
-
   // Draft: $250 Working Australians Tax Offset (from 1 July 2027 = sim year 2028)
+  // Non-refundable, so it applies before franking credits
   const watoOffset = (draftLegislation?.wato250 && year >= 2028 && grossSalary > 0) ? 250 : 0
+  const taxAfterOffsets = Math.max(0, grossTax - watoOffset)
 
-  const netTax = Math.max(0, grossTax - frankingOffset - watoOffset)
+  // Step 3: Medicare levy (before franking)
+  const grossMedicareLevy = calcMedicareLevy(taxableIncome)
 
-  // Step 4: Medicare levy
-  const medicareLevy = calcMedicareLevy(taxableIncome)
+  // Step 4: franking credits — a refundable offset for any individual. They reduce income
+  // tax, then Medicare levy, and any excess is refunded.
+  const frankingOffset = Math.min(frankingCredit, taxAfterOffsets + grossMedicareLevy)
+  const frankingRefund = frankingCredit - frankingOffset
+  const netTax = Math.max(0, taxAfterOffsets - frankingCredit)
+  const medicareLevy = Math.max(0, grossMedicareLevy - Math.max(0, frankingOffset - taxAfterOffsets))
 
   const totalTaxPayable = netTax + medicareLevy
 
