@@ -6,6 +6,7 @@ import {
   calcPersonTax,
   resolvePackagingReductions,
   getMarginalRate,
+  calcHecsRepayment,
 } from '../engine/taxEngine.js'
 
 // ── calcIncomeTax ──────────────────────────────────────────────────────────
@@ -254,5 +255,54 @@ describe('getMarginalRate', () => {
 
   it('returns 45% at top bracket', () => {
     expect(getMarginalRate(200_000)).toBe(0.45)
+  })
+})
+
+// ── HECS/HELP repayment (2026-10-24) ───────────────────────────────────────
+// FY2025-26: 15c per $1 over $67,000; $8,700 + 17c per $1 over $125,000.
+// Repayment income adds back rental losses, salary sacrifice and grossed-up packaging.
+
+describe('calcHecsRepayment', () => {
+  it('nothing at or below the threshold', () => {
+    expect(calcHecsRepayment(67_000, 50_000)).toBe(0)
+  })
+
+  it('15c per $1 between $67k and $125k', () => {
+    expect(calcHecsRepayment(100_000, 50_000)).toBeCloseTo(33_000 * 0.15, 6)
+  })
+
+  it('$8,700 + 17c per $1 above $125k', () => {
+    expect(calcHecsRepayment(150_000, 50_000)).toBeCloseTo(8_700 + 25_000 * 0.17, 6)
+  })
+
+  it('both thresholds scale with the growth factor', () => {
+    expect(calcHecsRepayment(150_000 * 1.1, 50_000, 1.1)).toBeCloseTo((8_700 + 25_000 * 0.17) * 1.1, 6)
+  })
+
+  it('capped at the remaining balance', () => {
+    expect(calcHecsRepayment(150_000, 1_000)).toBe(1_000)
+  })
+})
+
+describe('calcPersonTax — HECS repayment income', () => {
+  const base = { year: 2026, grossSalary: 120_000, hecsBalance: 60_000 }
+
+  it('negative gearing losses do not reduce HECS', () => {
+    const plain = calcPersonTax(base)
+    const geared = calcPersonTax({ ...base, rentalIncomeLoss: -20_000 })
+    expect(geared.taxableIncome).toBe(100_000)
+    expect(geared.hecsRepayment).toBeCloseTo(plain.hecsRepayment, 6)
+  })
+
+  it('salary sacrifice does not reduce HECS', () => {
+    const plain = calcPersonTax(base)
+    const sacrificed = calcPersonTax({ ...base, salarySacrifice: 10_000 })
+    expect(sacrificed.hecsRepayment).toBeCloseTo(plain.hecsRepayment, 6)
+  })
+
+  it('salary packaging is added back grossed up', () => {
+    const r = calcPersonTax({ ...base, grossSalary: 100_000, packagingReduction: 10_000 })
+    // repayment income = 90k taxable + 10k × 1.8868
+    expect(r.hecsRepayment).toBeCloseTo((90_000 + 18_868 - 67_000) * 0.15, 6)
   })
 })

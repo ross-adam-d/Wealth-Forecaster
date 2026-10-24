@@ -10,6 +10,24 @@ not an internal diff. Date format: `YYYY-MM-DD`.
 
 ---
 
+## 2026-10-24
+
+- **Mortgages now pay off on time** — interest is now worked out month by
+  month, the way banks do it. Before, a 30-year loan took about 31 years to
+  clear in the forecast. Loans now finish on schedule, and forecasts with a
+  mortgage come out slightly better.
+
+- **HECS/HELP repayments corrected** — repayments now use the ATO's
+  "repayment income": negative gearing losses, salary sacrifice to super and
+  salary packaging are added back, so they no longer lower your HECS
+  repayments. Income above $125,000 is now repaid at 17c per dollar (was
+  15c). If you have HECS, your debt may now clear sooner.
+
+- **Today's dollars note** — when showing today's dollars, the cashflow chart
+  and table now explain that a fixed mortgage repayment looks smaller each
+  year because of inflation. Switch to nominal to see the actual amount, which
+  stays the same.
+
 ## 2026-10-18
 
 - **Super above the transfer balance cap** — only up to the transfer balance

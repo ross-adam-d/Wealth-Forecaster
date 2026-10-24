@@ -330,6 +330,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
     { key: 'liquidAssets',  label: 'Liquid assets', isTotal: true },
   ], [])
 
+  const hasMortgage = (scenario.properties || []).some(p => (p.mortgageBalance || 0) > 0)
+
   // Dynamic liability columns — built from scenario properties + debts
   const LIABILITY_COLS = useMemo(() => {
     const cols = []
@@ -822,6 +824,7 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
         </div>
         <p className="text-xs text-gray-600 mb-4">
           Y-axis: {displayReal ? "today's dollars" : "nominal (projected)"}
+          {displayReal && hasMortgage && ' — fixed mortgage repayments look smaller each year because inflation erodes them. Switch to nominal to see the actual amount.'}
         </p>
         <ChartFullscreen title="Annual Cashflow">
           {(isFullscreen) => (
@@ -976,7 +979,8 @@ export default function Projection({ snapshots, scenario, retirementDate, displa
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-gray-500">
                 Values in {displayReal ? "today's dollars (real)" : 'nominal dollars'}.
-                Deficit years highlighted in red.
+                {displayReal && hasMortgage && ' Fixed mortgage repayments shrink in real terms; switch to nominal to see the actual amount.'}
+                {' '}Deficit years highlighted in red.
               </p>
               <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
                 <input

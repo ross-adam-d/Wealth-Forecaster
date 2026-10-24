@@ -139,6 +139,8 @@ export const MEDICARE_LEVY_LOWER_THRESHOLD = 26_000  // approx FY2025 shade-in t
 // 20% debt reduction applied by ATO on 1 June 2025 — users enter post-cut balance.
 export const HECS_MARGINAL_THRESHOLD = 67_000     // No repayment below this (FY2025-26)
 export const HECS_MARGINAL_RATE = 0.15            // 15c per $1 above threshold
+export const HECS_UPPER_THRESHOLD = 125_000       // Above this: $8,700 + 17c per $1 (FY2025-26)
+export const HECS_UPPER_RATE = 0.17
 // Keep old bands exported for test/legacy compatibility
 export const HECS_REPAYMENT_BANDS = []
 

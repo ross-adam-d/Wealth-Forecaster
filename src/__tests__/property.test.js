@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calcAnnualRepayment, calcAnnualInterest, processPropertyYear, calcStampDuty, calcLandTax } from '../modules/property.js'
+import { calcAnnualRepayment, calcAnnualInterest, amortiseMonthly, processPropertyYear, calcStampDuty, calcLandTax } from '../modules/property.js'
 import { runSimulation } from '../engine/simulationEngine.js'
 import { createDefaultScenario, createDefaultProperty } from '../utils/schema.js'
 
@@ -448,18 +448,20 @@ describe('processPropertyYear — future purchase', () => {
     const full = processPropertyYear(baseProperty, 2031) // full year held
     const april = processPropertyYear({ ...baseProperty, purchaseDate: '2030-04', futurePurchaseYear: null }, 2030)
     expect(april.annualRepayment).toBeCloseTo(full.annualRepayment * 9 / 12, 0) // Apr–Dec
-    expect(april.annualInterest).toBeCloseTo(calcAnnualInterest(640_000, 0, 0.065) * 9 / 12, 0)
+    expect(april.annualInterest).toBeCloseTo(amortiseMonthly(640_000, 0, 0.065, full.annualRepayment / 12, 9).interest, 0)
   })
 
   it('purchase and sale in the same year: only the months between are charged', () => {
     const p = { ...baseProperty, purchaseDate: '2030-04', futurePurchaseYear: null, saleEvent: { year: '2030-09' } }
     const r = processPropertyYear(p, 2030)
-    expect(r.annualInterest).toBeCloseTo(calcAnnualInterest(640_000, 0, 0.065) * 6 / 12, 0) // Apr–Sep
+    const monthly = calcAnnualRepayment(640_000, 0.065, 30) / 12
+    expect(r.annualInterest).toBeCloseTo(amortiseMonthly(640_000, 0, 0.065, monthly, 6).interest, 0) // Apr–Sep
   })
 
   it('purchase year with no month still charges a full year', () => {
     const r = processPropertyYear(baseProperty, 2030) // futurePurchaseYear: 2030, no month
-    expect(r.annualInterest).toBeCloseTo(calcAnnualInterest(640_000, 0, 0.065), 0)
+    const monthly = calcAnnualRepayment(640_000, 0.065, 30) / 12
+    expect(r.annualInterest).toBeCloseTo(amortiseMonthly(640_000, 0, 0.065, monthly, 12).interest, 0)
   })
 
   it('cash purchase: full price + stamp duty as outflow', () => {
@@ -568,5 +570,54 @@ describe('Future property purchase — engine carry-forward', () => {
     // Existing home (index 1) should receive the offset; future property (index 0) none
     expect(preBuy.propertyResults[0].offsetBalance).toBe(0)
     expect(preBuy.propertyResults[1].offsetBalance).toBeGreaterThan(0)
+  })
+})
+
+// ── Monthly amortisation (2026-10-24) ──────────────────────────────────────
+// Interest used to be charged on the opening balance for the whole year while the repayment
+// was sized monthly, so a 30-year loan took 31 years to clear.
+
+describe('mortgage amortises monthly', () => {
+  const loan = {
+    isPrimaryResidence: true,
+    currentValue: 1_000_000,
+    mortgageBalance: 700_000,
+    originalLoanAmount: 700_000,
+    originalLoanTermYears: 30,
+    interestRate: 0.06,
+    loanTermYearsRemaining: 30,
+    loanType: 'pi',
+    growthRate: 0.03,
+    saleEvent: null,
+  }
+
+  it('a 30-year P&I loan is paid off in 30 years with a constant repayment', () => {
+    let p = { ...loan }
+    const repayments = []
+    for (let y = 1; y <= 30; y++) {
+      const r = processPropertyYear(p, 2026 + y)
+      repayments.push(r.annualRepayment)
+      p = { ...p, mortgageBalance: r.mortgageBalance, currentValue: r.closingValue }
+    }
+    expect(p.mortgageBalance).toBeLessThan(1)
+    const fixed = calcAnnualRepayment(700_000, 0.06, 30)
+    repayments.slice(0, 29).forEach(r => expect(r).toBeCloseTo(fixed, 2))
+  })
+
+  it('first-year interest matches a monthly schedule', () => {
+    const r = processPropertyYear(loan, 2027)
+    expect(r.annualInterest).toBeCloseTo(amortiseMonthly(700_000, 0, 0.06, calcAnnualRepayment(700_000, 0.06, 30) / 12, 12).interest, 2)
+    expect(r.annualInterest).toBeLessThan(calcAnnualInterest(700_000, 0, 0.06))
+  })
+
+  it('interest-only loans are unchanged', () => {
+    const r = processPropertyYear({ ...loan, loanType: 'io', ioEndYear: 2040 }, 2027)
+    expect(r.annualInterest).toBeCloseTo(700_000 * 0.06, 2)
+    expect(r.mortgageBalance).toBe(700_000)
+  })
+
+  it('amortiseMonthly caps the final payment at what is owed', () => {
+    const s = amortiseMonthly(1_000, 0, 0.06, 5_000, 12)
+    expect(s.repaid).toBeCloseTo(1_000 + 1_000 * 0.005, 6)
   })
 })

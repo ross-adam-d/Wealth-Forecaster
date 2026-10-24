@@ -15,6 +15,9 @@ import {
   QLD_HEALTH_MEAL_ENTERTAINMENT_CAP,
   HECS_MARGINAL_THRESHOLD,
   HECS_MARGINAL_RATE,
+  HECS_UPPER_THRESHOLD,
+  HECS_UPPER_RATE,
+  FBT_GROSS_UP_TYPE2,
 } from '../constants/index.js'
 
 /**
@@ -187,7 +190,15 @@ export function calcPersonTax({
   const totalTaxPayable = netTax + medicareLevy
 
   // Step 5: HECS/HELP repayment (withheld at source, reduces net take-home)
-  const hecsCompulsory = calcHecsRepayment(taxableIncome, hecsBalance, hecsThresholdGrowthFactor)
+  // Repayment income adds back net rental losses, salary sacrifice (reportable super) and
+  // salary packaging (reportable fringe benefits, grossed up) — none of them reduce HECS.
+  const hecsRepaymentIncome = Math.max(0,
+    assessableIncome
+    + Math.max(0, -rentalIncomeLoss)
+    + salarySacrifice
+    + packagingReduction * FBT_GROSS_UP_TYPE2
+  )
+  const hecsCompulsory = calcHecsRepayment(hecsRepaymentIncome, hecsBalance, hecsThresholdGrowthFactor)
   const hecsVoluntary = hecsBalance > 0 && hecsExtraAnnual > 0
     ? Math.min(hecsExtraAnnual, Math.max(0, hecsBalance - hecsCompulsory))
     : 0
@@ -209,20 +220,23 @@ export function calcPersonTax({
 
 /**
  * Calculate compulsory HECS/HELP repayment for a year.
- * New marginal system (FY2025-26+): repayment = 15% of income ABOVE $67,000 threshold.
- * Threshold grows with wages (thresholdGrowthFactor). Capped at remaining balance.
+ * New marginal system (FY2025-26+): 15c per $1 of repayment income above $67,000, rising to
+ * 17c per $1 above $125,000. Thresholds grow with wages (thresholdGrowthFactor). Capped at
+ * remaining balance.
  *
- * @param {number} taxableIncome
+ * @param {number} repaymentIncome - taxable income plus HECS add-backs
  * @param {number} hecsBalance - current HECS balance (post CPI-indexation for the year)
  * @param {number} thresholdGrowthFactor - cumulative growth to scale nominal threshold (1 in year 0)
  * @returns {number}
  */
-export function calcHecsRepayment(taxableIncome, hecsBalance, thresholdGrowthFactor = 1) {
-  if (!hecsBalance || hecsBalance <= 0 || taxableIncome <= 0) return 0
+export function calcHecsRepayment(repaymentIncome, hecsBalance, thresholdGrowthFactor = 1) {
+  if (!hecsBalance || hecsBalance <= 0 || repaymentIncome <= 0) return 0
   const threshold = HECS_MARGINAL_THRESHOLD * thresholdGrowthFactor
-  if (taxableIncome <= threshold) return 0
-  const repayment = (taxableIncome - threshold) * HECS_MARGINAL_RATE
-  return Math.min(hecsBalance, repayment)
+  const upperThreshold = HECS_UPPER_THRESHOLD * thresholdGrowthFactor
+  if (repaymentIncome <= threshold) return 0
+  const lowerBand = (Math.min(repaymentIncome, upperThreshold) - threshold) * HECS_MARGINAL_RATE
+  const upperBand = Math.max(0, repaymentIncome - upperThreshold) * HECS_UPPER_RATE
+  return Math.min(hecsBalance, lowerBand + upperBand)
 }
 
 /**

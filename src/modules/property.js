@@ -108,6 +108,28 @@ export function calcAnnualInterest(loanBalance, offsetBalance, annualRate) {
 }
 
 /**
+ * Run a P&I loan forward month by month at a fixed monthly repayment.
+ * Interest each month is on the balance net of offset; the final payment is capped at what
+ * is owed. `months` may be fractional (partial years) — the last part-month is pro-rated.
+ *
+ * @returns {{ interest: number, repaid: number }} totals over the period
+ */
+export function amortiseMonthly(balance, offsetBalance, annualRate, monthlyRepayment, months) {
+  const monthlyRate = (annualRate || 0) / 12
+  let interest = 0
+  let repaid = 0
+  for (let m = 0; m < months && balance > 0; m++) {
+    const f = Math.min(1, months - m)
+    const i = Math.max(0, balance - offsetBalance) * monthlyRate * f
+    const pay = Math.min(monthlyRepayment * f, balance + i)
+    balance -= Math.max(0, pay - i)
+    interest += i
+    repaid += pay
+  }
+  return { interest, repaid }
+}
+
+/**
  * Year a future property will be acquired, or null if already owned.
  * futurePurchaseYear takes precedence; falls back to the year of purchaseDate
  * (the Household form stores future purchases as purchaseDate only).
@@ -244,10 +266,6 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
     ? Math.min(holdFraction, yearFraction)
     : holdFraction * yearFraction
 
-  // Interest is calculated on the effective balance (net of offset), pro-rated in sale year
-  // and for partial simulation years (yearFraction < 1 in the first simulation year)
-  const annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * periodFraction
-
   // Fixed repayment: use original loan amount & term so the repayment stays constant.
   // This means offset accounts reduce interest → more goes to principal → loan pays off early.
   // For IO loans or if no original values stored, fall back to current balance calculation.
@@ -264,17 +282,20 @@ export function processPropertyYear(property, year, cashForOffset = 0, opts = {}
     annualRepayment = calcAnnualRepayment(originalLoanAmount, interestRate, originalLoanTermYears, 'pi')
   }
 
-  // Pro-rate repayment in sale year and for partial simulation years
-  annualRepayment *= periodFraction
-
-  // If mortgage is nearly paid off, cap repayment at remaining balance + interest
-  if (mortgageBalance > 0 && annualRepayment > mortgageBalance + annualInterest) {
-    annualRepayment = mortgageBalance + annualInterest
-  }
-
-  // If mortgage is fully paid, no repayment
+  // Interest on the effective balance (net of offset), pro-rated in sale year and for partial
+  // simulation years (yearFraction < 1 in the first simulation year)
+  let annualInterest
   if (mortgageBalance <= 0) {
+    annualInterest = 0
     annualRepayment = 0
+  } else if (effectiveLoanType === 'io') {
+    annualInterest = calcAnnualInterest(mortgageBalance, offsetBalance, interestRate) * periodFraction
+    annualRepayment *= periodFraction
+  } else {
+    // P&I amortises monthly, matching how the repayment is sized
+    const schedule = amortiseMonthly(mortgageBalance, offsetBalance, interestRate, annualRepayment / 12, 12 * periodFraction)
+    annualInterest = schedule.interest
+    annualRepayment = schedule.repaid
   }
 
   const principalRepayment = Math.max(0, annualRepayment - annualInterest)
