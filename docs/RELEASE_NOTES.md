@@ -42,6 +42,14 @@ not an internal diff. Date format: `YYYY-MM-DD`.
   between stopping work and turning 60. Credits now also reduce your Medicare
   levy before any refund.
 
+- **Clearer expense totals** — expense groups used to add every amount
+  together as if it were yearly, including one-off costs, recurring costs and
+  costs that haven't started yet or have already ended. Each group now shows
+  the ongoing yearly cost for this year, with one-off and recurring costs shown
+  separately ("+ $25,000 occasional"). Items show when they apply (e.g.
+  "from 2035–2046", "every 10 yrs"). A summary at the top shows this year's
+  total, the ongoing yearly cost, and occasional costs.
+
 - **Today's dollars note** — when showing today's dollars, the cashflow chart
   and table now explain that a fixed mortgage repayment looks smaller each
   year because of inflation. Switch to nominal to see the actual amount, which

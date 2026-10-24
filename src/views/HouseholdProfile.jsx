@@ -11,6 +11,7 @@ import {
 import { calcStatutory, calcECM } from '../modules/fbt.js'
 import { calcStampDuty, calcLandTax } from '../modules/property.js'
 import { DEFAULT_SELLING_COSTS_PCT } from '../constants/index.js'
+import { describeExpenseAmount, summariseExpenseNode, resolveExpenseTree } from '../modules/expenses.js'
 import MonthYearInput from '../components/MonthYearInput.jsx'
 import { extractYear } from '../utils/format.js'
 import { currentAustralianFY } from '../utils/cgt.js'
@@ -2009,10 +2010,40 @@ const AMOUNT_TYPE_LABELS = {
 const EXPENSE_DEPTH_LABELS = ['group', 'category', 'subcategory']
 const EXPENSE_DEPTH_PLACEHOLDERS = ['Group name (e.g. Living)', 'Category name (e.g. Food)', 'Item name (e.g. Groceries)']
 
-function calcExpenseTotal(node) {
-  const own = node.amountType === 'monthly' ? (node.amount || 0) * 12 : (node.amount || 0)
-  const childTotal = (node.children || []).reduce((sum, c) => sum + calcExpenseTotal(c), 0)
-  return own + childTotal
+const fmtExpense = n => `$${Math.round(n).toLocaleString()}`
+const OCCASIONAL_HINT = 'One-off and recurring costs, per occurrence — not included in the yearly figure'
+
+/** Amount text for an item with no children, e.g. "$18,000/yr from 2035–2046". */
+function ExpenseItemAmount({ item, year }) {
+  const d = describeExpenseAmount(item, year)
+  const range = (d.from ?? '') + (d.to != null ? `–${d.to}` : '')
+  switch (d.status) {
+    case 'active':   return <span className="text-gray-400">{fmtExpense(d.annual)}/yr</span>
+    case 'future':   return <span className="text-gray-500">{fmtExpense(d.annual)}/yr from {range}</span>
+    case 'ended':    return <span className="text-gray-600">{fmtExpense(d.annual)}/yr ended {d.to}</span>
+    case 'upcoming': return (
+      <span className="text-gray-400">
+        {fmtExpense(d.amount)} {d.everyYears ? `every ${d.everyYears} yrs` : (d.nextYear ? `in ${d.nextYear}` : 'one-off')}
+      </span>
+    )
+    case 'past':     return <span className="text-gray-600">{fmtExpense(d.amount)} (past)</span>
+    default:         return <span className="text-gray-500">$0</span>
+  }
+}
+
+/** Rolled-up amount text for a group or category: ongoing yearly cost + occasional costs. */
+function ExpenseGroupAmount({ item, year }) {
+  const s = summariseExpenseNode(item, year)
+  return (
+    <span className="text-gray-400">
+      {s.ongoing > 0
+        ? `${fmtExpense(s.ongoing)}/yr`
+        : <span className="text-gray-500">{s.nextStart != null ? `starts ${s.nextStart}` : '—'}</span>}
+      {s.occasional > 0 && (
+        <span className="text-gray-500" title={OCCASIONAL_HINT}> + {fmtExpense(s.occasional)} occasional</span>
+      )}
+    </span>
+  )
 }
 
 function recurringDisplayLabel(node) {
@@ -2022,8 +2053,6 @@ function recurringDisplayLabel(node) {
 
 function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYear }) {
   const [open, setOpen] = useState(false)
-  const totalAmt = calcExpenseTotal(item)
-  const ownAmt = item.amountType === 'monthly' ? (item.amount || 0) * 12 : (item.amount || 0)
   const hasChildren = (item.children || []).length > 0
   const canAddChild = depth < 2 // max 3 levels: group(0) → category(1) → subcategory(2)
 
@@ -2084,8 +2113,10 @@ function ExpenseNode({ item, depth, onUpdate, onRemove, planStartYear, planEndYe
         {item.isDiscretionary && (
           <span className="text-xs text-amber-500 shrink-0">disc.</span>
         )}
-        <span className={`text-xs font-mono shrink-0 ${hasChildren && ownAmt === 0 ? 'text-gray-500' : 'text-gray-400'}`}>
-          ${Math.round(totalAmt).toLocaleString()}{item.amountType === 'recurring' ? '' : (item.amountType === 'one_off' ? '' : '/yr')}
+        <span className="text-xs font-mono shrink-0">
+          {hasChildren
+            ? <ExpenseGroupAmount item={item} year={planStartYear} />
+            : <ExpenseItemAmount item={item} year={planStartYear} />}
         </span>
         <button
           className="text-gray-600 hover:text-red-400 text-sm shrink-0"
@@ -2768,6 +2799,16 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
     ? olderBirthYear + (scenario.assumptions?.simulationEndAge || 90)
     : planStartYear + 40
 
+  // Expense section summary — "this year" uses the projection's own rules (windows, one-offs,
+  // recurring years, month pro-rating); ongoing/occasional split as shown on each group
+  const expenseSummary = useMemo(() => {
+    if (expenseItems.length === 0) return null
+    const root = summariseExpenseNode({ children: expenseItems }, planStartYear)
+    const thisYear = expenseItems.reduce((sum, item) =>
+      sum + resolveExpenseTree(item, planStartYear, planStartYear, 0).total, 0)
+    return { ...root, thisYear }
+  }, [expenseItems, planStartYear])
+
   const updatePersonA = patch =>
     updateScenario({ household: { ...scenario.household, personA: { ...personA, ...patch } } })
   const updatePersonB = patch =>
@@ -3062,6 +3103,17 @@ export default function HouseholdProfile({ scenario, updateScenario }) {
         <p className="text-xs text-gray-500 mb-3">
           Organise expenses into groups, categories, and items (up to 3 levels). Each level can hold its own amount.
         </p>
+        {expenseSummary && (
+          <p className="text-xs text-gray-400 mb-3">
+            This year <span className="font-mono text-white">{fmtExpense(expenseSummary.thisYear)}</span>
+            {' · '}Ongoing <span className="font-mono text-white">{fmtExpense(expenseSummary.ongoing)}/yr</span>
+            {expenseSummary.occasionalCount > 0 && (
+              <span title={OCCASIONAL_HINT}>
+                {' · '}Occasional <span className="font-mono text-white">{fmtExpense(expenseSummary.occasional)}</span> ({expenseSummary.occasionalCount})
+              </span>
+            )}
+          </p>
+        )}
         <div className="space-y-2">
           {expenseItems.length === 0 && (
             <p className="text-sm text-gray-500 py-1">

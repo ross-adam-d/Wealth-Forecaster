@@ -109,6 +109,64 @@ export function resolveExpenseTree(
 }
 
 /**
+ * Describe a node's own amount relative to `year`, in today's dollars, for display.
+ *   annual/monthly → 'active' | 'future' | 'ended' with `annual` (full yearly rate)
+ *   one-off/recurring → 'upcoming' (with `nextYear`) | 'past'
+ *   no amount → 'none'
+ */
+export function describeExpenseAmount(node, year) {
+  const amount = node.amount || 0
+  const from = extractYear(node.activeFrom)
+  const to = extractYear(node.activeTo)
+  if (!amount) return { status: 'none', amount: 0 }
+
+  if (node.amountType === 'one_off') {
+    if (from != null && from < year) return { status: 'past', amount, nextYear: from }
+    return { status: 'upcoming', amount, nextYear: from }
+  }
+
+  if (node.amountType === 'recurring') {
+    const every = node.recurringEveryYears
+    if (!every || every < 1 || from == null) return { status: 'none', amount: 0 }
+    const nextYear = from >= year ? from : from + Math.ceil((year - from) / every) * every
+    if (to != null && nextYear > to) return { status: 'past', amount, everyYears: every }
+    return { status: 'upcoming', amount, nextYear, everyYears: every }
+  }
+
+  const annual = node.amountType === 'monthly' ? amount * 12 : amount
+  if (from != null && from > year) return { status: 'future', annual, from, to }
+  if (to != null && to < year) return { status: 'ended', annual, from, to }
+  return { status: 'active', annual, from, to }
+}
+
+/**
+ * Roll up a node and its children for display, in today's dollars:
+ *   ongoing         — yearly cost of annual/monthly items active in `year`
+ *   occasional      — upcoming one-off/recurring costs (amount per occurrence)
+ *   occasionalCount — number of those items
+ *   nextStart       — earliest start year of annual/monthly items not yet active
+ */
+export function summariseExpenseNode(node, year) {
+  const own = describeExpenseAmount(node, year)
+  const summary = {
+    ongoing: own.status === 'active' ? own.annual : 0,
+    occasional: own.status === 'upcoming' ? own.amount : 0,
+    occasionalCount: own.status === 'upcoming' ? 1 : 0,
+    nextStart: own.status === 'future' ? own.from : null,
+  }
+  for (const child of node.children || []) {
+    const c = summariseExpenseNode(child, year)
+    summary.ongoing += c.ongoing
+    summary.occasional += c.occasional
+    summary.occasionalCount += c.occasionalCount
+    if (c.nextStart != null && (summary.nextStart == null || c.nextStart < summary.nextStart)) {
+      summary.nextStart = c.nextStart
+    }
+  }
+  return summary
+}
+
+/**
  * Flatten the expense breakdown into a list of groups with totals.
  * Useful for attribution in the Impact Analyser.
  *

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveNodeAmount, resolveExpenseTree } from '../modules/expenses.js'
+import { resolveNodeAmount, resolveExpenseTree, describeExpenseAmount, summariseExpenseNode } from '../modules/expenses.js'
 
 const CURRENT_YEAR = 2026
 const INFLATION = 0.025
@@ -239,5 +239,50 @@ describe('resolveExpenseTree', () => {
     const empty = { id: 'root', label: 'Empty', amount: 0, isDiscretionary: false, children: [] }
     const result = resolveExpenseTree(empty, CURRENT_YEAR, CURRENT_YEAR, INFLATION)
     expect(result.total).toBe(0)
+  })
+})
+
+// ── Display summary (2026-10-24) ───────────────────────────────────────────
+// Household Profile used to sum every amount as "/yr" regardless of frequency or dates.
+
+describe('describeExpenseAmount / summariseExpenseNode', () => {
+  const Y = 2026
+  const item = (patch) => ({ amount: 1_000, amountType: 'annual', activeFrom: null, activeTo: null, children: [], ...patch })
+
+  it('classifies annual/monthly items by their active window', () => {
+    expect(describeExpenseAmount(item({ amountType: 'monthly', amount: 500 }), Y)).toMatchObject({ status: 'active', annual: 6_000 })
+    expect(describeExpenseAmount(item({ activeFrom: 2035, activeTo: '2046-12' }), Y)).toMatchObject({ status: 'future', from: 2035, to: 2046 })
+    expect(describeExpenseAmount(item({ activeTo: 2024 }), Y)).toMatchObject({ status: 'ended', to: 2024 })
+  })
+
+  it('one-offs are upcoming or past', () => {
+    expect(describeExpenseAmount(item({ amountType: 'one_off', activeFrom: 2030 }), Y)).toMatchObject({ status: 'upcoming', nextYear: 2030 })
+    expect(describeExpenseAmount(item({ amountType: 'one_off', activeFrom: 2020 }), Y)).toMatchObject({ status: 'past' })
+  })
+
+  it('recurring items report the next occurrence within the window', () => {
+    const car = item({ amountType: 'recurring', recurringEveryYears: 10, activeFrom: 2020, activeTo: 2070 })
+    expect(describeExpenseAmount(car, Y)).toMatchObject({ status: 'upcoming', nextYear: 2030, everyYears: 10 })
+    expect(describeExpenseAmount({ ...car, activeTo: 2029 }, Y)).toMatchObject({ status: 'past' })
+  })
+
+  it('rolls up ongoing, occasional and next start, ignoring inactive items', () => {
+    const group = {
+      amount: 0,
+      children: [
+        item({ amount: 12_000 }),                                         // ongoing
+        item({ amountType: 'monthly', amount: 100 }),                     // ongoing 1,200
+        item({ amount: 18_000, activeFrom: 2035, activeTo: 2046 }),       // future
+        item({ amount: 5_000, activeTo: 2024 }),                          // ended
+        item({ amount: 25_000, amountType: 'one_off', activeFrom: 2028 }), // occasional
+        item({ amount: 40_000, amountType: 'recurring', recurringEveryYears: 10, activeFrom: 2030 }),
+      ],
+    }
+    expect(summariseExpenseNode(group, Y)).toEqual({ ongoing: 13_200, occasional: 65_000, occasionalCount: 2, nextStart: 2035 })
+  })
+
+  it('a group with only future items reports when it starts', () => {
+    const kids = { children: [item({ activeFrom: 2040 }), item({ activeFrom: 2035 })] }
+    expect(summariseExpenseNode(kids, Y)).toMatchObject({ ongoing: 0, nextStart: 2035 })
   })
 })
